@@ -398,3 +398,17 @@ The brief emphasized:
 [findings.md](findings.md) records challenges, corrected assumptions, and design
 decisions; the [benchmark report](benchmarks/RESULTS.md) retains measured results
 and their limitations.
+
+## Acknowledgements
+
+Thanks to:
+
+- [Jacob Schreiber](https://github.com/jmschrei), author of
+  [Figwig](https://github.com/jmschrei/figwig), for the format, Python
+  implementation, specification, conformance fixtures, and reference reader
+  that made this implementation possible.
+- [Colin Diesh](https://github.com/cmdcolin), developer and maintainer of many
+  GMOD JavaScript packages, for the genomics I/O libraries and API conventions
+  this package builds on, including
+  [`generic-filehandle2`](https://github.com/GMOD/generic-filehandle2) and
+  [`@gmod/shared-read-cache`](https://github.com/GMOD/shared-read-cache).
