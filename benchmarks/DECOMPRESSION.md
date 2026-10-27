@@ -9,6 +9,12 @@ chunks and batches. The exact current GMOD APIs are not interchangeable with
 this reader's strict RFC1950 decoder. The production package retains its verified
 Pako implementation; this experiment adds no runtime dependency or vendored WASM.
 
+These measurements used Pako's root ESM entry point. The reader now imports
+`pako/lib/inflate.js`; its strict validation logic is unchanged. The original
+asset sizes and first-use timings below describe the measured snapshot. See
+[`../findings.md`](../findings.md#inflate-only-entry-point-and-bundle-size)
+for the subsequent bundle-size comparison.
+
 ## Source versions and compatibility
 
 - [`@gmod/bgzf-filehandle` 6.8.2](https://github.com/GMOD/bgzf-filehandle/tree/02a8f4619316f189d8bb571da54af6214e9d8a26),

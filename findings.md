@@ -138,3 +138,34 @@ are evidence for the recorded setup, not general performance claims.
 - Batching sometimes transfers more bytes because coalesced reads include gaps.
   Request counts, body bytes, phase timings, cache behavior, dataset parameters,
   and the synthetic-network limitations are all retained in `benchmarks/RESULTS.md`.
+
+## Inflate-only entry point and bundle size
+
+- A named `Inflate` import from Pako's root ESM entry did not remove all
+  compression code from the browser build. Importing the explicitly exported
+  `pako/lib/inflate.js` subpath produces a substantially smaller bundle, despite
+  that submodule using CommonJS. The npm dependency remains the same package.
+- Measured with esbuild 0.28.2, browser platform, ES2022 target, ESM output,
+  minification, and Node 26.8.1 `gzipSync` at its default level. The baseline
+  replaces only the inflater import with the root entry; no decoder logic differs.
+
+  | Bundle                  | Root import minified bytes | Inflate-only minified bytes | Root import gzip bytes | Inflate-only gzip bytes |
+  | ----------------------- | -------------------------: | --------------------------: | ---------------------: | ----------------------: |
+  | Strict inflater wrapper |                     48,610 |                      24,114 |                 15,801 |                   8,643 |
+  | Complete public API     |                     85,444 |                      60,921 |                 29,352 |                  21,748 |
+
+- The complete bundle saves 7,604 gzip bytes (about 26%) in this setup. Bundle
+  sizes are bundler/version-specific measurements rather than a size guarantee.
+  Component gzip sizes are measured independently and are not additive.
+- The inflate-only entry preserves synchronous decoding, output-allocation
+  checks, Adler32 verification, and exact single-stream/trailing-byte validation.
+  Browser builds require CommonJS-capable bundling; the existing esbuild and
+  Chromium suite exercises that interoperation. Its build inspection now rejects
+  Pako's full ESM entry and encoder modules.
+- Pako exposes the subpath at runtime, but `@types/pako` declares the package
+  root only. A narrow ambient declaration reuses its `Inflate` class type. The
+  shim stays inside the build: public declarations expose no Pako types.
+- Native `DecompressionStream('deflate')` also passed the checksum, truncation,
+  and trailing-data probes in Node 22/26 and Chromium. It remains a viable
+  alternative with an asynchronous internal refactor and separate native-buffer
+  allocation testing; the selected change keeps the current synchronous design.

@@ -1,4 +1,4 @@
-import { Inflate } from 'pako'
+import { Inflate } from 'pako/lib/inflate.js'
 import { check, FigWigError } from './binary.js'
 
 /** A single RFC1950 stream: bounded output, Adler32, and no trailing bytes. */

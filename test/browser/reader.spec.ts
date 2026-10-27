@@ -70,6 +70,13 @@ test.beforeAll(async ({ browser }) => {
       /generic-filehandle2\/.*localFile/.test(path),
     ),
   ).toBe(false)
+  // Keep compression code out of the reader's browser bundle. Pako's root
+  // ESM entry can retain encoder code despite importing only Inflate.
+  expect(
+    Object.keys(bundle.metafile.inputs).some((path) =>
+      /pako\/(?:dist\/pako\.esm\.mjs|lib\/(?:zlib\/)?deflate\.js)$/.test(path),
+    ),
+  ).toBe(false)
   const javascript = bundle.outputFiles[0].text
   appServer = createServer((request, response) => {
     if (request.url === '/bundle.js') {

@@ -24,6 +24,10 @@ Node.js 22+ or a modern browser with `fetch`, `BigInt`, `AbortController`,
 `TextDecoder`, and typed arrays. The browser build has no Node built-ins or
 mandatory WebAssembly asset. Actual Chromium coverage is described below.
 
+The reader uses Pako's inflate-only entry point to keep compression code out of
+browser bundles. Browser applications need a bundler with CommonJS support,
+such as Vite or esbuild; Node.js can import the built ESM package directly.
+
 ## Open a file and read two tracks
 
 ```ts
