@@ -8,7 +8,7 @@ Chromium. There is no npm publish workflow.
 
 Run `npm run format` to format maintained TypeScript, JavaScript, JSON, Markdown,
 and workflow files with Prettier. Generated fixtures, oracle data, benchmark
-measurements/reports, vendored upstream files, and the original `prompt.md` are
+measurements/reports, vendored upstream files, and the original `PROMPT.md` are
 excluded in `.prettierignore` so regeneration and source attribution stay intact.
 
 The authoritative source and fixture oracle are pinned in

@@ -27,7 +27,8 @@ are evidence for the recorded setup, not general performance claims.
 
 ## Environment
 
-- The workspace initially contained only `prompt.md`, with no Git repository.
+- The workspace initially contained only the implementation brief (now
+  `PROMPT.md`), with no Git repository.
 - A sandboxed GitHub CLI check initially reported an invalid token because it
   could not access the network. Rechecking with network access confirmed a
   valid authenticated account. This was an environment diagnosis error, not a

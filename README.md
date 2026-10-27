@@ -325,3 +325,27 @@ panning, batch genomic windows, pass cancellation signals, keep numeric arrays
 until object records are explicitly needed, and choose track grouping based on
 the measured access pattern. Validate any use of rounded summaries against the
 application's missing-data and precision requirements.
+
+## Built with AI agents
+
+The initial implementation was developed with Codex AI agents from the
+[implementation brief](PROMPT.md), with human direction on scope and design
+choices. A coordinating agent integrated parallel work on binary decoding,
+Python conformance fixtures, HTTP benchmarks, and browser tests. Agents also
+reviewed changes and ran builds, tests, and compatibility checks.
+
+The brief emphasized:
+
+- Follow the frozen Figwig v1 specification, supporting both storage orders
+  while preserving numeric precision and NaN semantics.
+- Intentionally follow GMOD's API style to ease integration with GenomeSpy,
+  which already relies on many GMOD packages, while keeping this Node.js/browser
+  package standalone with no GenomeSpy runtime dependency.
+- Verify against a pinned Python implementation and independent reference
+  reader, including malformed files, real HTTP Range transfers, and Chromium.
+- Measure cold/warm behavior under reproducible localhost latency and bandwidth
+  simulation, prioritizing correctness over benchmark scores.
+
+[findings.md](findings.md) records challenges, corrected assumptions, and design
+decisions; the [benchmark report](benchmarks/RESULTS.md) retains measured results
+and their limitations.
