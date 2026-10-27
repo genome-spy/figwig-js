@@ -326,6 +326,55 @@ until object records are explicitly needed, and choose track grouping based on
 the measured access pattern. Validate any use of rounded summaries against the
 application's missing-data and precision requirements.
 
+## HTTP access and layout tradeoffs
+
+Figwig supports HTTP Range reads, but its
+[layout](https://github.com/jmschrei/figwig/blob/c0e5d6522c677b9f03cd6831e2dbcea759866628/docs/format.rst)
+has coarser fetch units than [BigWig's spatial indexes](https://github.com/ucscGenomeBrowser/kent/blob/master/src/inc/bbiFile.h):
+
+- **Indexes:** A position-order query loads a group's entire compressed
+  live-tile index; track order uses a flat index per track. BigWig can fetch
+  relevant index nodes.
+- **Track groups:** Compressed chunks couple tracks. Large groups favor
+  many-track queries; small groups reduce subset overfetch but can require
+  more requests.
+- **Summaries:** Each Figwig tile-summary or zoom level is one genome-wide
+  stream per group. BigWig zoom data is spatially indexed.
+
+Our reader also fetches compressed summaries and zooms during initial group
+loading. This is an implementation choice: deferred summary loading and
+coalesced group-index requests could reduce overhead within v1.
+
+In the [synthetic benchmarks](benchmarks/RESULTS.md), querying all 24 tracks over
+10 kb required 48 requests with one-track groups versus two with one 24-track
+group, excluding header initialization. All 903 warm samples needed zero
+requests because their working sets fit the caches. No equivalent BigWig
+baseline was measured; BigWig also reads whole compressed blocks, so these
+results establish tradeoffs rather than a universal ranking.
+
+## Browser visualization tradeoffs
+
+This package primarily targets browsers. The formats differ in what a viewer
+can display efficiently:
+
+| Aspect         | BigWig                                           | Figwig                                         |
+| -------------- | ------------------------------------------------ | ---------------------------------------------- |
+| Samples/cells  | Separate files; external collection metadata     | Many tracks and their metadata in one file     |
+| Zoom summaries | Min/max, sums, squared sums, covered-base counts | Rounded sums only                              |
+| Missing values | Gaps distinct from explicit zeros                | Implicit zero; use NaN to preserve missingness |
+| Signal values  | Float32                                          | Integer types and float32/float64              |
+
+See the [BigWig summary layout](https://github.com/ucscGenomeBrowser/kent/blob/master/src/inc/bbiFile.h)
+and [value types](https://github.com/ucscGenomeBrowser/kent/blob/master/src/inc/bwgInternal.h).
+Figwig suits coordinated sample/cell views, but its sum-only zooms cannot
+distinguish sharp peaks from broad plateaus or provide variability and
+NaN-aware means without finer reads. Rendering must handle its different dtypes;
+`bw2fw --missing nan` preserves gaps when converting BigWigs.
+
+Worker placement, copying, and decompression backends are reader choices.
+Chromium correctness is tested; comparative browser throughput, frame times,
+and memory use remain unmeasured.
+
 ## Built with AI agents
 
 The initial implementation was developed with Codex AI agents from the
