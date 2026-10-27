@@ -326,7 +326,9 @@ until object records are explicitly needed, and choose track grouping based on
 the measured access pattern. Validate any use of rounded summaries against the
 application's missing-data and precision requirements.
 
-## HTTP access and layout tradeoffs
+## Figwig vs BigWig
+
+### HTTP access and layout tradeoffs
 
 Figwig supports HTTP Range reads, but its
 [layout](https://github.com/jmschrei/figwig/blob/c0e5d6522c677b9f03cd6831e2dbcea759866628/docs/format.rst)
@@ -352,7 +354,7 @@ requests because their working sets fit the caches. No equivalent BigWig
 baseline was measured; BigWig also reads whole compressed blocks, so these
 results establish tradeoffs rather than a universal ranking.
 
-## Browser visualization tradeoffs
+### Browser visualization tradeoffs
 
 This package primarily targets browsers. The formats differ in what a viewer
 can display efficiently:
