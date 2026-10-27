@@ -36,15 +36,15 @@ merged files share a second signal dataset with an added `late` track. The
 oracle deduplicates these signals and omits implicit zero entries. Its per-file
 metadata and index expectations remain distinct.
 
-| File | Layout and purpose |
-| --- | --- |
-| `zlib.fw` | Position order, zlib and stored chunks, several runs per group, zooms |
-| `stored.fw` | Position order, uncompressed, no zooms |
-| `tracks.fw` | Track order, uncompressed blocks |
-| `tracks_zlib.fw` | Track order, compressed blocks |
-| `appended.fw` | Appended track; historical tables/index remain as unused bytes |
-| `merged.fw` | Merged equivalent; historical structures removed |
-| `blocks.fw` | Multiple blocks on a 200 kb chromosome; implicit-one block |
+| File             | Layout and purpose                                                    |
+| ---------------- | --------------------------------------------------------------------- |
+| `zlib.fw`        | Position order, zlib and stored chunks, several runs per group, zooms |
+| `stored.fw`      | Position order, uncompressed, no zooms                                |
+| `tracks.fw`      | Track order, uncompressed blocks                                      |
+| `tracks_zlib.fw` | Track order, compressed blocks                                        |
+| `appended.fw`    | Appended track; historical tables/index remain as unused bytes        |
+| `merged.fw`      | Merged equivalent; historical structures removed                      |
+| `blocks.fw`      | Multiple blocks on a 200 kb chromosome; implicit-one block            |
 
 Together they exercise dense, sparse, matrix and runs chunks, element codes
 0–8 (uint8/16/32, int8/16/32, float32, implicit one and float64), missing values,

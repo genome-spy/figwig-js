@@ -79,14 +79,14 @@ Values are MiB/s of decompressed bytes. BGZF values use eligible payloads only;
 large track-order blocks are reported separately. BBI batch32 preassembles up to
 32 compressed chunks and inflates them in one call.
 
-| Samples | Chunks | Pako strict | BBI raw single | BBI + header/Adler | BBI + header/Adler batch32 | BGZF rewrap + header/Adler |
-|---|---:|---:|---:|---:|---:|---:|
-| official-position/BGZF-eligible | 45 | 39.2 | 33.0 | 32.4 | 193.9 | 162.1 |
-| official-track/BGZF-eligible | 69 | 97.6 | 192.5 | 177.2 | 274.8 | 261.2 |
-| official-track/over-BGZF-limit | 2 | 139.9 | 511.4 | 423.4 | 424.7 | — |
-| sparse24/BGZF-eligible | 128 | 66.4 | 173.8 | 163.0 | 186.5 | 174.1 |
-| dense8/BGZF-eligible | 128 | 110.7 | 370.8 | 165.0 | 165.6 | 166.2 |
-| mixed24/BGZF-eligible | 128 | 133.5 | 481.4 | 183.2 | 184.3 | 182.4 |
+| Samples                         | Chunks | Pako strict | BBI raw single | BBI + header/Adler | BBI + header/Adler batch32 | BGZF rewrap + header/Adler |
+| ------------------------------- | -----: | ----------: | -------------: | -----------------: | -------------------------: | -------------------------: |
+| official-position/BGZF-eligible |     45 |        39.2 |           33.0 |               32.4 |                      193.9 |                      162.1 |
+| official-track/BGZF-eligible    |     69 |        97.6 |          192.5 |              177.2 |                      274.8 |                      261.2 |
+| official-track/over-BGZF-limit  |      2 |       139.9 |          511.4 |              423.4 |                      424.7 |                          — |
+| sparse24/BGZF-eligible          |    128 |        66.4 |          173.8 |              163.0 |                      186.5 |                      174.1 |
+| dense8/BGZF-eligible            |    128 |       110.7 |          370.8 |              165.0 |                      165.6 |                      166.2 |
+| mixed24/BGZF-eligible           |    128 |       133.5 |          481.4 |              183.2 |                      184.3 |                      182.4 |
 
 Raw BBI output is approximately 3.4× the strict Pako throughput for the dense
 sample. Adding the JavaScript checksum reduces that measured gain to about
@@ -101,14 +101,14 @@ microbenchmark results, not end-to-end query speedups.
 The following are total milliseconds per repeated sample set, median / p95.
 Pass counts differ between datasets, so compare variants within a row.
 
-| Samples | Passes | Raw MiB per repetition | Pako strict median / p95 | BBI + header/Adler median / p95 | BGZF + header/Adler median / p95 |
-|---|---:|---:|---:|---:|---:|
-| official-position/BGZF-eligible | 1024 | 3.07 | 78.25 / 97.53 | 94.77 / 99.95 | 18.94 / 19.62 |
-| official-track/BGZF-eligible | 180 | 8.04 | 82.44 / 93.33 | 45.40 / 47.29 | 30.80 / 32.13 |
-| official-track/over-BGZF-limit | 13 | 8.12 | 58.06 / 58.72 | 19.19 / 19.37 | — |
-| sparse24/BGZF-eligible | 94 | 8.02 | 120.82 / 123.73 | 49.18 / 50.04 | 46.05 / 46.61 |
-| dense8/BGZF-eligible | 2 | 15.89 | 143.50 / 146.80 | 96.28 / 104.67 | 95.61 / 101.70 |
-| mixed24/BGZF-eligible | 2 | 10.15 | 76.06 / 76.96 | 55.42 / 56.08 | 55.65 / 61.49 |
+| Samples                         | Passes | Raw MiB per repetition | Pako strict median / p95 | BBI + header/Adler median / p95 | BGZF + header/Adler median / p95 |
+| ------------------------------- | -----: | ---------------------: | -----------------------: | ------------------------------: | -------------------------------: |
+| official-position/BGZF-eligible |   1024 |                   3.07 |            78.25 / 97.53 |                   94.77 / 99.95 |                    18.94 / 19.62 |
+| official-track/BGZF-eligible    |    180 |                   8.04 |            82.44 / 93.33 |                   45.40 / 47.29 |                    30.80 / 32.13 |
+| official-track/over-BGZF-limit  |     13 |                   8.12 |            58.06 / 58.72 |                   19.19 / 19.37 |                                — |
+| sparse24/BGZF-eligible          |     94 |                   8.02 |          120.82 / 123.73 |                   49.18 / 50.04 |                    46.05 / 46.61 |
+| dense8/BGZF-eligible            |      2 |                  15.89 |          143.50 / 146.80 |                  96.28 / 104.67 |                   95.61 / 101.70 |
+| mixed24/BGZF-eligible           |      2 |                  10.15 |            76.06 / 76.96 |                   55.42 / 56.08 |                    55.65 / 61.49 |
 
 ## Bundle and first-use cost
 
@@ -118,11 +118,11 @@ GMOD assets are the exact checked-in inlined bundles. Gzip sizes include their
 JavaScript and embedded base64 WASM. Actual app bundlers and HTTP compression
 may produce different totals.
 
-| Decoder asset | JavaScript bytes | Gzipped bytes | Embedded WASM bytes |
-|---|---:|---:|---:|
-| `inflate-wasm-inlined.js` | 60,281 | 24,092 | 33879 |
-| `bgzf-wasm-inlined.js` | 52,088 | 21,418 | 29907 |
-| `pako-strict.mjs` | 48,597 | 15,790 | — |
+| Decoder asset             | JavaScript bytes | Gzipped bytes | Embedded WASM bytes |
+| ------------------------- | ---------------: | ------------: | ------------------: |
+| `inflate-wasm-inlined.js` |           60,281 |        24,092 |               33879 |
+| `bgzf-wasm-inlined.js`    |           52,088 |        21,418 |               29907 |
+| `pako-strict.mjs`         |           48,597 |        15,790 |                   — |
 
 Each cold sample runs in a fresh Node process. The timer starts before importing
 the local decoder module and ends after its first real payload decode; Node
@@ -132,10 +132,10 @@ First-call timings include the WASM data-URL fetch and instantiation, or Pako's
 first decode/JIT work, plus a small base64 input-preparation step.
 
 | Decoder | Import median ms | First call median ms | Combined median ms | Combined p95 ms |
-|---|---:|---:|---:|---:|
-| bbi | 0.56 | 12.02 | 12.62 | 12.95 |
-| bgzf | 0.51 | 11.73 | 12.25 | 13.60 |
-| pako | 1.20 | 4.24 | 5.45 | 5.52 |
+| ------- | ---------------: | -------------------: | -----------------: | --------------: |
+| bbi     |             0.56 |                12.02 |              12.62 |           12.95 |
+| bgzf    |             0.51 |                11.73 |              12.25 |           13.60 |
+| pako    |             1.20 |                 4.24 |               5.45 |            5.52 |
 
 Both upstream inlined bundles use browser APIs (`fetch` on a data URL and
 `WebAssembly.instantiate`) and contain no Node filesystem requirement. These
@@ -152,14 +152,14 @@ These probes mutate the same valid stream. The output-size probe supplies a
 limit one byte below the known output. Accepting a trailing or concatenated
 stream conflicts with the Figwig v1 single-stream validation requirement.
 
-| Probe | Pako strict | BBI raw | BBI + header/Adler |
-|---|---|---|---|
-| valid | accepted | accepted | accepted |
-| bad header | rejected | accepted | rejected |
-| bad Adler32 | rejected | accepted | rejected |
-| trailing DEFLATE byte | rejected | accepted | accepted |
-| concatenated streams | rejected | accepted | accepted |
-| declared output too small | rejected | rejected | rejected |
+| Probe                     | Pako strict | BBI raw  | BBI + header/Adler |
+| ------------------------- | ----------- | -------- | ------------------ |
+| valid                     | accepted    | accepted | accepted           |
+| bad header                | rejected    | accepted | rejected           |
+| bad Adler32               | rejected    | accepted | rejected           |
+| trailing DEFLATE byte     | rejected    | accepted | accepted           |
+| concatenated streams      | rejected    | accepted | accepted           |
+| declared output too small | rejected    | rejected | rejected           |
 
 Ordinary zlib input to the BGZF WASM API: **rejected**, as expected for that API.
 BGZF synthetic rewrapping cannot remove its 64 KiB format limit, and does not

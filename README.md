@@ -107,11 +107,15 @@ independent caller-owned output arrays, with no cached-array aliasing.
 
 ```ts
 const features = await fw.getFeatures('chr1', 100, 200, {
-  tracks: ['atac'], basesPerSpan: 10, aggregation: 'mean', missing: 'omit',
+  tracks: ['atac'],
+  basesPerSpan: 10,
+  aggregation: 'mean',
+  missing: 'omit',
 })
 // { track: 'atac', trackIndex: 0, start: 100, end: 110, score: ... }
 const featureBatches = await fw.getFeaturesMulti(regions, {
-  tracks: ['atac'], basesPerSpan: 10,
+  tracks: ['atac'],
+  basesPerSpan: 10,
 })
 ```
 
@@ -125,12 +129,16 @@ reading data. Use typed arrays or increase span for larger requests.
 
 ```ts
 const bins = await fw.getBins('chr1', 1_000_000, 2_000_000, {
-  tracks: ['atac', 'dnase'], binSize: 1000,
-  aggregation: 'mean', missing: 'omit',
+  tracks: ['atac', 'dnase'],
+  binSize: 1000,
+  aggregation: 'mean',
+  missing: 'omit',
 })
 // bins.starts / bins.ends: Uint32Array; per-track values: Float64Array
 const binBatches = await fw.getBinsMulti(regions, {
-  tracks: ['atac'], binSize: 100, aggregation: 'sum',
+  tracks: ['atac'],
+  binSize: 100,
+  aggregation: 'sum',
 })
 ```
 
@@ -140,11 +148,11 @@ Unwritten bases and implicit zero tiles hold **zero**, and count toward means.
 The format cannot distinguish an unwritten base from an explicitly written zero.
 NaNs remain distinct from zero:
 
-| `missing` | Sum | Mean |
-| --- | --- | --- |
-| `propagate` (default) | NaN if any base is NaN | NaN if any base is NaN |
-| `omit` | Sum non-NaN bases; all-NaN bin is 0 | Divide by non-NaN base count; all-NaN bin is NaN |
-| `zero` | Treat NaN as zero | Divide by actual bin width, including NaNs |
+| `missing`             | Sum                                 | Mean                                             |
+| --------------------- | ----------------------------------- | ------------------------------------------------ |
+| `propagate` (default) | NaN if any base is NaN              | NaN if any base is NaN                           |
+| `omit`                | Sum non-NaN bases; all-NaN bin is 0 | Divide by non-NaN base count; all-NaN bin is NaN |
+| `zero`                | Treat NaN as zero                   | Divide by actual bin width, including NaNs       |
 
 Means never divide by a padded tile width or a requested width past a chromosome.
 Aggregations use binary64 arithmetic and return float64; ordinary floating-point
@@ -159,8 +167,11 @@ Precomputed summaries are an **explicit approximation opt-in**:
 
 ```ts
 const coarse = await fw.getBins('chr1', 0, 1_048_576, {
-  tracks: ['atac'], binSize: 65_536,
-  aggregation: 'sum', missing: 'zero', useSummaries: true,
+  tracks: ['atac'],
+  binSize: 65_536,
+  aggregation: 'sum',
+  missing: 'zero',
+  useSummaries: true,
 })
 console.log(coarse.source) // 'summary' when aligned and available; otherwise 'values'
 ```
@@ -178,7 +189,7 @@ from full resolution. Figwig summaries are not BigWig zoom records.
 ```ts
 const levels = await fw.getZoomLevels({ tracks: ['atac', 'dnase'] })
 // [{ level, factor, binSize, groups }], discovered lazily
-const tiles = await fw.getSummary(0)    // group 0, tile sums
+const tiles = await fw.getSummary(0) // group 0, tile sums
 const zoom = await fw.getSummary(0, 1) // group 0, first zoom, if available
 ```
 
@@ -211,10 +222,11 @@ raise errors rather than returning misleading data.
 ```ts
 const controller = new AbortController()
 const pending = fw.getValues('chr1', 0, 10000, {
-  tracks: ['atac'], signal: controller.signal,
+  tracks: ['atac'],
+  signal: controller.signal,
 })
 controller.abort()
-await pending.catch(error => console.log(error.name)) // AbortError
+await pending.catch((error) => console.log(error.name)) // AbortError
 ```
 
 Shared work uses `@gmod/shared-read-cache`: one caller's cancellation does not
@@ -237,18 +249,18 @@ files; reopen a new reader and filehandle after appending or replacing a file.
 
 Important constructor defaults (bytes unless otherwise stated):
 
-| Option | Default | Purpose |
-| --- | ---: | --- |
-| `maxOutputBytes` | 256 MiB | Total numeric output allocation per batch |
-| `maxReadBytes` | 64 MiB | One filehandle read, including metadata/group records |
-| `maxInflatedBytes` | 128 MiB | One inflated payload / decoded chunk / parsed index |
-| `indexCacheBytes` | 32 MiB | Retained parsed group records |
-| `chunkCacheBytes` | 64 MiB | Retained decoded chunks |
-| `summaryCacheBytes` | 32 MiB | Retained decoded summaries |
-| `maxConcurrentRequests` | 6 | Reader-wide filehandle read concurrency |
-| `coalesceGap` | 4096 | Maximum gap fetched between nearby chunks |
-| `maxCoalescedBytes` | 4 MiB | Target maximum coalesced range; a larger single chunk is allowed within read limits |
-| `maxFeatures` | 1,000,000 | Maximum potential interval objects per batch |
+| Option                  |   Default | Purpose                                                                             |
+| ----------------------- | --------: | ----------------------------------------------------------------------------------- |
+| `maxOutputBytes`        |   256 MiB | Total numeric output allocation per batch                                           |
+| `maxReadBytes`          |    64 MiB | One filehandle read, including metadata/group records                               |
+| `maxInflatedBytes`      |   128 MiB | One inflated payload / decoded chunk / parsed index                                 |
+| `indexCacheBytes`       |    32 MiB | Retained parsed group records                                                       |
+| `chunkCacheBytes`       |    64 MiB | Retained decoded chunks                                                             |
+| `summaryCacheBytes`     |    32 MiB | Retained decoded summaries                                                          |
+| `maxConcurrentRequests` |         6 | Reader-wide filehandle read concurrency                                             |
+| `coalesceGap`           |      4096 | Maximum gap fetched between nearby chunks                                           |
+| `maxCoalescedBytes`     |     4 MiB | Target maximum coalesced range; a larger single chunk is allowed within read limits |
+| `maxFeatures`           | 1,000,000 | Maximum potential interval objects per batch                                        |
 
 Limits are configurable and can reject otherwise valid very large v1 files.
 They bound individual allocations and retained caches, not total process memory
@@ -259,19 +271,19 @@ Network-level transferred-body metrics come from the benchmark server.
 
 ## Format support and limits
 
-| Figwig v1 feature | Support |
-| --- | --- |
-| Position-order runs and whole-group compressed live indexes | Yes; lazy selected groups |
-| Track-order sparse blocks | Yes; chromosome/position binary search |
-| Dense, sparse, matrix, runs | All |
-| Numeric element codes 0–8, including implicit one | All |
-| Native heterogeneous track dtypes and NaNs | Yes |
-| Zlib, codec 0, stored chunks within codec 1 | Yes |
-| Global statistics, tile summaries, optional zoom levels | Yes |
-| Appended/merged files and unused historical bytes | Yes |
-| Unknown optional features | Ignored as required by v1 |
-| Unsupported required features / versions | Rejected |
-| Writing or editing Figwig files | Out of scope |
+| Figwig v1 feature                                           | Support                                |
+| ----------------------------------------------------------- | -------------------------------------- |
+| Position-order runs and whole-group compressed live indexes | Yes; lazy selected groups              |
+| Track-order sparse blocks                                   | Yes; chromosome/position binary search |
+| Dense, sparse, matrix, runs                                 | All                                    |
+| Numeric element codes 0–8, including implicit one           | All                                    |
+| Native heterogeneous track dtypes and NaNs                  | Yes                                    |
+| Zlib, codec 0, stored chunks within codec 1                 | Yes                                    |
+| Global statistics, tile summaries, optional zoom levels     | Yes                                    |
+| Appended/merged files and unused historical bytes           | Yes                                    |
+| Unknown optional features                                   | Ignored as required by v1              |
+| Unsupported required features / versions                    | Rejected                               |
+| Writing or editing Figwig files                             | Out of scope                           |
 
 Compared with Python, outputs are per-track native arrays instead of one common
 numeric matrix, coordinate bounds are explicit errors, and NaN aggregation and
@@ -283,6 +295,7 @@ tested; Firefox and WebKit have not been exercised in this implementation.
 
 ```sh
 npm ci
+npm run format:check
 npm run typecheck
 npm run lint
 npm test

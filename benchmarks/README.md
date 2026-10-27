@@ -73,12 +73,12 @@ accepts exact names or prefixes (`A,B,C,D,E,F,G,H,I`). `--match` filters filenam
 and an adjacent Markdown table. The report in `RESULTS.md` identifies the exact
 commands used for recorded measurements.
 
-| Network | Fixed response latency | Shared body bandwidth |
-|---|---:|---:|
-| `local` | 0 ms | Unlimited |
-| `fast` | 20 ms | 100 Mbit/s |
-| `typical` | 80 ms | 50 Mbit/s |
-| `high` | 150 ms | 10 Mbit/s |
+| Network   | Fixed response latency | Shared body bandwidth |
+| --------- | ---------------------: | --------------------: |
+| `local`   |                   0 ms |             Unlimited |
+| `fast`    |                  20 ms |            100 Mbit/s |
+| `typical` |                  80 ms |             50 Mbit/s |
+| `high`    |                 150 ms |             10 Mbit/s |
 
 The server can additionally set deterministic nonnegative jitter, a request
 concurrency limit (default 8), and body chunk size (default 16 KiB). Body chunks

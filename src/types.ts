@@ -1,8 +1,29 @@
 import type { GenericFilehandle } from 'generic-filehandle2'
 
-export type DType = 'uint8' | 'uint16' | 'uint32' | 'int8' | 'int16' | 'int32' | 'float32' | 'float64'
-export type NumericArray = Uint8Array | Uint16Array | Uint32Array | Int8Array | Int16Array | Int32Array | Float32Array | Float64Array
-export interface Statistics { sum: number; nonzero: number; min: number; max: number }
+export type DType =
+  | 'uint8'
+  | 'uint16'
+  | 'uint32'
+  | 'int8'
+  | 'int16'
+  | 'int32'
+  | 'float32'
+  | 'float64'
+export type NumericArray =
+  | Uint8Array
+  | Uint16Array
+  | Uint32Array
+  | Int8Array
+  | Int16Array
+  | Int32Array
+  | Float32Array
+  | Float64Array
+export interface Statistics {
+  sum: number
+  nonzero: number
+  min: number
+  max: number
+}
 export interface Track {
   readonly index: number
   readonly name: string
@@ -11,7 +32,13 @@ export interface Track {
   readonly metadata: Readonly<Record<string, unknown>>
   readonly statistics: Statistics
 }
-export interface Chromosome { readonly id: number; readonly name: string; readonly length: number; readonly tileOffset: number; readonly tileCount: number }
+export interface Chromosome {
+  readonly id: number
+  readonly name: string
+  readonly length: number
+  readonly tileOffset: number
+  readonly tileCount: number
+}
 export interface Header {
   readonly version: 1
   readonly order: 'positions' | 'tracks'
@@ -27,11 +54,24 @@ export interface Header {
   readonly groupCount: number
   readonly length: number
 }
-export type TrackSelection = readonly (string | number)[] | Readonly<Record<string, unknown>>
-export interface ReadOptions { signal?: AbortSignal; tracks?: TrackSelection }
-export interface Region { chromosome: string; start: number; end: number }
-export interface TrackValues { track: Track; values: NumericArray }
-export interface ValuesResult extends Region { tracks: TrackValues[] }
+export type TrackSelection =
+  readonly (string | number)[] | Readonly<Record<string, unknown>>
+export interface ReadOptions {
+  signal?: AbortSignal
+  tracks?: TrackSelection
+}
+export interface Region {
+  chromosome: string
+  start: number
+  end: number
+}
+export interface TrackValues {
+  track: Track
+  values: NumericArray
+}
+export interface ValuesResult extends Region {
+  tracks: TrackValues[]
+}
 export type MissingPolicy = 'propagate' | 'omit' | 'zero'
 export interface BinOptions extends ReadOptions {
   binSize: number
@@ -47,7 +87,13 @@ export interface BinsResult extends ValuesResult {
   binSize: number
   source: 'values' | 'summary'
 }
-export interface Feature { track: string; trackIndex: number; start: number; end: number; score: number }
+export interface Feature {
+  track: string
+  trackIndex: number
+  start: number
+  end: number
+  score: number
+}
 export interface FeatureOptions extends ReadOptions {
   basesPerSpan?: number
   aggregation?: 'sum' | 'mean'
@@ -65,11 +111,24 @@ export interface Summary {
   tracks: readonly Track[]
   available: boolean
 }
-export interface ZoomLevel { level: number; factor: number; binSize: number; groups: number[] }
+export interface ZoomLevel {
+  level: number
+  factor: number
+  binSize: number
+  groups: number[]
+}
 export interface Diagnostics {
-  readRequests: number; indexBytes: number; dataBytes: number; chunksFetched: number
-  chunksDecompressed: number; indexLoadMs: number; decompressionMs: number; decodingMs: number
-  chunkCacheHits: number; chunkCacheMisses: number; cacheBytes: number
+  readRequests: number
+  indexBytes: number
+  dataBytes: number
+  chunksFetched: number
+  chunksDecompressed: number
+  indexLoadMs: number
+  decompressionMs: number
+  decodingMs: number
+  chunkCacheHits: number
+  chunkCacheMisses: number
+  cacheBytes: number
 }
 export interface FigWigOptions {
   filehandle?: GenericFilehandle

@@ -1,10 +1,15 @@
 # Development
 
-Use Node.js 22+ and `npm ci`. Run `npm run typecheck`, `npm run lint`, `npm test`,
+Use Node.js 22+ and `npm ci`. Run `npm run format:check`, `npm run typecheck`, `npm run lint`, `npm test`,
 `npm run test:browser` (after `npx playwright install chromium`), and
 `npm run build` before submitting changes. Local HTTP tests require permission
 to bind a localhost port; actual browser tests require permission to launch
 Chromium. There is no npm publish workflow.
+
+Run `npm run format` to format maintained TypeScript, JavaScript, JSON, Markdown,
+and workflow files with Prettier. Generated fixtures, oracle data, benchmark
+measurements/reports, vendored upstream files, and the original `prompt.md` are
+excluded in `.prettierignore` so regeneration and source attribution stay intact.
 
 The authoritative source and fixture oracle are pinned in
 [`test/fixtures/README.md`](test/fixtures/README.md). Change expected results

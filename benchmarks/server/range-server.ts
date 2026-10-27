@@ -62,10 +62,26 @@ export async function startRangeServer(options: NetworkOptions) {
   const latency = options.latencyMs ?? 0
   const bandwidth = options.bandwidthBitsPerSecond ?? 0
   const jitter = options.jitterMs ?? 0
-  if (!Number.isInteger(concurrency) || concurrency < 1 || !Number.isInteger(chunkSize) || chunkSize < 1 || ![latency, bandwidth, jitter].every(Number.isFinite) || latency < 0 || bandwidth < 0 || jitter < 0) {
+  if (
+    !Number.isInteger(concurrency) ||
+    concurrency < 1 ||
+    !Number.isInteger(chunkSize) ||
+    chunkSize < 1 ||
+    ![latency, bandwidth, jitter].every(Number.isFinite) ||
+    latency < 0 ||
+    bandwidth < 0 ||
+    jitter < 0
+  ) {
     throw new Error('Invalid network simulation options')
   }
-  let metrics: ServerMetrics = { requests: 0, bodyBytes: 0, active: 0, peakConcurrent: 0, cancelled: 0, ranges: [] }
+  let metrics: ServerMetrics = {
+    requests: 0,
+    bodyBytes: 0,
+    active: 0,
+    peakConcurrent: 0,
+    cancelled: 0,
+    ranges: [],
+  }
   let sequence = 0
   let busy = 0
   let bandwidthAvailableAt = 0
@@ -94,13 +110,19 @@ export async function startRangeServer(options: NetworkOptions) {
     busy++
   }
 
-  async function send(response: ServerResponse, bytes: Uint8Array, signal: AbortSignal) {
+  async function send(
+    response: ServerResponse,
+    bytes: Uint8Array,
+    signal: AbortSignal,
+  ) {
     if (bandwidth > 0) {
       // Reserving from a single timeline prevents parallel requests from multiplying
       // the link's bandwidth. Each reservation is one small body chunk, not a
       // single delay followed by an unthrottled whole-file response.
       const now = performance.now()
-      bandwidthAvailableAt = Math.max(now, bandwidthAvailableAt) + bytes.byteLength * 8000 / bandwidth
+      bandwidthAvailableAt =
+        Math.max(now, bandwidthAvailableAt) +
+        (bytes.byteLength * 8000) / bandwidth
       await delay(bandwidthAvailableAt - now, signal)
     }
     signal.throwIfAborted()
@@ -115,7 +137,10 @@ export async function startRangeServer(options: NetworkOptions) {
   const server = createServer((request, response) => {
     response.setHeader('Access-Control-Allow-Origin', '*')
     response.setHeader('Access-Control-Allow-Headers', 'Range, Content-Type')
-    response.setHeader('Access-Control-Expose-Headers', 'Content-Range, Content-Length, Accept-Ranges')
+    response.setHeader(
+      'Access-Control-Expose-Headers',
+      'Content-Range, Content-Length, Accept-Ranges',
+    )
     response.setHeader('Accept-Ranges', 'bytes')
     response.setHeader('Cache-Control', 'no-store')
     if (request.method === 'OPTIONS') {
@@ -131,7 +156,15 @@ export async function startRangeServer(options: NetworkOptions) {
     controllers.add(controller)
     const currentMetrics = metrics
     const ordinal = sequence++
-    const record: RangeRecord = { path: request.url ?? '/', range: request.headers.range, start: 0, end: -1, status: 0, bodyBytes: 0, cancelled: false }
+    const record: RangeRecord = {
+      path: request.url ?? '/',
+      range: request.headers.range,
+      start: 0,
+      end: -1,
+      status: 0,
+      bodyBytes: 0,
+      cancelled: false,
+    }
     currentMetrics.requests++
     currentMetrics.ranges.push(record)
     response.on('close', () => {
@@ -145,14 +178,18 @@ export async function startRangeServer(options: NetworkOptions) {
       let acquired = false
       let handle: Awaited<ReturnType<typeof open>> | undefined
       try {
-        const path = resolve(root, `.${decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname)}`)
+        const path = resolve(
+          root,
+          `.${decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname)}`,
+        )
         if (path !== root && !path.startsWith(root + sep)) {
           record.status = 403
           response.writeHead(403).end()
           return
         }
         const info = await stat(path)
-        if (!info.isFile()) throw Object.assign(new Error('Not a file'), { code: 'ENOENT' })
+        if (!info.isFile())
+          throw Object.assign(new Error('Not a file'), { code: 'ENOENT' })
         const size = info.size
         let start = 0
         let end = size - 1
@@ -166,9 +203,20 @@ export async function startRangeServer(options: NetworkOptions) {
               start = Math.max(0, size - Number(match[2]))
             }
           } else start = size
-          if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || start > end || start >= size) {
+          if (
+            !Number.isSafeInteger(start) ||
+            !Number.isSafeInteger(end) ||
+            start < 0 ||
+            start > end ||
+            start >= size
+          ) {
             record.status = 416
-            response.writeHead(416, { 'Content-Range': `bytes */${size}`, 'Content-Length': 0 }).end()
+            response
+              .writeHead(416, {
+                'Content-Range': `bytes */${size}`,
+                'Content-Length': 0,
+              })
+              .end()
             return
           }
         }
@@ -178,13 +226,24 @@ export async function startRangeServer(options: NetworkOptions) {
         await slot(signal)
         acquired = true
         currentMetrics.active++
-        currentMetrics.peakConcurrent = Math.max(currentMetrics.peakConcurrent, currentMetrics.active)
+        currentMetrics.peakConcurrent = Math.max(
+          currentMetrics.peakConcurrent,
+          currentMetrics.active,
+        )
         // Integer hash: jitter depends only on request ordinal and seed.
-        const mixed = Math.imul((ordinal + (options.seed ?? 1)) ^ 0x9e3779b9, 0x85ebca6b) >>> 0
-        await delay(latency + (jitter ? mixed / 0xffffffff * jitter : 0), signal)
+        const mixed =
+          Math.imul(
+            (ordinal + (options.seed ?? 1)) ^ 0x9e3779b9,
+            0x85ebca6b,
+          ) >>> 0
+        await delay(
+          latency + (jitter ? (mixed / 0xffffffff) * jitter : 0),
+          signal,
+        )
         response.statusCode = record.status
         response.setHeader('Content-Length', Math.max(0, end - start + 1))
-        if (request.headers.range) response.setHeader('Content-Range', `bytes ${start}-${end}/${size}`)
+        if (request.headers.range)
+          response.setHeader('Content-Range', `bytes ${start}-${end}/${size}`)
         if (request.method === 'HEAD' || size === 0) {
           response.end()
           return
@@ -194,8 +253,14 @@ export async function startRangeServer(options: NetworkOptions) {
         while (position <= end) {
           signal.throwIfAborted()
           const buffer = new Uint8Array(Math.min(chunkSize, end - position + 1))
-          const { bytesRead } = await handle.read(buffer, 0, buffer.length, position)
-          if (!bytesRead) throw new Error('File changed or was truncated during transfer')
+          const { bytesRead } = await handle.read(
+            buffer,
+            0,
+            buffer.length,
+            position,
+          )
+          if (!bytesRead)
+            throw new Error('File changed or was truncated during transfer')
           await send(response, buffer.subarray(0, bytesRead), signal)
           record.bodyBytes += bytesRead
           currentMetrics.bodyBytes += bytesRead
@@ -204,7 +269,8 @@ export async function startRangeServer(options: NetworkOptions) {
         response.end()
       } catch (error) {
         if (!signal.aborted) {
-          record.status = (error as NodeJS.ErrnoException).code === 'ENOENT' ? 404 : 500
+          record.status =
+            (error as NodeJS.ErrnoException).code === 'ENOENT' ? 404 : 500
           if (!response.headersSent) response.writeHead(record.status).end()
           else response.destroy(error instanceof Error ? error : undefined)
         }
@@ -229,20 +295,32 @@ export async function startRangeServer(options: NetworkOptions) {
     })
   })
   const address = server.address()
-  if (!address || typeof address === 'string') throw new Error('Failed to listen')
+  if (!address || typeof address === 'string')
+    throw new Error('Failed to listen')
   return {
     url: `http://127.0.0.1:${address.port}`,
     server,
-    get metrics() { return structuredClone(metrics) },
+    get metrics() {
+      return structuredClone(metrics)
+    },
     resetMetrics() {
       if (busy) throw new Error('Cannot reset metrics with active transfers')
-      metrics = { requests: 0, bodyBytes: 0, active: 0, peakConcurrent: 0, cancelled: 0, ranges: [] }
+      metrics = {
+        requests: 0,
+        bodyBytes: 0,
+        active: 0,
+        peakConcurrent: 0,
+        cancelled: 0,
+        ranges: [],
+      }
       sequence = 0
       bandwidthAvailableAt = 0
     },
     async close() {
       for (const controller of controllers) controller.abort()
-      const closing = new Promise<void>((resolveClose, reject) => server.close(error => error ? reject(error) : resolveClose()))
+      const closing = new Promise<void>((resolveClose, reject) =>
+        server.close((error) => (error ? reject(error) : resolveClose())),
+      )
       server.closeAllConnections()
       await Promise.allSettled([...tasks])
       await closing
