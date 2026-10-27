@@ -34,6 +34,13 @@ are evidence for the recorded setup, not general performance claims.
   missing credential; repository creation can proceed.
 - The default Python 3.14 environment does not provide the writer's numerical
   dependencies. Fixture tooling uses an isolated Python environment.
+- Automatic approval review rejected creating a public repository because
+  public source release was not explicitly authorized. Creating the requested
+  repository privately was approved; `genome-spy/figwig-js` remains private.
+- The HTTPS OAuth token could create the private repository but could not push
+  GitHub Actions files because it lacks the `workflow` scope. The user's
+  configured SSH Git credentials successfully pushed the complete implementation
+  and workflows. No new token or credential-scope change was needed.
 
 ## Verification and measurements
 
@@ -93,3 +100,41 @@ are evidence for the recorded setup, not general performance claims.
   This establishes promise, not a conformant drop-in replacement. Full source
   revisions, setup/asset costs, semantic probes, and measurements are in
   `benchmarks/DECOMPRESSION.md`. No experimental adapter is used at runtime.
+
+## Final local checks
+
+- All 143 Node tests pass, including 42 Python-backed conformance tests, direct
+  bins, strict zlib validation, malformed files, HTTP protocol/range accounting,
+  cache reuse, and cancellation. Verified on Node 22.23.4 and Node 26.8.1.
+- Three actual Chromium tests pass; Firefox and WebKit remain untested.
+- TypeScript checking, ESLint, production build, and package-content inspection
+  pass. The tarball contains only runtime JavaScript/declarations, README,
+  license, and package metadata (21 files, about 26 KiB compressed).
+- An isolated consumer installed the tarball outside the checkout, typechecked
+  its declarations with no Node ambient types, and read native arrays, NaNs,
+  large values, and bins correctly. npm publication was not performed.
+- GitHub Actions passed every check on Ubuntu with Node 22 and 24, including
+  the full test suite, actual Chromium, lint, types, build, and package inspection
+  ([initial implementation run](https://github.com/genome-spy/figwig-js/actions/runs/40561210457)).
+
+## Final benchmark observations
+
+- All seven measurement sets were rerun against the final shared planner:
+  1,806 recorded cold/warm samples, three repetitions per case. The 903 warm
+  samples required zero HTTP requests; these decoded working sets fit the caches.
+- On the 390 MB mixed 24-track file, reading all 24 tracks over 100 kb on the
+  80 ms / 50 Mbit/s simulated connection took a 975.89 ms cold median and
+  transferred 4,404,291 bytes in 12 requests. A warm repeat took 1.74 ms with no
+  transfer. These query times exclude separately recorded header initialization.
+- For sparse 24-track 10 kb reads, group size 1 used 48 requests and 697.23 ms
+  when selecting every track; group size 24 used two requests and 175.90 ms.
+  The tradeoff is larger unselected-track transfers for single-track queries.
+- Extending the sparse genome from 625 kb to 10 Mb increased a selected group's
+  initial index transfer from 3,892 to 52,894 bytes. A tiny genomic window does
+  not imply a tiny whole-group index download.
+- A six-track aligned ~8 Mb summary read used 135,760 index bytes and zero data
+  chunk bytes, with a 110.59 ms cold median on the typical simulated network.
+  This explicitly opts into rounded sums and NaN-as-zero semantics.
+- Batching sometimes transfers more bytes because coalesced reads include gaps.
+  Request counts, body bytes, phase timings, cache behavior, dataset parameters,
+  and the synthetic-network limitations are all retained in `benchmarks/RESULTS.md`.

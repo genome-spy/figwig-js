@@ -1,0 +1,914 @@
+{
+  "environment": {
+    "node": "v26.8.1",
+    "platform": "darwin arm64",
+    "cpu": "Apple M5",
+    "date": "2026-10-27T18:24:29.387Z",
+    "repetitions": 7
+  },
+  "upstream": {
+    "bbi": "a7eefcc0c9830f5dbbd8bded268a8dacdfaf96f5",
+    "bgzf": "02a8f4619316f189d8bb571da54af6214e9d8a26"
+  },
+  "moduleSizes": [
+    {
+      "name": "inflate-wasm-inlined.js",
+      "javascriptBytes": 60281,
+      "gzipBytes": 24092,
+      "wasmBytes": 33879
+    },
+    {
+      "name": "bgzf-wasm-inlined.js",
+      "javascriptBytes": 52088,
+      "gzipBytes": 21418,
+      "wasmBytes": 29907
+    },
+    {
+      "name": "pako-strict.mjs",
+      "javascriptBytes": 48597,
+      "gzipBytes": 15790,
+      "wasmBytes": null
+    }
+  ],
+  "cold": [
+    {
+      "name": "bbi",
+      "medianImportMs": 0.5559169999999991,
+      "medianFirstCallMs": 12.015917000000002,
+      "medianTotalMs": 12.615958,
+      "p95TotalMs": 12.945374999999999,
+      "samples": [
+        {
+          "importMs": 0.5293749999999999,
+          "firstCallMs": 12.186333000000001,
+          "totalMs": 12.716875
+        },
+        {
+          "importMs": 0.5559169999999991,
+          "firstCallMs": 12.388542,
+          "totalMs": 12.945374999999999
+        },
+        {
+          "importMs": 0.4959580000000008,
+          "firstCallMs": 11.751582999999998,
+          "totalMs": 12.248625
+        },
+        {
+          "importMs": 0.4987909999999989,
+          "firstCallMs": 11.737834,
+          "totalMs": 12.237665999999999
+        },
+        {
+          "importMs": 0.564582999999999,
+          "firstCallMs": 11.990709,
+          "totalMs": 12.556292000000001
+        },
+        {
+          "importMs": 0.5988329999999991,
+          "firstCallMs": 12.015917000000002,
+          "totalMs": 12.615958
+        },
+        {
+          "importMs": 0.5583329999999993,
+          "firstCallMs": 12.094875000000002,
+          "totalMs": 12.654165999999998
+        }
+      ]
+    },
+    {
+      "name": "bgzf",
+      "medianImportMs": 0.5116250000000004,
+      "medianFirstCallMs": 11.732250000000002,
+      "medianTotalMs": 12.245542,
+      "p95TotalMs": 13.600625,
+      "samples": [
+        {
+          "importMs": 0.5321249999999988,
+          "firstCallMs": 12.015584,
+          "totalMs": 12.548833999999998
+        },
+        {
+          "importMs": 0.5120419999999992,
+          "firstCallMs": 11.732250000000002,
+          "totalMs": 12.245542
+        },
+        {
+          "importMs": 0.5024170000000012,
+          "firstCallMs": 11.629583,
+          "totalMs": 12.133125
+        },
+        {
+          "importMs": 0.47354200000000013,
+          "firstCallMs": 11.915292,
+          "totalMs": 12.389959
+        },
+        {
+          "importMs": 0.4913749999999997,
+          "firstCallMs": 13.108082999999999,
+          "totalMs": 13.600625
+        },
+        {
+          "importMs": 0.5116250000000004,
+          "firstCallMs": 11.636,
+          "totalMs": 12.148583
+        },
+        {
+          "importMs": 0.5281659999999988,
+          "firstCallMs": 11.626792000000002,
+          "totalMs": 12.155999999999999
+        }
+      ]
+    },
+    {
+      "name": "pako",
+      "medianImportMs": 1.2041250000000012,
+      "medianFirstCallMs": 4.241083,
+      "medianTotalMs": 5.449541,
+      "p95TotalMs": 5.517250000000001,
+      "samples": [
+        {
+          "importMs": 1.227125000000001,
+          "firstCallMs": 4.193249999999999,
+          "totalMs": 5.421458000000001
+        },
+        {
+          "importMs": 1.184667000000001,
+          "firstCallMs": 4.210583,
+          "totalMs": 5.396333
+        },
+        {
+          "importMs": 1.2041250000000012,
+          "firstCallMs": 4.244290999999999,
+          "totalMs": 5.449541
+        },
+        {
+          "importMs": 1.1867920000000005,
+          "firstCallMs": 4.329375000000001,
+          "totalMs": 5.517250000000001
+        },
+        {
+          "importMs": 1.193917,
+          "firstCallMs": 4.192083,
+          "totalMs": 5.387084000000001
+        },
+        {
+          "importMs": 1.2180839999999993,
+          "firstCallMs": 4.253541,
+          "totalMs": 5.47275
+        },
+        {
+          "importMs": 1.218084000000001,
+          "firstCallMs": 4.241083,
+          "totalMs": 5.460334000000001
+        }
+      ]
+    }
+  ],
+  "results": [
+    {
+      "dataset": "official-position/BGZF-eligible",
+      "variant": "Pako strict",
+      "chunks": 45,
+      "compressedBytes": 2593,
+      "rawBytes": 3144,
+      "passes": 1024,
+      "medianMs": 78.24983300000008,
+      "p95Ms": 97.53091700000004,
+      "mibPerSecond": 39.237304186962255,
+      "samples": [
+        97.53091700000004,
+        80.39504099999999,
+        78.76437499999997,
+        78.24983300000008,
+        75.20675000000028,
+        74.80108299999984,
+        75.63695899999993
+      ]
+    },
+    {
+      "dataset": "official-position/BGZF-eligible",
+      "variant": "BBI raw single",
+      "chunks": 45,
+      "compressedBytes": 2593,
+      "rawBytes": 3144,
+      "passes": 1024,
+      "medianMs": 93.07033300000012,
+      "p95Ms": 98.15641600000004,
+      "mibPerSecond": 32.989164227015245,
+      "samples": [
+        98.15641600000004,
+        95.92316699999992,
+        96.14658299999996,
+        92.1076250000001,
+        91.08654200000001,
+        91.40437499999962,
+        93.07033300000012
+      ]
+    },
+    {
+      "dataset": "official-position/BGZF-eligible",
+      "variant": "BBI header+Adler single",
+      "chunks": 45,
+      "compressedBytes": 2593,
+      "rawBytes": 3144,
+      "passes": 1024,
+      "medianMs": 94.77475000000004,
+      "p95Ms": 99.94762500000002,
+      "mibPerSecond": 32.39589131071302,
+      "samples": [
+        99.67604200000005,
+        99.92787500000009,
+        99.94762500000002,
+        94.72845800000005,
+        94.77475000000004,
+        94.4135839999999,
+        94.19925000000012
+      ]
+    },
+    {
+      "dataset": "official-position/BGZF-eligible",
+      "variant": "BBI header+Adler batch32",
+      "chunks": 45,
+      "compressedBytes": 2593,
+      "rawBytes": 3144,
+      "passes": 1024,
+      "medianMs": 15.836958000000095,
+      "p95Ms": 16.24824999999987,
+      "mibPerSecond": 193.8700917183705,
+      "samples": [
+        16.060167000000092,
+        15.953082999999879,
+        16.24824999999987,
+        15.836958000000095,
+        15.17037500000015,
+        15.100582999999915,
+        15.39562500000011
+      ]
+    },
+    {
+      "dataset": "official-position/BGZF-eligible",
+      "variant": "BGZF rewrap raw single",
+      "chunks": 45,
+      "compressedBytes": 2593,
+      "rawBytes": 3144,
+      "passes": 1024,
+      "medianMs": 15.949333000000024,
+      "p95Ms": 18.461042000000134,
+      "mibPerSecond": 192.50413167748115,
+      "samples": [
+        18.461042000000134,
+        16.362416999999823,
+        16.498792000000094,
+        15.949333000000024,
+        15.466915999999856,
+        15.278083000000152,
+        15.358708000000206
+      ]
+    },
+    {
+      "dataset": "official-position/BGZF-eligible",
+      "variant": "BGZF rewrap header+Adler single",
+      "chunks": 45,
+      "compressedBytes": 2593,
+      "rawBytes": 3144,
+      "passes": 1024,
+      "medianMs": 18.941584000000148,
+      "p95Ms": 19.616375000000062,
+      "mibPerSecond": 162.09375625607532,
+      "samples": [
+        19.616375000000062,
+        19.308457999999973,
+        18.941584000000148,
+        19.18208299999992,
+        18.44950000000017,
+        18.28304100000014,
+        18.27054100000032
+      ]
+    },
+    {
+      "dataset": "official-track/BGZF-eligible",
+      "variant": "Pako strict",
+      "chunks": 69,
+      "compressedBytes": 24639,
+      "rawBytes": 46856,
+      "passes": 180,
+      "medianMs": 82.4354159999998,
+      "p95Ms": 93.32583400000021,
+      "mibPerSecond": 97.57172182543052,
+      "samples": [
+        82.4354159999998,
+        81.86854100000028,
+        84.76049999999987,
+        93.32583400000021,
+        82.97070799999983,
+        80.45687500000076,
+        80.32104200000049
+      ]
+    },
+    {
+      "dataset": "official-track/BGZF-eligible",
+      "variant": "BBI raw single",
+      "chunks": 69,
+      "compressedBytes": 24639,
+      "rawBytes": 46856,
+      "passes": 180,
+      "medianMs": 41.775666000000456,
+      "p95Ms": 44.47354200000018,
+      "mibPerSecond": 192.53709751785973,
+      "samples": [
+        42.01620899999989,
+        40.96699999999964,
+        44.47354200000018,
+        43.325542000000496,
+        41.775666000000456,
+        40.975499999999556,
+        40.75954199999978
+      ]
+    },
+    {
+      "dataset": "official-track/BGZF-eligible",
+      "variant": "BBI header+Adler single",
+      "chunks": 69,
+      "compressedBytes": 24639,
+      "rawBytes": 46856,
+      "passes": 180,
+      "medianMs": 45.40345800000023,
+      "p95Ms": 47.2933750000002,
+      "mibPerSecond": 177.15314720115776,
+      "samples": [
+        46.275916999999936,
+        45.40345800000023,
+        45.47337500000003,
+        47.2933750000002,
+        45.200457999999344,
+        44.914582999999766,
+        45.0721250000006
+      ]
+    },
+    {
+      "dataset": "official-track/BGZF-eligible",
+      "variant": "BBI header+Adler batch32",
+      "chunks": 69,
+      "compressedBytes": 24639,
+      "rawBytes": 46856,
+      "passes": 180,
+      "medianMs": 29.274875000000065,
+      "p95Ms": 30.90658399999984,
+      "mibPerSecond": 274.75319633356617,
+      "samples": [
+        29.510999999999967,
+        29.274875000000065,
+        29.842915999999605,
+        30.90658399999984,
+        28.872666999999637,
+        28.608624999999847,
+        28.858791000000565
+      ]
+    },
+    {
+      "dataset": "official-track/BGZF-eligible",
+      "variant": "BGZF rewrap raw single",
+      "chunks": 69,
+      "compressedBytes": 24639,
+      "rawBytes": 46856,
+      "passes": 180,
+      "medianMs": 27.153166000000056,
+      "p95Ms": 38.53729199999998,
+      "mibPerSecond": 296.22201250917146,
+      "samples": [
+        27.22487500000034,
+        26.59016600000041,
+        28.715666000000056,
+        38.53729199999998,
+        26.82787499999995,
+        26.333290999999917,
+        27.153166000000056
+      ]
+    },
+    {
+      "dataset": "official-track/BGZF-eligible",
+      "variant": "BGZF rewrap header+Adler single",
+      "chunks": 69,
+      "compressedBytes": 24639,
+      "rawBytes": 46856,
+      "passes": 180,
+      "medianMs": 30.798334000000068,
+      "p95Ms": 32.12504199999967,
+      "mibPerSecond": 261.1623563312096,
+      "samples": [
+        30.926540999999816,
+        30.2682920000002,
+        32.12504199999967,
+        31.710915999999543,
+        30.712499999999636,
+        30.798334000000068,
+        30.541708000000654
+      ]
+    },
+    {
+      "dataset": "official-track/over-BGZF-limit",
+      "variant": "Pako strict",
+      "chunks": 2,
+      "compressedBytes": 282448,
+      "rawBytes": 655360,
+      "passes": 13,
+      "medianMs": 58.06287499999962,
+      "p95Ms": 58.71779200000037,
+      "mibPerSecond": 139.93451064901717,
+      "samples": [
+        58.1722920000002,
+        58.06287499999962,
+        58.31083299999955,
+        58.71779200000037,
+        57.57541599999968,
+        57.44337499999983,
+        58.019209000000046
+      ]
+    },
+    {
+      "dataset": "official-track/over-BGZF-limit",
+      "variant": "BBI raw single",
+      "chunks": 2,
+      "compressedBytes": 282448,
+      "rawBytes": 655360,
+      "passes": 13,
+      "medianMs": 15.88879100000031,
+      "p95Ms": 16.264000000000124,
+      "mibPerSecond": 511.3667868121521,
+      "samples": [
+        15.695875000000342,
+        16.264000000000124,
+        15.61041700000078,
+        15.890666999999667,
+        15.560708999999406,
+        16.112500000000182,
+        15.88879100000031
+      ]
+    },
+    {
+      "dataset": "official-track/over-BGZF-limit",
+      "variant": "BBI header+Adler single",
+      "chunks": 2,
+      "compressedBytes": 282448,
+      "rawBytes": 655360,
+      "passes": 13,
+      "medianMs": 19.190542000000278,
+      "p95Ms": 19.365708000000268,
+      "mibPerSecond": 423.38564486609505,
+      "samples": [
+        19.365708000000268,
+        19.01716700000088,
+        19.29649999999947,
+        19.190542000000278,
+        19.335375000000568,
+        19.029249999999593,
+        19.17054199999984
+      ]
+    },
+    {
+      "dataset": "official-track/over-BGZF-limit",
+      "variant": "BBI header+Adler batch32",
+      "chunks": 2,
+      "compressedBytes": 282448,
+      "rawBytes": 655360,
+      "passes": 13,
+      "medianMs": 19.12904200000048,
+      "p95Ms": 19.561083999999937,
+      "mibPerSecond": 424.74683259097844,
+      "samples": [
+        19.414875000000393,
+        19.37804199999937,
+        19.561083999999937,
+        19.12904200000048,
+        18.996249999999236,
+        19.02100000000064,
+        18.82970800000021
+      ]
+    },
+    {
+      "dataset": "sparse24/BGZF-eligible",
+      "variant": "Pako strict",
+      "chunks": 128,
+      "compressedBytes": 78360,
+      "rawBytes": 89448,
+      "passes": 94,
+      "medianMs": 120.81862499999988,
+      "p95Ms": 123.734375,
+      "mibPerSecond": 66.36891012347802,
+      "samples": [
+        123.734375,
+        120.17191699999967,
+        120.43966600000022,
+        121.83716699999968,
+        120.14337499999965,
+        121.29429199999959,
+        120.81862499999988
+      ]
+    },
+    {
+      "dataset": "sparse24/BGZF-eligible",
+      "variant": "BBI raw single",
+      "chunks": 128,
+      "compressedBytes": 78360,
+      "rawBytes": 89448,
+      "passes": 94,
+      "medianMs": 46.13083299999926,
+      "p95Ms": 50.499541000000136,
+      "mibPerSecond": 173.82301472568938,
+      "samples": [
+        50.499541000000136,
+        44.59179100000074,
+        44.849333000000115,
+        47.17000000000007,
+        44.84970799999974,
+        48.06162500000028,
+        46.13083299999926
+      ]
+    },
+    {
+      "dataset": "sparse24/BGZF-eligible",
+      "variant": "BBI header+Adler single",
+      "chunks": 128,
+      "compressedBytes": 78360,
+      "rawBytes": 89448,
+      "passes": 94,
+      "medianMs": 49.1845830000002,
+      "p95Ms": 50.03766600000017,
+      "mibPerSecond": 163.03077051333653,
+      "samples": [
+        49.73645800000031,
+        48.24749999999949,
+        50.03766600000017,
+        48.91987499999959,
+        48.51287500000035,
+        49.1845830000002,
+        49.98429099999976
+      ]
+    },
+    {
+      "dataset": "sparse24/BGZF-eligible",
+      "variant": "BBI header+Adler batch32",
+      "chunks": 128,
+      "compressedBytes": 78360,
+      "rawBytes": 89448,
+      "passes": 94,
+      "medianMs": 43.00645799999984,
+      "p95Ms": 43.462666000000354,
+      "mibPerSecond": 186.45107820474817,
+      "samples": [
+        43.462666000000354,
+        43.23700000000008,
+        42.606416000000536,
+        43.221709000000374,
+        42.930709000000206,
+        43.00645799999984,
+        42.99945799999932
+      ]
+    },
+    {
+      "dataset": "sparse24/BGZF-eligible",
+      "variant": "BGZF rewrap raw single",
+      "chunks": 128,
+      "compressedBytes": 78360,
+      "rawBytes": 89448,
+      "passes": 94,
+      "medianMs": 41.52616699999999,
+      "p95Ms": 42.2639169999984,
+      "mibPerSecond": 193.09753447427954,
+      "samples": [
+        42.2592080000004,
+        41.52616699999999,
+        41.14866600000005,
+        41.48612499999945,
+        41.50445799999943,
+        41.54212499999994,
+        42.2639169999984
+      ]
+    },
+    {
+      "dataset": "sparse24/BGZF-eligible",
+      "variant": "BGZF rewrap header+Adler single",
+      "chunks": 128,
+      "compressedBytes": 78360,
+      "rawBytes": 89448,
+      "passes": 94,
+      "medianMs": 46.05412500000057,
+      "p95Ms": 46.610625000000255,
+      "mibPerSecond": 174.11253528032697,
+      "samples": [
+        46.20325000000048,
+        45.49187499999971,
+        46.05412500000057,
+        46.610625000000255,
+        45.299582999999984,
+        45.653417000000445,
+        46.3609579999993
+      ]
+    },
+    {
+      "dataset": "dense8/BGZF-eligible",
+      "variant": "Pako strict",
+      "chunks": 128,
+      "compressedBytes": 7139522,
+      "rawBytes": 8328856,
+      "passes": 2,
+      "medianMs": 143.50266699999884,
+      "p95Ms": 146.8000000000011,
+      "mibPerSecond": 110.70199904014548,
+      "samples": [
+        145.83300000000054,
+        143.46187499999905,
+        146.8000000000011,
+        142.86933299999873,
+        142.3964159999996,
+        143.50266699999884,
+        145.5423750000009
+      ]
+    },
+    {
+      "dataset": "dense8/BGZF-eligible",
+      "variant": "BBI raw single",
+      "chunks": 128,
+      "compressedBytes": 7139522,
+      "rawBytes": 8328856,
+      "passes": 2,
+      "medianMs": 42.84679099999994,
+      "p95Ms": 47.03712500000074,
+      "mibPerSecond": 370.7636379231343,
+      "samples": [
+        42.351042000000234,
+        41.99662499999977,
+        47.03712500000074,
+        45.032750000000306,
+        42.84679099999994,
+        42.28716699999859,
+        44.17558300000019
+      ]
+    },
+    {
+      "dataset": "dense8/BGZF-eligible",
+      "variant": "BBI header+Adler single",
+      "chunks": 128,
+      "compressedBytes": 7139522,
+      "rawBytes": 8328856,
+      "passes": 2,
+      "medianMs": 96.28399999999965,
+      "p95Ms": 104.6708749999998,
+      "mibPerSecond": 164.9914015256143,
+      "samples": [
+        96.58474999999999,
+        96.26791700000103,
+        97.34574999999859,
+        96.28399999999965,
+        96.18670800000109,
+        96.21291700000074,
+        104.6708749999998
+      ]
+    },
+    {
+      "dataset": "dense8/BGZF-eligible",
+      "variant": "BBI header+Adler batch32",
+      "chunks": 128,
+      "compressedBytes": 7139522,
+      "rawBytes": 8328856,
+      "passes": 2,
+      "medianMs": 95.94566699999996,
+      "p95Ms": 99.59204099999988,
+      "mibPerSecond": 165.5732103513564,
+      "samples": [
+        95.94566699999996,
+        95.99649999999929,
+        95.84250000000065,
+        99.59204099999988,
+        95.92670799999905,
+        95.77079199999935,
+        96.26645800000006
+      ]
+    },
+    {
+      "dataset": "dense8/BGZF-eligible",
+      "variant": "BGZF rewrap raw single",
+      "chunks": 128,
+      "compressedBytes": 7139522,
+      "rawBytes": 8328856,
+      "passes": 2,
+      "medianMs": 42.25975000000108,
+      "p95Ms": 44.05424999999923,
+      "mibPerSecond": 375.9140104825936,
+      "samples": [
+        44.05424999999923,
+        41.705832999999984,
+        42.25975000000108,
+        41.92224999999962,
+        43.320833999998285,
+        42.67425000000003,
+        42.03370800000084
+      ]
+    },
+    {
+      "dataset": "dense8/BGZF-eligible",
+      "variant": "BGZF rewrap header+Adler single",
+      "chunks": 128,
+      "compressedBytes": 7139522,
+      "rawBytes": 8328856,
+      "passes": 2,
+      "medianMs": 95.6074580000004,
+      "p95Ms": 101.70049999999901,
+      "mibPerSecond": 166.15892145665163,
+      "samples": [
+        101.70049999999901,
+        95.01787499999955,
+        100.69762499999888,
+        95.95249999999942,
+        95.6074580000004,
+        95.16566700000112,
+        95.29104200000074
+      ]
+    },
+    {
+      "dataset": "mixed24/BGZF-eligible",
+      "variant": "Pako strict",
+      "chunks": 128,
+      "compressedBytes": 3408523,
+      "rawBytes": 5321696,
+      "passes": 2,
+      "medianMs": 76.0580829999999,
+      "p95Ms": 76.96250000000146,
+      "mibPerSecond": 133.4549753225277,
+      "samples": [
+        75.13612499999908,
+        75.69474999999875,
+        76.02970799999821,
+        76.96250000000146,
+        76.0580829999999,
+        76.5708340000001,
+        76.10333300000093
+      ]
+    },
+    {
+      "dataset": "mixed24/BGZF-eligible",
+      "variant": "BBI raw single",
+      "chunks": 128,
+      "compressedBytes": 3408523,
+      "rawBytes": 5321696,
+      "passes": 2,
+      "medianMs": 21.086542000000918,
+      "p95Ms": 21.89366599999994,
+      "mibPerSecond": 481.3652987693908,
+      "samples": [
+        21.07587500000045,
+        20.900125000000116,
+        21.89366599999994,
+        21.14912500000173,
+        21.031750000000102,
+        21.086542000000918,
+        21.0904589999991
+      ]
+    },
+    {
+      "dataset": "mixed24/BGZF-eligible",
+      "variant": "BBI header+Adler single",
+      "chunks": 128,
+      "compressedBytes": 3408523,
+      "rawBytes": 5321696,
+      "passes": 2,
+      "medianMs": 55.42004199999974,
+      "p95Ms": 56.07825000000048,
+      "mibPerSecond": 183.15268670932798,
+      "samples": [
+        55.68924999999945,
+        55.27687499999956,
+        56.07825000000048,
+        55.906332999998995,
+        55.42004199999974,
+        55.19612500000039,
+        55.01237500000025
+      ]
+    },
+    {
+      "dataset": "mixed24/BGZF-eligible",
+      "variant": "BBI header+Adler batch32",
+      "chunks": 128,
+      "compressedBytes": 3408523,
+      "rawBytes": 5321696,
+      "passes": 2,
+      "medianMs": 55.08354099999997,
+      "p95Ms": 58.49991599999885,
+      "mibPerSecond": 184.27155200214446,
+      "samples": [
+        58.49991599999885,
+        54.92012500000055,
+        55.08354099999997,
+        57.61591700000099,
+        54.99545799999942,
+        55.059832999999344,
+        55.2973750000001
+      ]
+    },
+    {
+      "dataset": "mixed24/BGZF-eligible",
+      "variant": "BGZF rewrap raw single",
+      "chunks": 128,
+      "compressedBytes": 3408523,
+      "rawBytes": 5321696,
+      "passes": 2,
+      "medianMs": 21.159041999999317,
+      "p95Ms": 22.153916999999637,
+      "mibPerSecond": 479.71593372913946,
+      "samples": [
+        21.00920799999949,
+        21.19800000000032,
+        21.2484170000007,
+        22.153916999999637,
+        20.858625000000757,
+        20.432833999999275,
+        21.159041999999317
+      ]
+    },
+    {
+      "dataset": "mixed24/BGZF-eligible",
+      "variant": "BGZF rewrap header+Adler single",
+      "chunks": 128,
+      "compressedBytes": 3408523,
+      "rawBytes": 5321696,
+      "passes": 2,
+      "medianMs": 55.64991700000064,
+      "p95Ms": 61.492167000000336,
+      "mibPerSecond": 182.39613169312784,
+      "samples": [
+        55.31708400000025,
+        56.712625000000116,
+        55.64991700000064,
+        61.492167000000336,
+        55.63699999999881,
+        55.006875000000946,
+        56.4716669999998
+      ]
+    }
+  ],
+  "probes": [
+    {
+      "name": "valid",
+      "Pako strict": "accepted",
+      "BBI raw": "accepted",
+      "BBI header+Adler": "accepted"
+    },
+    {
+      "name": "bad header",
+      "Pako strict": "rejected",
+      "BBI raw": "accepted",
+      "BBI header+Adler": "rejected"
+    },
+    {
+      "name": "bad Adler32",
+      "Pako strict": "rejected",
+      "BBI raw": "accepted",
+      "BBI header+Adler": "rejected"
+    },
+    {
+      "name": "trailing DEFLATE byte",
+      "Pako strict": "rejected",
+      "BBI raw": "accepted",
+      "BBI header+Adler": "accepted"
+    },
+    {
+      "name": "concatenated streams",
+      "Pako strict": "rejected",
+      "BBI raw": "accepted",
+      "BBI header+Adler": "accepted"
+    },
+    {
+      "name": "declared output too small",
+      "Pako strict": "rejected",
+      "BBI raw": "rejected",
+      "BBI header+Adler": "rejected"
+    }
+  ],
+  "bgzfOrdinaryZlib": "rejected",
+  "files": [
+    {
+      "path": "test/fixtures/zlib.fw",
+      "size": 120314
+    },
+    {
+      "path": "test/fixtures/tracks_zlib.fw",
+      "size": 231533
+    },
+    {
+      "path": "test/fixtures/blocks.fw",
+      "size": 299024
+    },
+    {
+      "path": "benchmarks/fixtures/sparse-n24-tile4096-g4-positions-l6-s1701.fw",
+      "size": 592388
+    },
+    {
+      "path": "benchmarks/fixtures/dense-n8-tile4096-g4-positions-l6-s1701.fw",
+      "size": 68600780
+    },
+    {
+      "path": "benchmarks/fixtures/mixed-n24-tile4096-g4-positions-l6-s1701.fw",
+      "size": 390392513
+    }
+  ]
+}

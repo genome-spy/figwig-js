@@ -35,7 +35,7 @@ If creating the GitHub remote in a fresh checkout without one:
 
 ```sh
 gh auth login
-gh repo create genome-spy/figwig-js --public --source=. --remote=origin
+gh repo create genome-spy/figwig-js --private --source=. --remote=origin
 git push -u origin main
 ```
 

@@ -20,12 +20,9 @@ git -C /tmp/figwig-reference checkout c0e5d6522c677b9f03cd6831e2dbcea759866628
 .venv/bin/python benchmarks/scripts/generate.py --upstream /tmp/figwig-reference
 ```
 
-The commands below use the implementation session's `/tmp` paths;
-replace the interpreter and checkout paths for another machine.
-
 ```sh
-/tmp/figwig-python/bin/python benchmarks/scripts/generate.py \
-  --upstream /tmp/figwig-upstream --profile mixed \
+.venv/bin/python benchmarks/scripts/generate.py \
+  --upstream /tmp/figwig-reference --profile mixed \
   --tracks 24 --length 8000000 --second-length 2000000 \
   --tile 4096 --group 4 --order positions --level 6 --zooms 4 \
   --density 0.02 --seed 1701
@@ -46,8 +43,8 @@ versions; recorded measurements used zlib 1.2.12.
 A compact matrix isolates overhead before running more expensive large files:
 
 ```sh
-/tmp/figwig-python/bin/python benchmarks/scripts/generate.py \
-  --upstream /tmp/figwig-upstream --profile sparse \
+.venv/bin/python benchmarks/scripts/generate.py \
+  --upstream /tmp/figwig-reference --profile sparse \
   --tracks 24 --length 500000 --second-length 125000 --matrix
 ```
 

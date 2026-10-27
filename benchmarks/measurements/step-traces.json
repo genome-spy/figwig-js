@@ -1,0 +1,1932 @@
+{
+  "environment": {
+    "date": "2026-10-27T18:35:13.431Z",
+    "node": "v26.8.1",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "cpu": "Apple M5",
+    "logicalCpus": 10,
+    "totalMemoryBytes": 34359738368
+  },
+  "scenarios": {
+    "local": {
+      "latencyMs": 0,
+      "bandwidthBitsPerSecond": 0
+    },
+    "fast": {
+      "latencyMs": 20,
+      "bandwidthBitsPerSecond": 100000000
+    },
+    "typical": {
+      "latencyMs": 80,
+      "bandwidthBitsPerSecond": 50000000
+    },
+    "high": {
+      "latencyMs": 150,
+      "bandwidthBitsPerSecond": 10000000
+    }
+  },
+  "args": {
+    "directory": "benchmarks/fixtures",
+    "scenarios": "typical",
+    "repetitions": 3,
+    "patterns": "E,F,G",
+    "match": "",
+    "coalesceGap": 4096,
+    "maxConcurrentRequests": 6,
+    "maxCoalescedBytes": 4194304,
+    "chunkCacheBytes": 67108864,
+    "indexCacheBytes": 33554432,
+    "output": "benchmarks/measurements/step-traces.json",
+    "files": [
+      "mixed-n24-tile4096-g4-positions-l6-s1701.fw"
+    ]
+  },
+  "datasets": {
+    "mixed-n24-tile4096-g4-positions-l6-s1701.fw": {
+      "upstream_commit": "c0e5d6522c677b9f03cd6831e2dbcea759866628",
+      "profile": "mixed",
+      "tracks": 24,
+      "chromosomes": {
+        "chr1": 8000000,
+        "chr2": 2000000
+      },
+      "tile": 4096,
+      "group": 4,
+      "requested_group": 4,
+      "order": "positions",
+      "compression_level": 6,
+      "compression_engine": "zlib",
+      "zooms": 4,
+      "density": 0.02,
+      "seed": 1701,
+      "chunk_bases": 1048576,
+      "file": "mixed-n24-tile4096-g4-positions-l6-s1701.fw",
+      "file_bytes": 390392513,
+      "generation_seconds": 5.573422792367637,
+      "bytes": 390392513
+    }
+  },
+  "samples": [
+    {
+      "file": "mixed-n24-tile4096-g4-positions-l6-s1701.fw",
+      "scenario": "typical",
+      "pattern": "E-panning",
+      "cache": "cold",
+      "repetition": 0,
+      "milliseconds": 1172.4089579999998,
+      "initializationMs": 174.23524999999995,
+      "requests": 14,
+      "transferredBytes": 2830767,
+      "readRequests": 14,
+      "indexBytes": 135760,
+      "dataBytes": 2695007,
+      "chunksFetched": 98,
+      "chunksDecompressed": 98,
+      "indexLoadMs": 217.19383399999992,
+      "decompressionMs": 76.82791399999815,
+      "decodingMs": 27.460375000002614,
+      "chunkCacheHits": 208,
+      "chunkCacheMisses": 98,
+      "cacheBytes": 10588064,
+      "steps": [
+        {
+          "name": "pan-0",
+          "milliseconds": 463.02308300000004,
+          "diagnostics": {
+            "readRequests": 4,
+            "indexBytes": 135760,
+            "dataBytes": 1348577,
+            "chunksFetched": 50,
+            "chunksDecompressed": 50,
+            "indexLoadMs": 217.19383399999992,
+            "decompressionMs": 31.174580999998852,
+            "decodingMs": 15.091128000001163,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 50,
+            "cacheBytes": 5746136
+          }
+        },
+        {
+          "name": "pan-1",
+          "milliseconds": 139.39754200000016,
+          "diagnostics": {
+            "readRequests": 2,
+            "indexBytes": 0,
+            "dataBytes": 258277,
+            "chunksFetched": 10,
+            "chunksDecompressed": 10,
+            "indexLoadMs": 0,
+            "decompressionMs": 11.264122999999472,
+            "decodingMs": 2.0388730000008763,
+            "chunkCacheHits": 42,
+            "chunkCacheMisses": 10,
+            "cacheBytes": 6754844
+          }
+        },
+        {
+          "name": "pan-2",
+          "milliseconds": 143.41770799999995,
+          "diagnostics": {
+            "readRequests": 2,
+            "indexBytes": 0,
+            "dataBytes": 286359,
+            "chunksFetched": 10,
+            "chunksDecompressed": 10,
+            "indexLoadMs": 0,
+            "decompressionMs": 7.495750000000044,
+            "decodingMs": 2.7565010000002985,
+            "chunkCacheHits": 42,
+            "chunkCacheMisses": 10,
+            "cacheBytes": 7763660
+          }
+        },
+        {
+          "name": "pan-3",
+          "milliseconds": 147.62158399999998,
+          "diagnostics": {
+            "readRequests": 2,
+            "indexBytes": 0,
+            "dataBytes": 287002,
+            "chunksFetched": 10,
+            "chunksDecompressed": 10,
+            "indexLoadMs": 0,
+            "decompressionMs": 10.87904300000082,
+            "decodingMs": 2.7317080000002534,
+            "chunkCacheHits": 42,
+            "chunkCacheMisses": 10,
+            "cacheBytes": 8771264
+          }
+        },
+        {
+          "name": "pan-4",
+          "milliseconds": 134.07841700000017,
+          "diagnostics": {
+            "readRequests": 2,
+            "indexBytes": 0,
+            "dataBytes": 228652,
+            "chunksFetched": 8,
+            "chunksDecompressed": 8,
+            "indexLoadMs": 0,
+            "decompressionMs": 6.734168999999383,
+            "decodingMs": 2.464792999999645,
+            "chunkCacheHits": 42,
+            "chunkCacheMisses": 8,
+            "cacheBytes": 9578804
+          }
+        },
+        {
+          "name": "pan-5",
+          "milliseconds": 144.79816600000004,
+          "diagnostics": {
+            "readRequests": 2,
+            "indexBytes": 0,
+            "dataBytes": 286140,
+            "chunksFetched": 10,
+            "chunksDecompressed": 10,
+            "indexLoadMs": 0,
+            "decompressionMs": 9.280247999999574,
+            "decodingMs": 2.3773720000003777,
+            "chunkCacheHits": 40,
+            "chunkCacheMisses": 10,
+            "cacheBytes": 10588064
+          }
+        }
+      ]
+    },
+    {
+      "file": "mixed-n24-tile4096-g4-positions-l6-s1701.fw",
+      "scenario": "typical",
+      "pattern": "E-panning",
+      "cache": "warm",
+      "repetition": 0,
+      "milliseconds": 7.03774999999996,
+      "initializationMs": 174.23524999999995,
+      "requests": 0,
+      "transferredBytes": 0,
+      "readRequests": 0,
+      "indexBytes": 0,
+      "dataBytes": 0,
+      "chunksFetched": 0,
+      "chunksDecompressed": 0,
+      "indexLoadMs": 0,
+      "decompressionMs": 0,
+      "decodingMs": 0,
+      "chunkCacheHits": 306,
+      "chunkCacheMisses": 0,
+      "cacheBytes": 10588064,
+      "steps": [
+        {
+          "name": "pan-0",
+          "milliseconds": 1.173540999999659,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 10588064
+          }
+        },
+        {
+          "name": "pan-1",
+          "milliseconds": 1.229291000000103,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 52,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 10588064
+          }
+        },
+        {
+          "name": "pan-2",
+          "milliseconds": 1.222124999999778,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 52,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 10588064
+          }
+        },
+        {
+          "name": "pan-3",
+          "milliseconds": 1.0237090000000535,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 52,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 10588064
+          }
+        },
+        {
+          "name": "pan-4",
+          "milliseconds": 1.2006670000000668,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 10588064
+          }
+        },
+        {
+          "name": "pan-5",
+          "milliseconds": 1.1658330000000205,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 10588064
+          }
+        }
+      ]
+    },
+    {
+      "file": "mixed-n24-tile4096-g4-positions-l6-s1701.fw",
+      "scenario": "typical",
+      "pattern": "E-panning",
+      "cache": "cold",
+      "repetition": 1,
+      "milliseconds": 1166.0637089999996,
+      "initializationMs": 173.32162500000004,
+      "requests": 14,
+      "transferredBytes": 2830767,
+      "readRequests": 14,
+      "indexBytes": 135760,
+      "dataBytes": 2695007,
+      "chunksFetched": 98,
+      "chunksDecompressed": 98,
+      "indexLoadMs": 215.76287399999956,
+      "decompressionMs": 70.95667200000025,
+      "decodingMs": 29.891042999997808,
+      "chunkCacheHits": 208,
+      "chunkCacheMisses": 98,
+      "cacheBytes": 10588064,
+      "steps": [
+        {
+          "name": "pan-0",
+          "milliseconds": 464.67379200000005,
+          "diagnostics": {
+            "readRequests": 4,
+            "indexBytes": 135760,
+            "dataBytes": 1348577,
+            "chunksFetched": 50,
+            "chunksDecompressed": 50,
+            "indexLoadMs": 215.76287399999956,
+            "decompressionMs": 28.186457000002065,
+            "decodingMs": 18.70629599999984,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 50,
+            "cacheBytes": 5746136
+          }
+        },
+        {
+          "name": "pan-1",
+          "milliseconds": 133.7443330000001,
+          "diagnostics": {
+            "readRequests": 2,
+            "indexBytes": 0,
+            "dataBytes": 258277,
+            "chunksFetched": 10,
+            "chunksDecompressed": 10,
+            "indexLoadMs": 0,
+            "decompressionMs": 6.880501999999524,
+            "decodingMs": 2.0700000000001637,
+            "chunkCacheHits": 42,
+            "chunkCacheMisses": 10,
+            "cacheBytes": 6754844
+          }
+        },
+        {
+          "name": "pan-2",
+          "milliseconds": 143.9635000000003,
+          "diagnostics": {
+            "readRequests": 2,
+            "indexBytes": 0,
+            "dataBytes": 286359,
+            "chunksFetched": 10,
+            "chunksDecompressed": 10,
+            "indexLoadMs": 0,
+            "decompressionMs": 9.882752999999411,
+            "decodingMs": 2.4907069999999294,
+            "chunkCacheHits": 42,
+            "chunkCacheMisses": 10,
+            "cacheBytes": 7763660
+          }
+        },
+        {
+          "name": "pan-3",
+          "milliseconds": 142.01262499999984,
+          "diagnostics": {
+            "readRequests": 2,
+            "indexBytes": 0,
+            "dataBytes": 287002,
+            "chunksFetched": 10,
+            "chunksDecompressed": 10,
+            "indexLoadMs": 0,
+            "decompressionMs": 7.031916999999339,
+            "decodingMs": 2.4649979999994684,
+            "chunkCacheHits": 42,
+            "chunkCacheMisses": 10,
+            "cacheBytes": 8771264
+          }
+        },
+        {
+          "name": "pan-4",
+          "milliseconds": 139.86666700000023,
+          "diagnostics": {
+            "readRequests": 2,
+            "indexBytes": 0,
+            "dataBytes": 228652,
+            "chunksFetched": 8,
+            "chunksDecompressed": 8,
+            "indexLoadMs": 0,
+            "decompressionMs": 11.838877000000593,
+            "decodingMs": 1.7641679999996995,
+            "chunkCacheHits": 42,
+            "chunkCacheMisses": 8,
+            "cacheBytes": 9578804
+          }
+        },
+        {
+          "name": "pan-5",
+          "milliseconds": 141.7589579999999,
+          "diagnostics": {
+            "readRequests": 2,
+            "indexBytes": 0,
+            "dataBytes": 286140,
+            "chunksFetched": 10,
+            "chunksDecompressed": 10,
+            "indexLoadMs": 0,
+            "decompressionMs": 7.136165999999321,
+            "decodingMs": 2.3948739999987083,
+            "chunkCacheHits": 40,
+            "chunkCacheMisses": 10,
+            "cacheBytes": 10588064
+          }
+        }
+      ]
+    },
+    {
+      "file": "mixed-n24-tile4096-g4-positions-l6-s1701.fw",
+      "scenario": "typical",
+      "pattern": "E-panning",
+      "cache": "warm",
+      "repetition": 1,
+      "milliseconds": 7.8422920000002705,
+      "initializationMs": 173.32162500000004,
+      "requests": 0,
+      "transferredBytes": 0,
+      "readRequests": 0,
+      "indexBytes": 0,
+      "dataBytes": 0,
+      "chunksFetched": 0,
+      "chunksDecompressed": 0,
+      "indexLoadMs": 0,
+      "decompressionMs": 0,
+      "decodingMs": 0,
+      "chunkCacheHits": 306,
+      "chunkCacheMisses": 0,
+      "cacheBytes": 10588064,
+      "steps": [
+        {
+          "name": "pan-0",
+          "milliseconds": 1.5517080000008718,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 10588064
+          }
+        },
+        {
+          "name": "pan-1",
+          "milliseconds": 1.269999999999527,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 52,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 10588064
+          }
+        },
+        {
+          "name": "pan-2",
+          "milliseconds": 1.262416999999914,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 52,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 10588064
+          }
+        },
+        {
+          "name": "pan-3",
+          "milliseconds": 1.1681670000007216,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 52,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 10588064
+          }
+        },
+        {
+          "name": "pan-4",
+          "milliseconds": 1.10479099999975,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 10588064
+          }
+        },
+        {
+          "name": "pan-5",
+          "milliseconds": 1.464958999999908,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 10588064
+          }
+        }
+      ]
+    },
+    {
+      "file": "mixed-n24-tile4096-g4-positions-l6-s1701.fw",
+      "scenario": "typical",
+      "pattern": "E-panning",
+      "cache": "cold",
+      "repetition": 2,
+      "milliseconds": 1168.7378749999998,
+      "initializationMs": 175.2933750000002,
+      "requests": 14,
+      "transferredBytes": 2830767,
+      "readRequests": 14,
+      "indexBytes": 135760,
+      "dataBytes": 2695007,
+      "chunksFetched": 98,
+      "chunksDecompressed": 98,
+      "indexLoadMs": 224.55083300000024,
+      "decompressionMs": 71.08296699999573,
+      "decodingMs": 34.57399899999746,
+      "chunkCacheHits": 208,
+      "chunkCacheMisses": 98,
+      "cacheBytes": 10588064,
+      "steps": [
+        {
+          "name": "pan-0",
+          "milliseconds": 469.5569999999998,
+          "diagnostics": {
+            "readRequests": 4,
+            "indexBytes": 135760,
+            "dataBytes": 1348577,
+            "chunksFetched": 50,
+            "chunksDecompressed": 50,
+            "indexLoadMs": 224.55083300000024,
+            "decompressionMs": 28.078169000000344,
+            "decodingMs": 22.80833099999927,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 50,
+            "cacheBytes": 5746136
+          }
+        },
+        {
+          "name": "pan-1",
+          "milliseconds": 134.99924999999985,
+          "diagnostics": {
+            "readRequests": 2,
+            "indexBytes": 0,
+            "dataBytes": 258277,
+            "chunksFetched": 10,
+            "chunksDecompressed": 10,
+            "indexLoadMs": 0,
+            "decompressionMs": 7.001041999998051,
+            "decodingMs": 2.159375999999611,
+            "chunkCacheHits": 42,
+            "chunkCacheMisses": 10,
+            "cacheBytes": 6754844
+          }
+        },
+        {
+          "name": "pan-2",
+          "milliseconds": 140.96200000000044,
+          "diagnostics": {
+            "readRequests": 2,
+            "indexBytes": 0,
+            "dataBytes": 286359,
+            "chunksFetched": 10,
+            "chunksDecompressed": 10,
+            "indexLoadMs": 0,
+            "decompressionMs": 7.543209999999817,
+            "decodingMs": 2.746999999999389,
+            "chunkCacheHits": 42,
+            "chunkCacheMisses": 10,
+            "cacheBytes": 7763660
+          }
+        },
+        {
+          "name": "pan-3",
+          "milliseconds": 143.88095799999974,
+          "diagnostics": {
+            "readRequests": 2,
+            "indexBytes": 0,
+            "dataBytes": 287002,
+            "chunksFetched": 10,
+            "chunksDecompressed": 10,
+            "indexLoadMs": 0,
+            "decompressionMs": 9.765042999999423,
+            "decodingMs": 2.6627089999992677,
+            "chunkCacheHits": 42,
+            "chunkCacheMisses": 10,
+            "cacheBytes": 8771264
+          }
+        },
+        {
+          "name": "pan-4",
+          "milliseconds": 132.2955409999995,
+          "diagnostics": {
+            "readRequests": 2,
+            "indexBytes": 0,
+            "dataBytes": 228652,
+            "chunksFetched": 8,
+            "chunksDecompressed": 8,
+            "indexLoadMs": 0,
+            "decompressionMs": 6.123125000000073,
+            "decodingMs": 2.100623999999698,
+            "chunkCacheHits": 42,
+            "chunkCacheMisses": 8,
+            "cacheBytes": 9578804
+          }
+        },
+        {
+          "name": "pan-5",
+          "milliseconds": 147.0079999999998,
+          "diagnostics": {
+            "readRequests": 2,
+            "indexBytes": 0,
+            "dataBytes": 286140,
+            "chunksFetched": 10,
+            "chunksDecompressed": 10,
+            "indexLoadMs": 0,
+            "decompressionMs": 12.572377999998025,
+            "decodingMs": 2.095959000000221,
+            "chunkCacheHits": 40,
+            "chunkCacheMisses": 10,
+            "cacheBytes": 10588064
+          }
+        }
+      ]
+    },
+    {
+      "file": "mixed-n24-tile4096-g4-positions-l6-s1701.fw",
+      "scenario": "typical",
+      "pattern": "E-panning",
+      "cache": "warm",
+      "repetition": 2,
+      "milliseconds": 6.845917000000554,
+      "initializationMs": 175.2933750000002,
+      "requests": 0,
+      "transferredBytes": 0,
+      "readRequests": 0,
+      "indexBytes": 0,
+      "dataBytes": 0,
+      "chunksFetched": 0,
+      "chunksDecompressed": 0,
+      "indexLoadMs": 0,
+      "decompressionMs": 0,
+      "decodingMs": 0,
+      "chunkCacheHits": 306,
+      "chunkCacheMisses": 0,
+      "cacheBytes": 10588064,
+      "steps": [
+        {
+          "name": "pan-0",
+          "milliseconds": 1.2069579999997586,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 10588064
+          }
+        },
+        {
+          "name": "pan-1",
+          "milliseconds": 1.0189579999996567,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 52,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 10588064
+          }
+        },
+        {
+          "name": "pan-2",
+          "milliseconds": 0.9548329999997804,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 52,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 10588064
+          }
+        },
+        {
+          "name": "pan-3",
+          "milliseconds": 1.1997089999995296,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 52,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 10588064
+          }
+        },
+        {
+          "name": "pan-4",
+          "milliseconds": 1.2550420000006852,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 10588064
+          }
+        },
+        {
+          "name": "pan-5",
+          "milliseconds": 1.1924169999992955,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 10588064
+          }
+        }
+      ]
+    },
+    {
+      "file": "mixed-n24-tile4096-g4-positions-l6-s1701.fw",
+      "scenario": "typical",
+      "pattern": "F-zooming",
+      "cache": "cold",
+      "repetition": 0,
+      "milliseconds": 239.60312499999964,
+      "initializationMs": 172.29091700000026,
+      "requests": 4,
+      "transferredBytes": 306666,
+      "readRequests": 4,
+      "indexBytes": 135760,
+      "dataBytes": 170906,
+      "chunksFetched": 6,
+      "chunksDecompressed": 6,
+      "indexLoadMs": 217.65495699999974,
+      "decompressionMs": 6.5997919999981605,
+      "decodingMs": 4.8929179999986445,
+      "chunkCacheHits": 0,
+      "chunkCacheMisses": 6,
+      "cacheBytes": 1416584,
+      "steps": [
+        {
+          "name": "full-resolution",
+          "milliseconds": 233.93375000000015,
+          "diagnostics": {
+            "readRequests": 4,
+            "indexBytes": 135760,
+            "dataBytes": 170906,
+            "chunksFetched": 6,
+            "chunksDecompressed": 6,
+            "indexLoadMs": 217.65495699999974,
+            "decompressionMs": 6.5997919999981605,
+            "decodingMs": 4.8929179999986445,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 6,
+            "cacheBytes": 1307264
+          }
+        },
+        {
+          "name": "first-tile-summary",
+          "milliseconds": 4.407457999999679,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1405240
+          }
+        },
+        {
+          "name": "first-coarse-zoom",
+          "milliseconds": 0.42883400000027905,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1416584
+          }
+        },
+        {
+          "name": "repeated-tile-summary",
+          "milliseconds": 0.795708000000559,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1416584
+          }
+        }
+      ]
+    },
+    {
+      "file": "mixed-n24-tile4096-g4-positions-l6-s1701.fw",
+      "scenario": "typical",
+      "pattern": "F-zooming",
+      "cache": "warm",
+      "repetition": 0,
+      "milliseconds": 1.2729589999999007,
+      "initializationMs": 172.29091700000026,
+      "requests": 0,
+      "transferredBytes": 0,
+      "readRequests": 0,
+      "indexBytes": 0,
+      "dataBytes": 0,
+      "chunksFetched": 0,
+      "chunksDecompressed": 0,
+      "indexLoadMs": 0,
+      "decompressionMs": 0,
+      "decodingMs": 0,
+      "chunkCacheHits": 6,
+      "chunkCacheMisses": 0,
+      "cacheBytes": 1416584,
+      "steps": [
+        {
+          "name": "full-resolution",
+          "milliseconds": 0.19683299999996962,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 6,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1416584
+          }
+        },
+        {
+          "name": "first-tile-summary",
+          "milliseconds": 0.5211669999998776,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1416584
+          }
+        },
+        {
+          "name": "first-coarse-zoom",
+          "milliseconds": 0.062167000000044936,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1416584
+          }
+        },
+        {
+          "name": "repeated-tile-summary",
+          "milliseconds": 0.4802909999998519,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1416584
+          }
+        }
+      ]
+    },
+    {
+      "file": "mixed-n24-tile4096-g4-positions-l6-s1701.fw",
+      "scenario": "typical",
+      "pattern": "F-zooming",
+      "cache": "cold",
+      "repetition": 1,
+      "milliseconds": 238.47683299999971,
+      "initializationMs": 171.55433400000038,
+      "requests": 4,
+      "transferredBytes": 306666,
+      "readRequests": 4,
+      "indexBytes": 135760,
+      "dataBytes": 170906,
+      "chunksFetched": 6,
+      "chunksDecompressed": 6,
+      "indexLoadMs": 219.19745799999964,
+      "decompressionMs": 6.095041999999921,
+      "decodingMs": 4.960209000000759,
+      "chunkCacheHits": 0,
+      "chunkCacheMisses": 6,
+      "cacheBytes": 1416584,
+      "steps": [
+        {
+          "name": "full-resolution",
+          "milliseconds": 234.77295799999956,
+          "diagnostics": {
+            "readRequests": 4,
+            "indexBytes": 135760,
+            "dataBytes": 170906,
+            "chunksFetched": 6,
+            "chunksDecompressed": 6,
+            "indexLoadMs": 219.19745799999964,
+            "decompressionMs": 6.095041999999921,
+            "decodingMs": 4.960209000000759,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 6,
+            "cacheBytes": 1307264
+          }
+        },
+        {
+          "name": "first-tile-summary",
+          "milliseconds": 2.7956249999997453,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1405240
+          }
+        },
+        {
+          "name": "first-coarse-zoom",
+          "milliseconds": 0.36895800000002055,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1416584
+          }
+        },
+        {
+          "name": "repeated-tile-summary",
+          "milliseconds": 0.5085840000001554,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1416584
+          }
+        }
+      ]
+    },
+    {
+      "file": "mixed-n24-tile4096-g4-positions-l6-s1701.fw",
+      "scenario": "typical",
+      "pattern": "F-zooming",
+      "cache": "warm",
+      "repetition": 1,
+      "milliseconds": 1.2405829999997877,
+      "initializationMs": 171.55433400000038,
+      "requests": 0,
+      "transferredBytes": 0,
+      "readRequests": 0,
+      "indexBytes": 0,
+      "dataBytes": 0,
+      "chunksFetched": 0,
+      "chunksDecompressed": 0,
+      "indexLoadMs": 0,
+      "decompressionMs": 0,
+      "decodingMs": 0,
+      "chunkCacheHits": 6,
+      "chunkCacheMisses": 0,
+      "cacheBytes": 1416584,
+      "steps": [
+        {
+          "name": "full-resolution",
+          "milliseconds": 0.1432909999994081,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 6,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1416584
+          }
+        },
+        {
+          "name": "first-tile-summary",
+          "milliseconds": 0.508375000000342,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1416584
+          }
+        },
+        {
+          "name": "first-coarse-zoom",
+          "milliseconds": 0.06941699999970297,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1416584
+          }
+        },
+        {
+          "name": "repeated-tile-summary",
+          "milliseconds": 0.5052920000007362,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1416584
+          }
+        }
+      ]
+    },
+    {
+      "file": "mixed-n24-tile4096-g4-positions-l6-s1701.fw",
+      "scenario": "typical",
+      "pattern": "F-zooming",
+      "cache": "cold",
+      "repetition": 2,
+      "milliseconds": 239.46858299999985,
+      "initializationMs": 173.28512500000033,
+      "requests": 4,
+      "transferredBytes": 306666,
+      "readRequests": 4,
+      "indexBytes": 135760,
+      "dataBytes": 170906,
+      "chunksFetched": 6,
+      "chunksDecompressed": 6,
+      "indexLoadMs": 222.8777909999999,
+      "decompressionMs": 5.635540999999648,
+      "decodingMs": 4.735249999998814,
+      "chunkCacheHits": 0,
+      "chunkCacheMisses": 6,
+      "cacheBytes": 1416584,
+      "steps": [
+        {
+          "name": "full-resolution",
+          "milliseconds": 236.11329099999966,
+          "diagnostics": {
+            "readRequests": 4,
+            "indexBytes": 135760,
+            "dataBytes": 170906,
+            "chunksFetched": 6,
+            "chunksDecompressed": 6,
+            "indexLoadMs": 222.8777909999999,
+            "decompressionMs": 5.635540999999648,
+            "decodingMs": 4.735249999998814,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 6,
+            "cacheBytes": 1307264
+          }
+        },
+        {
+          "name": "first-tile-summary",
+          "milliseconds": 2.520041000000674,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1405240
+          }
+        },
+        {
+          "name": "first-coarse-zoom",
+          "milliseconds": 0.30404100000032486,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1416584
+          }
+        },
+        {
+          "name": "repeated-tile-summary",
+          "milliseconds": 0.49829200000021956,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1416584
+          }
+        }
+      ]
+    },
+    {
+      "file": "mixed-n24-tile4096-g4-positions-l6-s1701.fw",
+      "scenario": "typical",
+      "pattern": "F-zooming",
+      "cache": "warm",
+      "repetition": 2,
+      "milliseconds": 1.236624999999549,
+      "initializationMs": 173.28512500000033,
+      "requests": 0,
+      "transferredBytes": 0,
+      "readRequests": 0,
+      "indexBytes": 0,
+      "dataBytes": 0,
+      "chunksFetched": 0,
+      "chunksDecompressed": 0,
+      "indexLoadMs": 0,
+      "decompressionMs": 0,
+      "decodingMs": 0,
+      "chunkCacheHits": 6,
+      "chunkCacheMisses": 0,
+      "cacheBytes": 1416584,
+      "steps": [
+        {
+          "name": "full-resolution",
+          "milliseconds": 0.15595800000028248,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 6,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1416584
+          }
+        },
+        {
+          "name": "first-tile-summary",
+          "milliseconds": 0.5112920000001395,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1416584
+          }
+        },
+        {
+          "name": "first-coarse-zoom",
+          "milliseconds": 0.05016599999999016,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1416584
+          }
+        },
+        {
+          "name": "repeated-tile-summary",
+          "milliseconds": 0.505207999999584,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1416584
+          }
+        }
+      ]
+    },
+    {
+      "file": "mixed-n24-tile4096-g4-positions-l6-s1701.fw",
+      "scenario": "typical",
+      "pattern": "G-track-selection",
+      "cache": "cold",
+      "repetition": 0,
+      "milliseconds": 984.1242910000001,
+      "initializationMs": 170.86966700000085,
+      "requests": 12,
+      "transferredBytes": 4404291,
+      "readRequests": 12,
+      "indexBytes": 408369,
+      "dataBytes": 3995922,
+      "chunksFetched": 150,
+      "chunksDecompressed": 150,
+      "indexLoadMs": 948.263125999998,
+      "decompressionMs": 62.05824399999619,
+      "decodingMs": 29.086161000002903,
+      "chunkCacheHits": 250,
+      "chunkCacheMisses": 150,
+      "cacheBytes": 17235873,
+      "steps": [
+        {
+          "name": "selection-0-24-tracks",
+          "milliseconds": 981.1092090000002,
+          "diagnostics": {
+            "readRequests": 12,
+            "indexBytes": 408369,
+            "dataBytes": 3995922,
+            "chunksFetched": 150,
+            "chunksDecompressed": 150,
+            "indexLoadMs": 948.263125999998,
+            "decompressionMs": 62.05824399999619,
+            "decodingMs": 29.086161000002903,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 150,
+            "cacheBytes": 17235873
+          }
+        },
+        {
+          "name": "selection-1-6-tracks",
+          "milliseconds": 0.5235830000001442,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        },
+        {
+          "name": "selection-2-6-tracks",
+          "milliseconds": 0.5102499999993597,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        },
+        {
+          "name": "selection-3-24-tracks",
+          "milliseconds": 1.9570829999993293,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 150,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        }
+      ]
+    },
+    {
+      "file": "mixed-n24-tile4096-g4-positions-l6-s1701.fw",
+      "scenario": "typical",
+      "pattern": "G-track-selection",
+      "cache": "warm",
+      "repetition": 0,
+      "milliseconds": 5.436084000000847,
+      "initializationMs": 170.86966700000085,
+      "requests": 0,
+      "transferredBytes": 0,
+      "readRequests": 0,
+      "indexBytes": 0,
+      "dataBytes": 0,
+      "chunksFetched": 0,
+      "chunksDecompressed": 0,
+      "indexLoadMs": 0,
+      "decompressionMs": 0,
+      "decodingMs": 0,
+      "chunkCacheHits": 400,
+      "chunkCacheMisses": 0,
+      "cacheBytes": 17235873,
+      "steps": [
+        {
+          "name": "selection-0-24-tracks",
+          "milliseconds": 1.9703329999993002,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 150,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        },
+        {
+          "name": "selection-1-6-tracks",
+          "milliseconds": 0.6496250000000146,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        },
+        {
+          "name": "selection-2-6-tracks",
+          "milliseconds": 0.5955419999991136,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        },
+        {
+          "name": "selection-3-24-tracks",
+          "milliseconds": 2.2060830000009446,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 150,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        }
+      ]
+    },
+    {
+      "file": "mixed-n24-tile4096-g4-positions-l6-s1701.fw",
+      "scenario": "typical",
+      "pattern": "G-track-selection",
+      "cache": "cold",
+      "repetition": 1,
+      "milliseconds": 986.0797920000005,
+      "initializationMs": 170.75120900000002,
+      "requests": 12,
+      "transferredBytes": 4404291,
+      "readRequests": 12,
+      "indexBytes": 408369,
+      "dataBytes": 3995922,
+      "chunksFetched": 150,
+      "chunksDecompressed": 150,
+      "indexLoadMs": 937.0637079999997,
+      "decompressionMs": 62.17641000000003,
+      "decodingMs": 29.048117000016646,
+      "chunkCacheHits": 250,
+      "chunkCacheMisses": 150,
+      "cacheBytes": 17235873,
+      "steps": [
+        {
+          "name": "selection-0-24-tracks",
+          "milliseconds": 982.6677500000005,
+          "diagnostics": {
+            "readRequests": 12,
+            "indexBytes": 408369,
+            "dataBytes": 3995922,
+            "chunksFetched": 150,
+            "chunksDecompressed": 150,
+            "indexLoadMs": 937.0637079999997,
+            "decompressionMs": 62.17641000000003,
+            "decodingMs": 29.048117000016646,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 150,
+            "cacheBytes": 17235873
+          }
+        },
+        {
+          "name": "selection-1-6-tracks",
+          "milliseconds": 0.5432500000006257,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        },
+        {
+          "name": "selection-2-6-tracks",
+          "milliseconds": 0.5242920000000595,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        },
+        {
+          "name": "selection-3-24-tracks",
+          "milliseconds": 2.326666999999361,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 150,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        }
+      ]
+    },
+    {
+      "file": "mixed-n24-tile4096-g4-positions-l6-s1701.fw",
+      "scenario": "typical",
+      "pattern": "G-track-selection",
+      "cache": "warm",
+      "repetition": 1,
+      "milliseconds": 4.8287080000009155,
+      "initializationMs": 170.75120900000002,
+      "requests": 0,
+      "transferredBytes": 0,
+      "readRequests": 0,
+      "indexBytes": 0,
+      "dataBytes": 0,
+      "chunksFetched": 0,
+      "chunksDecompressed": 0,
+      "indexLoadMs": 0,
+      "decompressionMs": 0,
+      "decodingMs": 0,
+      "chunkCacheHits": 400,
+      "chunkCacheMisses": 0,
+      "cacheBytes": 17235873,
+      "steps": [
+        {
+          "name": "selection-0-24-tracks",
+          "milliseconds": 2.0747080000001006,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 150,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        },
+        {
+          "name": "selection-1-6-tracks",
+          "milliseconds": 0.479749999998603,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        },
+        {
+          "name": "selection-2-6-tracks",
+          "milliseconds": 0.46708399999988615,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        },
+        {
+          "name": "selection-3-24-tracks",
+          "milliseconds": 1.7970829999994749,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 150,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        }
+      ]
+    },
+    {
+      "file": "mixed-n24-tile4096-g4-positions-l6-s1701.fw",
+      "scenario": "typical",
+      "pattern": "G-track-selection",
+      "cache": "cold",
+      "repetition": 2,
+      "milliseconds": 977.6567919999998,
+      "initializationMs": 170.82241600000089,
+      "requests": 12,
+      "transferredBytes": 4404291,
+      "readRequests": 12,
+      "indexBytes": 408369,
+      "dataBytes": 3995922,
+      "chunksFetched": 150,
+      "chunksDecompressed": 150,
+      "indexLoadMs": 934.866082999999,
+      "decompressionMs": 62.71811700000217,
+      "decodingMs": 19.861458999996103,
+      "chunkCacheHits": 250,
+      "chunkCacheMisses": 150,
+      "cacheBytes": 17235873,
+      "steps": [
+        {
+          "name": "selection-0-24-tracks",
+          "milliseconds": 974.970209000001,
+          "diagnostics": {
+            "readRequests": 12,
+            "indexBytes": 408369,
+            "dataBytes": 3995922,
+            "chunksFetched": 150,
+            "chunksDecompressed": 150,
+            "indexLoadMs": 934.866082999999,
+            "decompressionMs": 62.71811700000217,
+            "decodingMs": 19.861458999996103,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 150,
+            "cacheBytes": 17235873
+          }
+        },
+        {
+          "name": "selection-1-6-tracks",
+          "milliseconds": 0.4586249999993015,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        },
+        {
+          "name": "selection-2-6-tracks",
+          "milliseconds": 0.4458340000001044,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        },
+        {
+          "name": "selection-3-24-tracks",
+          "milliseconds": 1.7651249999998981,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 150,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        }
+      ]
+    },
+    {
+      "file": "mixed-n24-tile4096-g4-positions-l6-s1701.fw",
+      "scenario": "typical",
+      "pattern": "G-track-selection",
+      "cache": "warm",
+      "repetition": 2,
+      "milliseconds": 4.659791999998561,
+      "initializationMs": 170.82241600000089,
+      "requests": 0,
+      "transferredBytes": 0,
+      "readRequests": 0,
+      "indexBytes": 0,
+      "dataBytes": 0,
+      "chunksFetched": 0,
+      "chunksDecompressed": 0,
+      "indexLoadMs": 0,
+      "decompressionMs": 0,
+      "decodingMs": 0,
+      "chunkCacheHits": 400,
+      "chunkCacheMisses": 0,
+      "cacheBytes": 17235873,
+      "steps": [
+        {
+          "name": "selection-0-24-tracks",
+          "milliseconds": 1.7554999999993015,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 150,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        },
+        {
+          "name": "selection-1-6-tracks",
+          "milliseconds": 0.4364999999997963,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        },
+        {
+          "name": "selection-2-6-tracks",
+          "milliseconds": 0.4519159999999829,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 50,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        },
+        {
+          "name": "selection-3-24-tracks",
+          "milliseconds": 2.0077089999995223,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 150,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 17235873
+          }
+        }
+      ]
+    }
+  ]
+}

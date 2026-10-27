@@ -51,6 +51,8 @@ this report at `benchmarks/RESULTS.md`; no `packages/figwig` monorepo is needed.
 
 - CPU: {env['cpu']}, {env['logicalCpus']} logical CPUs; {env['totalMemoryBytes'] / 1024 ** 3:g} GiB RAM.
 - Runtime: Node {env['node']}, {env['platform']}/{env['architecture']}.
+- Reader query/decode implementation: commit `7dae4ad72bb5b3b7d01e327ef1381a75a99d24d5`;
+  all seven runs were repeated after the final bounded-window planner changes.
 - Writer: Python 3.12.13; Figwig 0.2.0; NumPy 2.5.4, Numba 0.68.0;
   upstream commit `c0e5d6522c677b9f03cd6831e2dbcea759866628`.
 - Compression: Python zlib 1.2.12, level 6 except the explicitly uncompressed comparison.
@@ -86,6 +88,8 @@ file represents the same signals. In track order every track is its own group;
 the writer ignores the requested group size. JSON manifests record that fact.
 
 '''
+initializations = [[scenario, f"{statistics.median(s['initializationMs'] for s in RUNS['mixed-networks']['samples'] if s['scenario'] == scenario):.2f}"] for scenario in ['local', 'fast', 'typical', 'high']]
+body = body.replace('## Datasets', 'First-open header/metadata medians for the mixed file, excluded from the query tables:\n\n' + table(['Network', 'Initialization ms'], initializations) + '\n\n## Datasets')
 rows = []
 for run, filename, label in [('matrix-local', file(), 'Sparse24 compact baseline'), ('matrix-local', file(order='tracks'), 'Sparse24 track-order'), ('mixed-networks', MIXED, 'Mixed24'), ('profiles', DENSE, 'Dense8'), ('profiles', COLLECTION, 'Sparse96 collection'), ('large-sparse', file(), 'Sparse24 long chromosomes')]:
     dataset = RUNS[run]['datasets'][filename]
@@ -192,7 +196,7 @@ inflation; index-load time includes network, validation and index parsing and
 sums concurrently overlapping group loads, so it can exceed query wall time.
 Retained cache bytes estimate parsed structures and typed arrays, not process
 RSS or JavaScript object/allocator overhead. Header metadata is excluded from
-that cache estimate.
+that cache estimate. Data-byte counts include gaps fetched by range coalescing.
 
 ## Zooms, panning and cache reuse
 
@@ -215,7 +219,7 @@ for pattern in ['E-panning', 'F-zooming', 'G-track-selection']:
         rows.append([pattern[0], steps[0]['name'], f"{statistics.median(s['milliseconds'] for s in steps):.2f}", number(statistics.median(s['diagnostics']['readRequests'] for s in steps)), number(statistics.median(s['diagnostics']['indexBytes'] for s in steps)), number(statistics.median(s['diagnostics']['dataBytes'] for s in steps))])
 body += table(['Pattern', 'Step', 'Median ms', 'Requests', 'Index bytes', 'Data bytes'], rows)
 warm = [s for s in all_samples if s['cache'] == 'warm']
-body += f"\n\nAcross the recorded {len(warm):,} warm samples, the total HTTP request count is {sum(s['requests'] for s in warm):,}. Output allocation and copying still take time, even when all required decoded chunks remain cached.\n"
+body += f"\n\nAcross the recorded {len(warm):,} warm samples, the total HTTP request count is {sum(s['requests'] for s in warm):,}. Output allocation and copying still take time, even when all required decoded chunks remain cached. These measured decoded working sets fit the configured caches; larger queries can evict chunks and require more reads.\n"
 body += '''
 ## Dense signals and a 96-track collection
 

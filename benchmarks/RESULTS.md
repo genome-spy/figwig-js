@@ -1,0 +1,316 @@
+# Figwig JavaScript HTTP benchmark results
+
+Measured on 2026-10-27. These are observations for synthetic files and this
+implementation, not general speed guarantees. The standalone repository places
+this report at `benchmarks/RESULTS.md`; no `packages/figwig` monorepo is needed.
+
+## Environment and method
+
+- CPU: Apple M5, 10 logical CPUs; 32 GiB RAM.
+- Runtime: Node v26.8.1, darwin/arm64.
+- Reader query/decode implementation: commit `7dae4ad72bb5b3b7d01e327ef1381a75a99d24d5`;
+  all seven runs were repeated after the final bounded-window planner changes.
+- Writer: Python 3.12.13; Figwig 0.2.0; NumPy 2.5.4, Numba 0.68.0;
+  upstream commit `c0e5d6522c677b9f03cd6831e2dbcea759866628`.
+- Compression: Python zlib 1.2.12, level 6 except the explicitly uncompressed comparison.
+- Browser performance was not measured here; actual browser correctness tests
+  are separate from these Node HTTP benchmarks.
+- 1,806 recorded query samples across seven runs, including cold and warm
+  pairs. Each case has three repetitions and one untimed warm-up on another reader.
+- Header/metadata initialization is timed separately and excluded from query
+  times. A cold query includes its first selected-group index loads. A warm
+  query immediately repeats the same pattern on the same reader. No external
+  raw-range cache wrapper is added.
+- Default reader concurrency is six, coalescing gap 4,096 bytes, coalesced-read
+  cap 4 MiB, decoded-chunk cache 64 MiB and group-index cache 32 MiB.
+- The localhost server applies latency to every response and throttles 16 KiB
+  body chunks through one shared bandwidth timeline. Its independent protocol
+  tests cover 206, 416, HEAD, CORS, shared bandwidth, concurrency and cancellation.
+
+| Scenario | Response latency | Shared bandwidth |
+|---|---|---|
+| local | 0 ms | Unlimited |
+| fast | 20 ms | 100 Mbit/s |
+| typical | 80 ms | 50 Mbit/s |
+| high | 150 ms | 10 Mbit/s |
+
+Raw samples and all phase/cache metrics are retained in
+[`measurements/`](measurements/). Each JSON has an adjacent table including
+median and interpolated p95. Three samples support exploratory comparisons;
+they do not establish a reliable tail-latency distribution. Measurements were
+collected during development on a shared workstation, without CPU-frequency
+pinning or process isolation.
+
+First-open header/metadata medians for the mixed file, excluded from the query tables:
+
+| Network | Initialization ms |
+|---|---|
+| local | 3.15 |
+| fast | 50.17 |
+| typical | 170.93 |
+| high | 313.20 |
+
+## Datasets
+
+Every dataset has two chromosomes and seed 1701. The small sparse layout matrix
+uses chromosome lengths 500,000 and 125,000, 24 tracks, density 0.02, four zoom
+levels, all four tile sizes and all four position-group sizes. One track-order
+file represents the same signals. In track order every track is its own group;
+the writer ignores the requested group size. JSON manifests record that fact.
+
+| Dataset | Tracks | Chromosome lengths | File bytes | Tile bp | Tracks/group | Order |
+|---|---|---|---|---|---|---|
+| Sparse24 compact baseline | 24 | 500,000 + 125,000 | 592,388 | 4096 | 4 | positions |
+| Sparse24 track-order | 24 | 500,000 + 125,000 | 777,511 | 4096 | 1 | tracks |
+| Mixed24 | 24 | 8,000,000 + 2,000,000 | 390,392,513 | 4096 | 4 | positions |
+| Dense8 | 8 | 2,000,000 + 500,000 | 68,600,780 | 4096 | 4 | positions |
+| Sparse96 collection | 96 | 2,000,000 + 500,000 | 8,874,394 | 4096 | 8 | positions |
+| Sparse24 long chromosomes | 24 | 8,000,000 + 2,000,000 | 9,376,472 | 4096 | 4 | positions |
+
+Mixed tracks alternate sparse counts and varying float32 signals, with NaN
+stretches in float tracks. Dense signals are noisy continuous float32 values.
+Large files are generated on demand and excluded from Git. The 390 MB mixed
+file and 68.6 MB dense file exercise substantially larger payloads than the
+conformance fixtures. Generator parameters and complete file sizes for every
+layout are retained in raw result metadata.
+
+## Track groups and storage order
+
+The table below uses the same 10 kb interval in the compact sparse dataset.
+All times are cold medians on the typical simulated connection. Header
+initialization is excluded. The group-24 file necessarily transfers the same
+chunks for one selected track and all 24 tracks.
+
+| Layout | 1 track ms | 1 track bytes | Requests | 24 tracks ms | 24 tracks bytes | Requests |
+|---|---|---|---|---|---|---|
+| positions, g1 | 170.64 | 3,217 | 2 | 697.23 | 74,934 | 48 |
+| positions, g4 | 172.88 | 6,431 | 2 | 177.32 | 38,121 | 12 |
+| positions, g8 | 172.49 | 10,517 | 2 | 177.35 | 30,873 | 6 |
+| positions, g24 | 177.79 | 25,654 | 2 | 175.90 | 25,654 | 2 |
+| tracks, g1 | 178.69 | 26,094 | 2 | 567.01 | 618,446 | 25 |
+
+Many one-track position groups minimize bytes for a single selected track, but
+all-track reads need many separate group-index and data requests. Six allowed
+concurrent requests turn those requests into several latency rounds. Grouping
+reduces this request overhead while increasing transfer for small subsets.
+Track-order blocks can span much more than a 10 kb interval in these sparse
+signals, so short-window reads overfetch more block data. These observations
+depend on signal density and block layout; they do not establish a universal
+ranking of storage orders.
+
+Within the group-4 position file, four selected tracks in one group transfer
+19,939 bytes over 100 kb, while four tracks in different groups transfer 79,793 bytes. Their medians are 177.63 and 187.62 ms respectively.
+
+## Tile size and whole-group indexes
+
+One selected track, 10 kb window, group size four, compact sparse files:
+
+| Tile bp | File bytes | Index bytes | Data bytes | Total query bytes | Local ms |
+|---|---|---|---|---|---|
+| 1,024 | 777,556 | 13,171 | 2,126 | 15,297 | 3.40 |
+| 4,096 | 592,388 | 3,892 | 2,539 | 6,431 | 3.27 |
+| 16,384 | 529,054 | 1,408 | 2,327 | 3,735 | 3.29 |
+| 65,536 | 509,834 | 675 | 8,792 | 9,467 | 3.40 |
+
+Larger tiles reduce index bytes but eventually transfer more irrelevant bases.
+The smallest transfer here occurs at tile size 16,384; this is a measured result
+for this particular sparse signal and window alignment, not a tuning rule.
+Position-index compression covers all live tiles of a selected group. Querying
+a short interval therefore still loads that whole-group index.
+
+| Same group-4 sparse profile | Genome bases | Index bytes | Data bytes | Total bytes | Typical ms |
+|---|---|---|---|---|---|
+| Compact | 625,000 | 3,892 | 2,539 | 6,431 | 172.88 |
+| Long chromosomes | 10,000,000 | 52,894 | 1,852 | 54,746 | 184.18 |
+
+The window positions differ because the pattern centers each query within its
+chromosome. Signal seed, density, tile size and grouping remain fixed. This
+comparison demonstrates measured index growth, without extrapolating to a
+whole human genome.
+
+## Larger mixed-signal file and network conditions
+
+Cold median times for the 390 MB mixed file. The requested large-region bins
+cover the aligned prefix of chr1 (7,995,392 bp), six selected tracks and 65,536 bp
+sum bins. Summary use is explicit and treats NaNs as zero; these stored sums
+have the format's rounded tile-sum semantics.
+
+| Workload | Local ms | Fast ms | Typical ms | High-latency ms | Typical warm ms |
+|---|---|---|---|---|---|
+| 1 track / 10 kb | 6.24 | 72.27 | 204.58 | 457.65 | 0.06 |
+| 24 tracks / 10 kb | 17.09 | 138.72 | 336.99 | 1044.98 | 0.39 |
+| 24 tracks / 100 kb | 88.35 | 508.07 | 975.89 | 3861.28 | 1.74 |
+| 6 tracks / coarse ~8 Mb sums | 3.17 | 37.85 | 110.59 | 264.42 | 0.07 |
+| 6 overlapping pans | 70.66 | 497.16 | 1151.82 | 3436.55 | 5.05 |
+| Resolution changes | 10.10 | 92.84 | 238.85 | 568.46 | 0.89 |
+| 24 → 6 → 6 → 24 tracks | 90.93 | 512.25 | 984.25 | 3881.06 | 4.75 |
+| Several regions batched | 18.85 | 174.13 | 412.49 | 1127.03 | 0.59 |
+| Several regions sequential | 20.17 | 211.82 | 589.53 | 1464.54 | 0.58 |
+
+Selected cold typical-connection metrics (the adjacent JSON retains all metrics):
+
+| Workload | Requests | Index bytes | Data bytes | Chunks fetched | Chunks inflated | Data inflate ms | Decode ms | Retained cache bytes |
+|---|---|---|---|---|---|---|---|---|
+| 1 track / 10 kb | 2 | 67,689 | 87,031 | 3 | 3 | 4.03 | 1.81 | 653,681 |
+| 24 tracks / 10 kb | 12 | 408,369 | 493,829 | 18 | 18 | 11.96 | 7.68 | 3,923,385 |
+| 24 tracks / 100 kb | 12 | 408,369 | 3,995,922 | 150 | 150 | 63.63 | 25.35 | 17,235,873 |
+| 6 tracks / coarse ~8 Mb sums | 2 | 135,760 | 0 | 0 | 0 | 0.00 | 0.00 | 713,880 |
+| 6 overlapping pans | 14 | 135,760 | 2,695,007 | 98 | 98 | 65.79 | 29.42 | 10,588,064 |
+| Resolution changes | 4 | 135,760 | 170,906 | 6 | 6 | 6.31 | 3.89 | 1,416,584 |
+
+The 100 kb all-track request transfers about 4.4 MB from a 390 MB file, rather
+than fetching the entire file. Data decompression is a substantial component
+of the local baseline. With imposed latency/bandwidth, network waiting dominates
+that same workload. The data-inflate timer excludes compressed index and summary
+inflation; index-load time includes network, validation and index parsing and
+sums concurrently overlapping group loads, so it can exceed query wall time.
+Retained cache bytes estimate parsed structures and typed arrays, not process
+RSS or JavaScript object/allocator overhead. Header metadata is excluded from
+that cache estimate. Data-byte counts include gaps fetched by range coalescing.
+
+## Zooms, panning and cache reuse
+
+This implementation initially fetches a selected group's complete index record,
+including compressed tile and zoom summaries. It decompresses summaries only
+when requested. Consequently, the first zoom read after full-resolution access
+can need no additional HTTP requests: summary payload bytes were already included
+in the initial index transfer. That is a reader implementation choice and a
+visible component of the reported index overhead.
+
+The separate typical-connection trace records each step, rather than inferring
+zoom behavior from aggregate times:
+
+| Pattern | Step | Median ms | Requests | Index bytes | Data bytes |
+|---|---|---|---|---|---|
+| E | pan-0 | 464.67 | 4 | 135,760 | 1,348,577 |
+| E | pan-1 | 135.00 | 2 | 0 | 258,277 |
+| E | pan-2 | 143.42 | 2 | 0 | 286,359 |
+| E | pan-3 | 143.88 | 2 | 0 | 287,002 |
+| E | pan-4 | 134.08 | 2 | 0 | 228,652 |
+| E | pan-5 | 144.80 | 2 | 0 | 286,140 |
+| F | full-resolution | 234.77 | 4 | 135,760 | 170,906 |
+| F | first-tile-summary | 2.80 | 0 | 0 | 0 |
+| F | first-coarse-zoom | 0.37 | 0 | 0 | 0 |
+| F | repeated-tile-summary | 0.51 | 0 | 0 | 0 |
+| G | selection-0-24-tracks | 981.11 | 12 | 408,369 | 3,995,922 |
+| G | selection-1-6-tracks | 0.52 | 0 | 0 | 0 |
+| G | selection-2-6-tracks | 0.51 | 0 | 0 | 0 |
+| G | selection-3-24-tracks | 1.96 | 0 | 0 | 0 |
+
+Across the recorded 903 warm samples, the total HTTP request count is 0. Output allocation and copying still take time, even when all required decoded chunks remain cached. These measured decoded working sets fit the configured caches; larger queries can evict chunks and require more reads.
+
+## Dense signals and a 96-track collection
+
+Typical-connection cold medians; A's all-track case intentionally caps selection
+at 24 tracks, whereas I selects every track in the file.
+
+| Workload | Median ms | Requests | Index bytes | Data bytes | Retained cache bytes |
+|---|---|---|---|---|---|
+| Dense8, one / 10 kb | 223.96 | 2 | 18,864 | 225,448 | 616,448 |
+| Dense8, all8 / 100 kb | 716.80 | 4 | 37,918 | 2,925,305 | 7,025,598 |
+| Collection96, one / 10 kb | 177.68 | 2 | 20,254 | 4,787 | 127,674 |
+| Collection96, first24 / 10 kb | 186.88 | 6 | 60,823 | 14,264 | 382,279 |
+| Collection96, all96 / 10 kb | 393.42 | 24 | 243,089 | 56,516 | 1,524,461 |
+| Collection96, four scattered / 10 kb | 188.96 | 8 | 81,057 | 18,988 | 509,549 |
+
+The 96-track file has twelve position groups. Reading all 96 tracks loads more
+groups and consumes additional concurrency rounds; changing only which four
+tracks are selected also changes how many groups are needed. This is a measured
+cost of the chosen layout, not evidence that a track count alone predicts
+performance.
+
+## Compression and batching tradeoffs
+
+| Compression level | File bytes | All24 / 100 kb typical ms | Query bytes | Chunks inflated |
+|---|---|---|---|---|
+| 0 | 670,140 | 201.03 | 131,797 | 0 |
+| 6 | 592,388 | 192.35 | 119,666 | 156 |
+
+Compression changes both payload size and the writer's chosen chunk
+representations. Level zero therefore is not merely the same chunks with a
+codec disabled. The complete raw samples retain local baseline comparisons too.
+
+Batching reduces serial latency where the joint query can coalesce ranges and
+share chunks. It does not always reduce bytes: in the local tile-65,536/group-1
+sparse case, batched H transfers 75,771 bytes versus 62,146 sequentially, because
+coalescing also fetches gaps. The `coalesceGap`, concurrency and read-size options
+allow this tradeoff to be measured for another workload. A lower request count
+can help latency while increasing irrelevant bytes; both metrics must be kept.
+
+## Limitations and later integration
+
+- These synthetic signals and short chromosome matrix do not replace a full
+  human-genome benchmark with thousands of tracks. Whole-group index overhead
+  can differ substantially at that scale.
+- Only Node performance was measured. Browser correctness uses actual Chromium
+  separately; browser performance, Firefox and WebKit remain future measurements.
+- The network model is deterministic but excludes connection establishment,
+  TLS, packet loss, HTTP/2 behavior and real proxy caches. Timer granularity and
+  application work can lower effective throughput below the configured budget.
+- No BigWig baseline was measured. No cross-format speedup is claimed.
+- Cold samples have warm JIT, OS file cache and HTTP connection pools, while
+  parsed caches begin empty. Header initialization must be added for end-to-end
+  first-open latency; its per-sample values are present in JSON.
+- Summary queries deliberately use NaN-as-zero sums. Missing-aware means must
+  use full-resolution data unless a valid denominator is available. Tile sums
+  are rounded by the format, so summary bins are not exact floating-point sums.
+- Future GenomeSpy integration should reuse one reader per immutable/versioned
+  file, select tracks before reading, choose group layouts for actual cohort
+  access patterns, use explicit aggregation semantics and cancel obsolete views.
+  This phase does not add any GenomeSpy integration or change the binary format.
+
+## Reproduce
+
+See [`README.md`](README.md) for all generator parameters and environment setup.
+The retained commands are in each raw JSON's `args` field. After the Python setup in that README, regenerate the measured datasets with:
+
+```sh
+.venv/bin/python benchmarks/scripts/generate.py --upstream /tmp/figwig-reference \
+  --profile sparse --length 500000 --second-length 125000 --matrix
+.venv/bin/python benchmarks/scripts/generate.py --upstream /tmp/figwig-reference \
+  --profile mixed
+.venv/bin/python benchmarks/scripts/generate.py --upstream /tmp/figwig-reference \
+  --profile dense --tracks 8 --length 2000000 --second-length 500000
+.venv/bin/python benchmarks/scripts/generate.py --upstream /tmp/figwig-reference \
+  --profile collection --tracks 96 --length 2000000 --second-length 500000 --group 8
+.venv/bin/python benchmarks/scripts/generate.py --upstream /tmp/figwig-reference \
+  --profile sparse --output benchmarks/fixtures/large-sparse
+.venv/bin/python benchmarks/scripts/generate.py --upstream /tmp/figwig-reference \
+  --profile sparse --length 500000 --second-length 125000 --level 0
+```
+
+Then run the retained query configurations:
+
+```sh
+npm run benchmark -- --scenarios local --patterns A,B,C,H --repetitions 3 \
+  --output benchmarks/measurements/matrix-local.json benchmarks/fixtures/sparse*-l6-*.fw
+npm run benchmark -- --scenarios typical --patterns A,B,C,H --repetitions 3 \
+  --output benchmarks/measurements/matrix-typical.json \
+  sparse-n24-tile4096-g1-positions-l6-s1701.fw \
+  sparse-n24-tile4096-g4-positions-l6-s1701.fw \
+  sparse-n24-tile4096-g8-positions-l6-s1701.fw \
+  sparse-n24-tile4096-g24-positions-l6-s1701.fw \
+  sparse-n24-tile4096-g4-tracks-l6-s1701.fw
+npm run benchmark -- --scenarios all --repetitions 3 \
+  --output benchmarks/measurements/mixed-networks.json \
+  mixed-n24-tile4096-g4-positions-l6-s1701.fw
+npm run benchmark -- --scenarios local,typical --patterns A,B,D,E,F,G,H,I \
+  --repetitions 3 --output benchmarks/measurements/profiles.json \
+  dense-n8-tile4096-g4-positions-l6-s1701.fw \
+  collection-n96-tile4096-g8-positions-l6-s1701.fw
+npm run benchmark -- --scenarios local,typical --patterns A,B --repetitions 3 \
+  --output benchmarks/measurements/compression.json \
+  sparse-n24-tile4096-g4-positions-l0-s1701.fw
+npm run benchmark -- --scenarios local,typical --patterns A,D,H --repetitions 3 \
+  --directory benchmarks/fixtures/large-sparse \
+  --output benchmarks/measurements/large-sparse.json
+npm run benchmark -- --scenarios typical --patterns E,F,G --repetitions 3 \
+  --output benchmarks/measurements/step-traces.json \
+  mixed-n24-tile4096-g4-positions-l6-s1701.fw
+python3 benchmarks/scripts/report.py
+```
+
+The matrix shell glob selects only the 17 level-six sparse files. The large sparse file uses a separate `large-sparse` output directory
+because it intentionally shares a configuration filename with the compact file.
+The separate [`DECOMPRESSION.md`](DECOMPRESSION.md) report evaluates decompressor
+alternatives with independently retained raw timing samples.
