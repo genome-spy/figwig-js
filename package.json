@@ -1,0 +1,60 @@
+{
+  "name": "@genome-spy/figwig",
+  "version": "0.1.0",
+  "description": "Random-access, browser-compatible Figwig v1 multitrack genomic signal reader",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/genome-spy/figwig-js.git"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:browser": "playwright test",
+    "fixtures": "python3 scripts/generate-fixtures.py",
+    "benchmark": "tsx benchmarks/scripts/run.ts",
+    "benchmark:generate": "python3 benchmarks/scripts/generate.py",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@gmod/shared-read-cache": "^1.7.2",
+    "generic-filehandle2": "^2.5.1",
+    "pako": "^2.2.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.56.0",
+    "@types/node": "^22.0.0",
+    "@types/pako": "^2.0.4",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.13.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.1",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  }
+}

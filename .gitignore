@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+test-results/
+playwright-report/
+.venv/
+__pycache__/
+benchmarks/fixtures/*
+!benchmarks/fixtures/.gitkeep
+benchmarks/results/
+.DS_Store
+*.tgz

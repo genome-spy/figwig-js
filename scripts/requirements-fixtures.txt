@@ -1,0 +1,5 @@
+# Reproducible Python oracle; ordinary JavaScript tests need none of these.
+figwig @ git+https://github.com/jmschrei/figwig.git@c0e5d6522c677b9f03cd6831e2dbcea759866628
+numpy==2.5.4
+numba==0.68.0
+llvmlite==0.50.0

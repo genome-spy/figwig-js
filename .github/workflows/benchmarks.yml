@@ -1,0 +1,45 @@
+name: Simulated HTTP benchmarks
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Deterministic signal profile
+        type: choice
+        options: [sparse, dense, mixed, collection]
+        default: mixed
+      repetitions:
+        description: Repetitions per pattern and cache state
+        default: '3'
+      scenarios:
+        description: Comma-separated network scenarios, or all
+        default: all
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - run: pip install -r scripts/requirements-fixtures.txt
+      - run: git clone https://github.com/jmschrei/figwig.git /tmp/figwig-reference
+      - run: git -C /tmp/figwig-reference checkout c0e5d6522c677b9f03cd6831e2dbcea759866628
+      - run: python benchmarks/scripts/generate.py --upstream /tmp/figwig-reference --profile "$PROFILE"
+        env:
+          PROFILE: ${{ inputs.profile }}
+      - run: npm run benchmark -- --repetitions "$REPETITIONS" --scenarios "$SCENARIOS" --output benchmarks/results/manual.json
+        env:
+          REPETITIONS: ${{ inputs.repetitions }}
+          SCENARIOS: ${{ inputs.scenarios }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: simulated-http-results
+          path: benchmarks/results/
