@@ -213,6 +213,7 @@ export function parseGroup(
       0,
     )
     check(n <= binCount && (length > 0 || n === 0), 'invalid summary count')
+    check(factor === 1 || length > 0, 'empty zoom stream')
     const compressed = c.take(length)
     crc(compressed, checksum, factor === 1 ? 'summary' : 'zoom')
     summaries.push({ factor, n, bytes: compressed, binCount })

@@ -201,6 +201,20 @@ preserving raw-size, data-region and configured read limits for both orders.
 retained raw-size, extent and position-order compressed-size checks. These are
 reader compatibility and validation policies, rather than format extensions.
 
+### Empty zoom streams
+
+Only a base summary has an absent-summary representation. Each listed v1 zoom
+requires a zlib stream, including when it has zero bins. A zoom record with
+`n = n_bytes = crc = 0` is malformed: the pinned specification reader rejects
+it, although the pinned Python package reader accepts it. Its behavior alone is
+therefore not an adequate oracle for this case.
+
+figwig-js now rejects zero-length zoom streams while parsing the group, instead
+of returning `available: false`. Regressions in `test/group.test.ts` cover both
+storage orders, absent base summaries, valid compressed empty summaries/zooms,
+and zlib integrity for zero-bin zooms. The absence and integrity rules belong to
+v1; this corrects the reader without changing the format.
+
 ### Inflate-only entry point and bundle size
 
 The choice of decompressor is specific to this JS implementation. Its strict

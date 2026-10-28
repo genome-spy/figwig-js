@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs'
 import { deflateSync } from 'node:zlib'
 import { expect, test } from 'vitest'
 import { decodeBlock } from '../src/decoding/chunk.js'
-import { parseGroup } from '../src/format/group.js'
+import { parseGroup, parseSummary } from '../src/format/group.js'
 import { parseFixed, parseTables } from '../src/format/header.js'
-import { crc32 } from '../src/utils/binary.js'
+import { crc32, FigWigError } from '../src/utils/binary.js'
 import { inflateZlib } from '../src/utils/inflate.js'
 
 function fixtureState(name: string) {
@@ -96,3 +96,99 @@ test('position-order chunks retain their compressed-size bound', () => {
     /invalid chunk raw size/,
   )
 })
+
+function emptyGroupIndex(
+  order: 'positions' | 'tracks',
+  summary: Uint8Array,
+  zoom?: Uint8Array,
+) {
+  const empty = deflateSync(new Uint8Array()),
+    prefix = Buffer.alloc(order === 'tracks' ? 8 : 16 + empty.length)
+  if (order === 'positions') {
+    prefix.writeUInt32LE(empty.length, 12)
+    prefix.set(empty, 16)
+    prefix.writeUInt32LE(crc32(prefix.subarray(8)), 4)
+  }
+  const summaryHeader = Buffer.alloc(12),
+    zoomHeader = Buffer.alloc(zoom === undefined ? 4 : 20)
+  summaryHeader.writeUInt32LE(summary.length, 4)
+  summaryHeader.writeUInt32LE(crc32(summary), 8)
+  if (zoom !== undefined) {
+    zoomHeader.writeUInt32LE(1)
+    zoomHeader.writeUInt32LE(4, 4)
+    zoomHeader.writeUInt32LE(zoom.length, 12)
+    zoomHeader.writeUInt32LE(crc32(zoom), 16)
+  }
+  return Buffer.concat([
+    prefix,
+    summaryHeader,
+    summary,
+    zoomHeader,
+    zoom ?? new Uint8Array(),
+  ])
+}
+
+test.each(['zlib', 'tracks_zlib'])(
+  '%s rejects a listed zoom without a zlib stream',
+  (name) => {
+    const state = fixtureState(name),
+      bytes = emptyGroupIndex(
+        state.header.order,
+        deflateSync(new Uint8Array()),
+        new Uint8Array(),
+      )
+    expect(() => parseGroup(bytes, 0, state, 1024)).toThrow(FigWigError)
+    expect(() => parseGroup(bytes, 0, state, 1024)).toThrow(/empty zoom stream/)
+  },
+)
+
+test.each(['zlib', 'tracks_zlib'])(
+  '%s distinguishes an absent base summary from compressed empty summaries and zooms',
+  (name) => {
+    const state = fixtureState(name),
+      empty = deflateSync(new Uint8Array()),
+      absent = parseGroup(
+        emptyGroupIndex(state.header.order, new Uint8Array()),
+        0,
+        state,
+        1024,
+      ),
+      available = parseGroup(
+        emptyGroupIndex(state.header.order, empty, empty),
+        0,
+        state,
+        1024,
+      )
+    expect(parseSummary(absent.summaries[0], 0, state, 1024)).toMatchObject({
+      available: false,
+      bins: new Uint32Array(),
+      sums: new Float32Array(),
+    })
+    for (const [level, sums] of [
+      new Float32Array(),
+      new Float64Array(),
+    ].entries())
+      expect(
+        parseSummary(available.summaries[level], 0, state, 1024),
+      ).toMatchObject({ available: true, bins: new Uint32Array(), sums })
+  },
+)
+
+test.each(['zlib', 'tracks_zlib'])(
+  '%s validates zlib integrity even for a zoom with zero bins',
+  (name) => {
+    const state = fixtureState(name),
+      empty = deflateSync(new Uint8Array()),
+      corrupt = Buffer.from(empty)
+    corrupt[corrupt.length - 1] ^= 1
+    const group = parseGroup(
+      emptyGroupIndex(state.header.order, empty, corrupt),
+      0,
+      state,
+      1024,
+    )
+    expect(() => parseSummary(group.summaries[1], 0, state, 1024)).toThrow(
+      /Adler-32 mismatch/,
+    )
+  },
+)
