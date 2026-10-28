@@ -2,7 +2,7 @@
 import { createServer } from 'node:http'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { cpus } from 'node:os'
-import { relative, resolve } from 'node:path'
+import { basename, dirname, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { SourceMap } from 'node:module'
 import { Session } from 'node:inspector'
@@ -48,8 +48,12 @@ async function createWorkload(FigWig, name, url) {
   const context = { reader, last: undefined, run: undefined }
   context.run = async () => {
     if (name.endsWith('cold')) reader.clearCache()
-    context.last =
-      name === 'named600'
+    context.last = name.startsWith('gap-bins')
+      ? await reader.getBins('chr10', 10000000, 12000000, {
+          binSize: 2000,
+          missing: 'omit',
+        })
+      : name === 'named600'
         ? await reader.getValues('chr1', 0, 64, { tracks })
         : name === 'dense-bins' || name === 'mixed-bins'
           ? await reader.getBins('chr1', 1000000, 1200000, {
@@ -232,6 +236,10 @@ const local = await startRangeServer({ root }),
     latencyMs: 80,
     bandwidthBitsPerSecond: 50e6,
   })
+const gapFile = process.env.FIGWIG_GAP_FILE
+const gapServer = gapFile
+  ? await startRangeServer({ root: dirname(resolve(gapFile)) })
+  : undefined
 const app = createServer((request, response) => {
   if (request.url === '/') {
     response.setHeader('Content-Type', 'text/html')
@@ -247,6 +255,12 @@ const app = createServer((request, response) => {
 await new Promise((done) => app.listen(0, '127.0.0.1', done))
 const appUrl = `http://127.0.0.1:${app.address().port}`
 const cases = [
+  ...(gapServer
+    ? [
+        ['gap-bins', `${gapServer.url}/${basename(gapFile)}`],
+        ['gap-bins-cold', `${gapServer.url}/${basename(gapFile)}`],
+      ]
+    : []),
   ['named600', `${local.url}/test/fixtures/zlib.fw`],
   [
     'dense-bins',
@@ -450,6 +464,7 @@ try {
   await Promise.all([
     local.close(),
     typical.close(),
+    gapServer?.close(),
     new Promise((done, reject) =>
       app.close((error) => (error ? reject(error) : done())),
     ),

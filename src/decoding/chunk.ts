@@ -161,6 +161,30 @@ export function decodeChunk(
     const count = tracks * tile
     requireExtent(payload, pad(count * info.width, 8))
     checkDecodedBudget(count * 8, maxDecodedBytes)
+    if (info.code === 6 || info.code === 8) {
+      let i = 0
+      for (; i < count; i++) {
+        const value =
+          info.code === 6
+            ? view.getFloat32(i * 4, true)
+            : view.getFloat64(i * 8, true)
+        if (!Number.isNaN(value)) break
+      }
+      if (i === count) {
+        // Regional conversions can store whole gaps as dense NaNs. Keep one
+        // missing-value run per track instead of retaining a tile-sized array.
+        const offsets = new Uint32Array([0]),
+          values = new Float64Array(tracks).fill(NaN)
+        return {
+          tracks: Array.from({ length: tracks }, (_, slot) => ({
+            offsets,
+            values: values.subarray(slot, slot + 1),
+            runs: true,
+          })),
+          byteLength: offsets.byteLength + values.byteLength,
+        }
+      }
+    }
     const values = readValues(view, 0, count, info.code)
     return {
       tracks: Array.from({ length: tracks }, (_, slot) => ({

@@ -270,6 +270,36 @@ coverage of runs, both storage orders and independent Python/specification data.
 See the [complete-query measurements](benchmarks/RESULTS.md#bin-aggregation-optimization--2026-10-28)
 for timings, scope, rejected prototypes and reproduction commands.
 
+### Dense missing tiles and cache churn (implemented)
+
+In the regional ENCODE mouse recipe, gaps outside the included intervals are
+stored as dense float NaNs, rather than absent records. Below tile resolution,
+GenomeSpy's fast mode switches to exact omit-mean queries. A 2 Mb gap across
+24 tracks decoded 369 chunks into roughly 369 MiB of numeric arrays. The default
+64 MiB decoded cache could not retain that working set: every repeated query
+fetched/inflated all 369 chunks again. CPU profiles showed substantial numeric
+decoding, inflation and per-base aggregation even though every output was NaN.
+
+The reader now verifies every element of an entirely NaN dense float32/float64
+tile and represents it with one NaN run per track. For eight tracks and a
+16,384-base tile, retained numeric storage is 68 bytes instead of 1 MiB. Existing
+run copying and aggregation handle raw NaNs, clipped intervals and all missing
+policies. Observed zeros, mixed tiles, integrity checks, allocation limits and
+caller ownership are unchanged; no metadata/summary assumption skips validation.
+
+The [measured recipe query](benchmarks/RESULTS.md#dense-nan-gap-queries--2026-10-28)
+falls from 422.9 to 0.5 ms in repeated Chromium reads and from 448.1 to 268.1 ms
+with parsed caches cleared. Repeated reads fetch/decompress zero chunks after
+the fix. Cache accounting falls from 77.46 MB to 11.76 MB, including group indexes;
+this is retained cache weight, not a peak-heap measurement. Cold queries still
+must read, verify and inflate the stored streams. This improvement does not make
+arbitrary empty/zero regions equivalent to explicit missing values.
+
+**Writer opportunity:** the measured Python 0.2.0 conversion stores these uniform
+missing tiles densely. Encoding consecutive NaNs as a single run could reduce
+initial inflation work within v1. That writer change is not implemented here;
+the reader fix works with existing files and preserves their validation.
+
 ### Compressed track-block size
 
 The v1 position-order compressed-size bound does not apply to track-order

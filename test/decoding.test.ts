@@ -60,6 +60,47 @@ describe('numeric payload decoding', () => {
     })
   }
 
+  it.each([6, 8])(
+    'compacts fully missing dense tiles with float code %s',
+    (code) => {
+      const width = code === 6 ? 4 : 8,
+        payload = bytes(2 * 64 * width)
+      for (let i = 0; i < 128; i++) {
+        if (code === 6) payload.view.setFloat32(i * width, NaN, true)
+        else payload.view.setFloat64(i * width, NaN, true)
+      }
+      const decoded = decodeChunk(payload.bytes, 1 | (code << 3), 2, 64)
+      expect(decoded.byteLength).toBe(4 + 2 * 8)
+      for (const track of decoded.tracks) {
+        expect(track.runs).toBe(true)
+        expect([...track.offsets!]).toEqual([0])
+        expect([...track.values]).toEqual([NaN])
+      }
+      decoded.tracks[0].values[0] = 3
+      expect(decoded.tracks[1].values[0]).toBeNaN()
+      // The original dense allocation check remains in force before compaction.
+      expect(() =>
+        decodeChunk(payload.bytes, 1 | (code << 3), 2, 64, 1023),
+      ).toThrow(/maxDecodedBytes/)
+      for (const last of [0, -0, 1, Infinity, -Infinity]) {
+        if (code === 6) payload.view.setFloat32(127 * width, last, true)
+        else payload.view.setFloat64(127 * width, last, true)
+        if (!Number.isFinite(last)) {
+          expect(() =>
+            decodeChunk(payload.bytes, 1 | (code << 3), 2, 64),
+          ).toThrow(/infinite/)
+        } else {
+          const mixed = decodeChunk(payload.bytes, 1 | (code << 3), 2, 64)
+          expect(mixed.tracks[0].offsets).toBeUndefined()
+          expect(Object.is(mixed.tracks[1].values[63], last)).toBe(true)
+        }
+      }
+      expect(() =>
+        decodeChunk(payload.bytes.subarray(0, -8), 1 | (code << 3), 2, 64),
+      ).toThrow(/truncated/)
+    },
+  )
+
   it('decodes sparse implicit-one offsets spanning three varint bytes', () => {
     const payload = bytes(20)
     payload.view.setUint32(0, 3, true)

@@ -148,6 +148,103 @@ describe('required summaries', () => {
 })
 
 describe('direct binned aggregation', () => {
+  it.each(['nan_positions', 'nan_tracks'])(
+    'preserves missing gaps and observed zeros in %s',
+    async (file) => {
+      const reader = new FigWig({
+        filehandle: new LocalFile(fixturePath(file)),
+      })
+      const regions = [
+        { chromosome: 'missing', start: 3, end: 125 },
+        { chromosome: 'mixed', start: 5, end: 64 },
+        { chromosome: 'unwritten', start: 1, end: 63 },
+      ]
+      try {
+        for (const missing of ['propagate', 'omit', 'zero'] as const)
+          for (const aggregation of ['sum', 'mean'] as const) {
+            const results = await reader.getBinsMulti(regions, {
+              binSize: 23,
+              aggregation,
+              missing,
+            })
+            for (const result of results)
+              for (const { track, values } of result.tracks)
+                for (let bin = 0; bin < values.length; bin++) {
+                  const source = expectedValues(
+                    'nan',
+                    result.chromosome,
+                    track.name,
+                    result.starts[bin],
+                    result.ends[bin],
+                  )
+                  let sum = 0,
+                    count = 0,
+                    nan = false
+                  for (const value of source) {
+                    if (Number.isNaN(value)) {
+                      nan = true
+                      if (missing === 'zero') count++
+                    } else {
+                      sum += value
+                      count++
+                    }
+                  }
+                  const expected =
+                    nan && missing === 'propagate'
+                      ? NaN
+                      : aggregation === 'sum'
+                        ? sum
+                        : count
+                          ? sum / count
+                          : NaN
+                  expect(Object.is(values[bin], expected)).toBe(true)
+                }
+          }
+        const raw = await reader.getValues('missing', 1, 127)
+        expect(
+          raw.tracks.every(
+            (t) =>
+              t.values instanceof Float32Array && t.values.every(Number.isNaN),
+          ),
+        ).toBe(true)
+        raw.tracks[0].values.fill(3)
+        const repeated = await reader.getValues('missing', 1, 127)
+        expect(repeated.tracks.every((t) => t.values.every(Number.isNaN))).toBe(
+          true,
+        )
+      } finally {
+        await reader.close()
+      }
+    },
+  )
+
+  it('retains a fully missing dense tile under a small decoded-cache budget', async () => {
+    const reader = new FigWig({
+      filehandle: new LocalFile(fixturePath('nan_positions')),
+      chunkCacheBytes: 1024,
+    })
+    try {
+      const first = await reader.getBins('missing', 0, 64, {
+        binSize: 7,
+        missing: 'omit',
+      })
+      expect(reader.getDiagnostics().chunksDecompressed).toBe(1)
+      reader.resetDiagnostics()
+      const repeated = await reader.getBins('missing', 0, 64, {
+        binSize: 7,
+        missing: 'omit',
+      })
+      expect(repeated).toEqual(first)
+      expect(reader.getDiagnostics()).toMatchObject({
+        chunksDecompressed: 0,
+        dataBytes: 0,
+        chunkCacheHits: 1,
+      })
+    } finally {
+      await reader.close()
+    }
+  })
+
   it('preserves binary64 addition order and NaN counts across dense and sparse chunks', async () => {
     const reader = new FigWig({
       filehandle: new LocalFile(fixturePath('zlib')),

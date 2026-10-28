@@ -64,6 +64,20 @@ def main():
     verify_upstream()
     ROOT.mkdir(parents=True, exist_ok=True)
     paths = fixtures.write_all(ROOT)
+    # Dense NaN tiles model gaps in regional BigWig conversions. Verify these
+    # additions with the same pinned writer and independent specification reader.
+    for order in ("positions", "tracks"):
+        name = f"nan_{order}"
+        path = ROOT / f"{name}.fw"
+        tracks = [{"name": f"signal{i}", "dtype": "float32"} for i in range(4)]
+        with figwig.FigWigWriter(path, {"missing": 128, "mixed": 64, "unwritten": 64}, tracks,
+                tile=64, groups=4, order=order, level=6, zooms=1, n_jobs=2) as writer:
+            writer.write("missing", [0], np.full((1, 4, 128), np.nan))
+            mixed = np.full((1, 4, 64), np.nan)
+            mixed[0, 0, -1] = 0
+            mixed[0, 1, -1] = 2.5
+            writer.write("mixed", [0], mixed)
+        paths[name] = path
     result = {
         "provenance": {
             "repository": "https://github.com/jmschrei/figwig",
@@ -93,7 +107,7 @@ def main():
             actual = reader.read(chrom, [0], values.shape[1], dtype="float64")[0]
             assert np.array_equal(values, actual, equal_nan=True), (name, chrom)
             assert np.array_equal(np.signbit(values), np.signbit(actual)), (name, chrom)
-        dataset = "blocks" if name == "blocks" else "appended" if name in ("appended", "merged") else "toy"
+        dataset = "nan" if name.startswith("nan_") else "blocks" if name == "blocks" else "appended" if name in ("appended", "merged") else "toy"
         if dataset in canonical_signals:
             for chrom, values in dense.items():
                 assert np.array_equal(values, canonical_signals[dataset][chrom], equal_nan=True), (name, chrom, "deduplicated dataset differs")

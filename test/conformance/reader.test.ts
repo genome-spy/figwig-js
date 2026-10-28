@@ -132,11 +132,18 @@ describe('independent upstream conformance oracle', () => {
         const reader = new FigWig({
           filehandle: new LocalFile(fixturePath(name)),
         })
-        const chromosome = name === 'blocks' ? 'chrA' : 'chr1'
+        const chromosome =
+          file.dataset === 'nan'
+            ? 'missing'
+            : name === 'blocks'
+              ? 'chrA'
+              : 'chr1'
         const tracks =
-          name === 'blocks'
-            ? ['t', 'u', 'ones']
-            : ['runs', 'signal', 'wide', 'u32', 'empty']
+          file.dataset === 'nan'
+            ? file.metadata.tracks.map((track) => track.name)
+            : name === 'blocks'
+              ? ['t', 'u', 'ones']
+              : ['runs', 'signal', 'wide', 'u32', 'empty']
         for (const aggregation of ['sum', 'mean'] as const) {
           for (const missing of ['propagate', 'omit', 'zero'] as const) {
             const result = await reader.getBins(chromosome, 5, 74, {

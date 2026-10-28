@@ -13,6 +13,28 @@ uses upstream Python FigWigWriter at commit
 `c0e5d6522c677b9f03cd6831e2dbcea759866628` (Figwig 0.2.0), with one fixed RNG per
 track so layout comparisons represent the same signal.
 
+## Profile a converted file's missing gap
+
+Set `FIGWIG_GAP_FILE` to the local ENCODE mouse recipe's `output/figwig/h3k27ac.fw`.
+The file is served over localhost without modification or upload. The `gap`
+benchmark cases query `chr10:10000000-12000000`, all tracks, 2,000-base bins and
+`missing: 'omit'`; the input fingerprint and measured results are in
+[RESULTS.md](RESULTS.md#dense-nan-gap-queries--2026-10-28).
+
+```sh
+FIGWIG_BENCH_BASELINE=5265c56 \
+  node --import tsx benchmarks/scripts/opportunities.mjs 11 gap \
+  benchmarks/measurements/gap-production.json production cache-disabled
+FIGWIG_PROFILE_BASELINE=5265c56 FIGWIG_PROFILE_CASES=gap-bins \
+FIGWIG_PROFILE_OUTPUT=benchmarks/results/gap-profiles-after \
+FIGWIG_PROFILE_SUMMARY=benchmarks/measurements/gap-cpu-after.json \
+  node --import tsx benchmarks/scripts/profile.mjs 2000
+```
+
+The small `nan_positions` and `nan_tracks` conformance fixtures reproduce the
+missing/zero semantics without this dataset. Regenerate them through the pinned
+fixture/oracle process, not through the benchmark signal generator.
+
 ## Generate data
 
 Use the Python environment described in `test/fixtures/README.md` or the environment

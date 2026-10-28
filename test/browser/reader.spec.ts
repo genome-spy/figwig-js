@@ -221,6 +221,86 @@ test('reads compressed track-order blocks and a browser Blob against the indepen
     }
 })
 
+test('keeps missing gaps distinct from zeros and caches compact NaN tiles', async ({
+  page,
+}) => {
+  const results = await page.evaluate(async (url) => {
+    const results = []
+    for (const file of ['nan_positions', 'nan_tracks']) {
+      const reader = new window.FigWig({
+        url: `${url}/${file}.fw`,
+        chunkCacheBytes: 1024,
+      })
+      try {
+        await reader.getBins('missing', 0, 64, { binSize: 7, missing: 'omit' })
+        reader.resetDiagnostics()
+        await reader.getBins('missing', 0, 64, { binSize: 7, missing: 'omit' })
+        const repeated = reader.getDiagnostics()
+        const policies = []
+        for (const missing of ['propagate', 'omit', 'zero'] as const) {
+          const gaps = await reader.getBins('missing', 3, 125, {
+            binSize: 23,
+            missing,
+          })
+          const mixed = await reader.getBins('mixed', 0, 64, {
+            binSize: 64,
+            missing,
+          })
+          const zeros = await reader.getBins('unwritten', 0, 64, {
+            binSize: 64,
+            missing,
+          })
+          policies.push({
+            missing,
+            gaps: gaps.tracks.map((t) => Array.from(t.values)),
+            mixed: mixed.tracks.map((t) => t.values[0]),
+            zeros: zeros.tracks.map((t) => t.values[0]),
+          })
+        }
+        const raw = await reader.getValues('missing', 3, 125)
+        results.push({
+          file,
+          repeated,
+          policies,
+          rawMissing: raw.tracks.every(
+            (t) =>
+              t.values instanceof Float32Array && t.values.every(Number.isNaN),
+          ),
+        })
+      } finally {
+        await reader.close()
+      }
+    }
+    return results
+  }, rangeServer.url)
+  for (const result of results) {
+    expect(result.rawMissing).toBe(true)
+    if (result.file === 'nan_positions')
+      expect(result.repeated).toMatchObject({
+        dataBytes: 0,
+        chunksDecompressed: 0,
+        chunkCacheHits: 1,
+      })
+    for (const row of result.policies) {
+      expect(row.zeros).toEqual([0, 0, 0, 0])
+      expect(
+        row.gaps.every((values) =>
+          values.every((v) =>
+            row.missing === 'zero' ? v === 0 : Number.isNaN(v),
+          ),
+        ),
+      ).toBe(true)
+      expect(row.mixed).toEqual(
+        row.missing === 'propagate'
+          ? [NaN, NaN, NaN, NaN]
+          : row.missing === 'omit'
+            ? [0, 2.5, NaN, NaN]
+            : [0, 2.5 / 64, 0, 0],
+      )
+    }
+  }
+})
+
 test('requires stored summaries over HTTP without falling back to raw chunks', async ({
   page,
 }) => {

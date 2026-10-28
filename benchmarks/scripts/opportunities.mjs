@@ -2,7 +2,7 @@
 import { createServer } from 'node:http'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir, cpus } from 'node:os'
-import { dirname, relative, resolve } from 'node:path'
+import { basename, dirname, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import process from 'node:process'
 import { execFileSync } from 'node:child_process'
@@ -143,8 +143,9 @@ async function benchmarkCase(apis, urls, name, count) {
     }
   }
   const contexts = []
-  const queries =
-    name === 'crc-1MiB'
+  const queries = name.startsWith('gap')
+    ? 1
+    : name === 'crc-1MiB'
       ? 8
       : name.startsWith('named')
         ? 20
@@ -162,29 +163,37 @@ async function benchmarkCase(apis, urls, name, count) {
     let reader, run
     if (name === 'crc-1MiB') run = () => api.crc32(data)
     else {
-      const url = name.startsWith('named600')
-        ? urls.toy
-        : name.startsWith('named')
-          ? urls.collection
-          : name.startsWith('manygroup')
-            ? urls.many
-            : name.startsWith('track')
-              ? urls.track
-              : name.startsWith('sparse')
-                ? urls.collection
-                : name.startsWith('toy')
-                  ? urls.toy
-                  : name.startsWith('masked')
-                    ? urls.masked
-                    : name.startsWith('mixed')
-                      ? urls.mixed
-                      : urls.dense
+      const url = name.startsWith('gap')
+        ? urls.gap
+        : name.startsWith('named600')
+          ? urls.toy
+          : name.startsWith('named')
+            ? urls.collection
+            : name.startsWith('manygroup')
+              ? urls.many
+              : name.startsWith('track')
+                ? urls.track
+                : name.startsWith('sparse')
+                  ? urls.collection
+                  : name.startsWith('toy')
+                    ? urls.toy
+                    : name.startsWith('masked')
+                      ? urls.masked
+                      : name.startsWith('mixed')
+                        ? urls.mixed
+                        : urls.dense
       reader = new api.FigWig({ url })
       const header = await reader.getHeader()
       const names = name.startsWith('named4')
         ? [0, 31, 63, 95].map((i) => header.tracks[i].name)
         : header.tracks.slice(-600).map((t) => t.name)
-      if (name.startsWith('named'))
+      if (name.startsWith('gap'))
+        run = () =>
+          reader.getBins('chr10', 10000000, 12000000, {
+            binSize: 2000,
+            missing: 'omit',
+          })
+      else if (name.startsWith('named'))
         run = () =>
           name.startsWith('named600')
             ? reader.getValues('chr1', 0, 64, { tracks: names })
@@ -315,6 +324,10 @@ for (const name of variants) {
 }
 
 const local = await startRangeServer({ root })
+const gapFile = process.env.FIGWIG_GAP_FILE
+const gapServer = gapFile
+  ? await startRangeServer({ root: dirname(resolve(gapFile)) })
+  : undefined
 const typical = await startRangeServer({
   root,
   latencyMs: 80,
@@ -328,6 +341,7 @@ await new Promise((resolveListen) => app.listen(0, '127.0.0.1', resolveListen))
 const address = app.address()
 const appUrl = `http://127.0.0.1:${address.port}`
 const urls = {
+  gap: gapServer ? `${gapServer.url}/${basename(gapFile)}` : undefined,
   dense: `${local.url}/benchmarks/fixtures/dense-n8-tile4096-g4-positions-l6-s1701.fw`,
   mixed: `${local.url}/benchmarks/fixtures/mixed-n24-tile4096-g4-positions-l6-s1701.fw`,
   toy: `${local.url}/test/fixtures/zlib.fw`,
@@ -337,6 +351,12 @@ const urls = {
   masked: `${local.url}/benchmarks/fixtures/masked-n8-tile4096-g4-positions-l6-s1701.fw`,
 }
 const cases = [
+  ...(gapServer
+    ? [
+        ['gap-warm-bins', 'production'],
+        ['gap-cold-bins', 'production'],
+      ]
+    : []),
   ['crc-1MiB', 'crc'],
   ['dense-cold-values', 'crc'],
   ...(production
@@ -460,6 +480,7 @@ try {
   await Promise.all([
     local.close(),
     typical.close(),
+    gapServer?.close(),
     new Promise((resolveClose, reject) =>
       app.close((error) => (error ? reject(error) : resolveClose())),
     ),
