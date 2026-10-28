@@ -4,6 +4,7 @@
   "description": "Random-access, browser-compatible Figwig v1 multitrack genomic signal reader",
   "type": "module",
   "license": "MIT",
+  "author": "Kari Lavikka",
   "repository": {
     "type": "git",
     "url": "https://github.com/genome-spy/figwig-js.git"
