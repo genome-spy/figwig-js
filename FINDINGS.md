@@ -295,11 +295,11 @@ working sets fit those caches.
 2. **Format:** prototype spatial sum/count summaries with float64 base sums.
    Compare with raw statistics for all-missing bins, measured zeros, partial
    chromosome ends and exact brush edges. Define versioning and sparse omission.
-3. **figwig-js:** defer unneeded summary downloads, coalesce index reads, evaluate
-   rounded omission-aware summary sums, and expose a no-raw-fallback summary mode.
-   A prototype of the latter exists in
-   [commit `64f6e2c`](https://github.com/genome-spy/figwig-js/commit/64f6e2c3bb9f27997d61c0ca7e6fef92a45def5f);
-   it is not currently exposed on main.
+3. **figwig-js:** defer unneeded summary downloads, coalesce index reads, and
+   evaluate rounded omission-aware summary sums. `requireSummaries` now prevents
+   raw fallback for the entire batch, including feature queries; it requires
+   compatible summaries and `missing: 'zero'`. This bounds the query strategy,
+   not total summary/index download size or browser memory.
 4. **Integration and validation:** prototype masks/count sidecars and measure
    first-open latency, panning, sample selection, frame responsiveness and memory/GC
    in browsers. Compare cold/cached reads with equivalent missingness and summary

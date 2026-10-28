@@ -750,6 +750,8 @@ export class FigWig {
       !validAggregationOptions(aggregation, missing)
     )
       throw new RangeError('Invalid binSize, aggregation, or missing policy')
+    if (options.requireSummaries && missing !== 'zero')
+      throw new RangeError("Required summaries need missing: 'zero'")
     const state = await this.state(options.signal)
     aborted(options.signal)
     const tracks = this.select(state.header, options.tracks)
@@ -783,14 +785,22 @@ export class FigWig {
       }
     })
     const fallback: number[] = []
+    // Check the whole batch before raw reads so required summaries cannot
+    // partially fall back.
     for (let i = 0; i < regions.length; i++) {
       if (
-        options.useSummaries &&
+        (options.useSummaries || options.requireSummaries) &&
         missing === 'zero' &&
         (await this.summaryBins(results[i], state, options))
       )
         results[i].source = 'summary'
-      else fallback.push(i)
+      else if (options.requireSummaries) {
+        aborted(options.signal)
+        const region = regions[i]
+        throw new RangeError(
+          `Required summaries are unavailable or bins are not tile-aligned for ${region.chromosome}:${region.start}-${region.end}`,
+        )
+      } else fallback.push(i)
     }
     const missingCounts = countMissing
       ? results.map((r) => r.tracks.map(() => new Uint32Array(r.starts.length)))
@@ -909,6 +919,8 @@ export class FigWig {
       throw new RangeError('Invalid basesPerSpan')
     if (!validAggregationOptions(aggregation, missing))
       throw new RangeError('Invalid aggregation or missing policy')
+    if (options.requireSummaries && missing !== 'zero')
+      throw new RangeError("Required summaries need missing: 'zero'")
     const state = await this.state(options.signal)
     aborted(options.signal)
     const tracks = this.select(state.header, options.tracks)
@@ -921,14 +933,14 @@ export class FigWig {
       throw new RangeError(
         'Requested features exceed maxFeatures; use typed arrays or a larger basesPerSpan',
       )
-    const values =
-      span === 1
-        ? await this.getValuesMulti(regions, options)
-        : await this.getBinsMulti(regions, { ...options, binSize: span })
+    const raw = span === 1 && !options.requireSummaries
+    const values = raw
+      ? await this.getValuesMulti(regions, options)
+      : await this.getBinsMulti(regions, { ...options, binSize: span })
     aborted(options.signal)
     // Binned results already applied the policy; their NaNs may be arithmetic.
     const zeroMissing =
-      span === 1 &&
+      raw &&
       (missing === 'zero' || (missing === 'omit' && aggregation === 'sum'))
     return values.map((result) => {
       const features: Feature[] = []

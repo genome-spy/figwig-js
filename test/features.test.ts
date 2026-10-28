@@ -67,6 +67,29 @@ test('one-base features keep the native raw-output budget', async () => {
   }
 })
 
+test.each(['omit', 'propagate'] as const)(
+  'required feature summaries reject %s before I/O at every resolution',
+  async (missing) => {
+    const reader = open()
+    const read = vi.spyOn(reader.filehandle, 'read')
+    try {
+      for (const basesPerSpan of [1, 64]) {
+        await expect(
+          reader.getFeatures('chr1', 0, 64, {
+            tracks: ['signal'],
+            basesPerSpan,
+            missing,
+            requireSummaries: true,
+          }),
+        ).rejects.toThrow("Required summaries need missing: 'zero'")
+      }
+      expect(read).not.toHaveBeenCalled()
+    } finally {
+      await reader.close()
+    }
+  },
+)
+
 test('default one-base features preserve raw precision and negative zero', async () => {
   const bytes = new Uint8Array(readFileSync(fixturePath('stored')))
   const fixed = parseFixed(bytes)

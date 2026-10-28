@@ -221,6 +221,58 @@ test('reads compressed track-order blocks and a browser Blob against the indepen
     }
 })
 
+test('requires stored summaries over HTTP without falling back to raw chunks', async ({
+  page,
+}) => {
+  const result = await page.evaluate(async (url) => {
+    const reader = new window.FigWig({
+      filehandle: new window.RemoteFile(`${url}/zlib.fw`),
+    })
+    try {
+      const bins = await reader.getBins('chr1', 0, 300, {
+        tracks: ['wide'],
+        binSize: 256,
+        missing: 'zero',
+        useSummaries: false,
+        requireSummaries: true,
+      })
+      const batchError = await reader
+        .getBinsMulti(
+          [
+            { chromosome: 'chr1', start: 0, end: 64 },
+            { chromosome: 'chr2', start: 1, end: 65 },
+          ],
+          {
+            tracks: ['wide'],
+            binSize: 64,
+            missing: 'zero',
+            requireSummaries: true,
+          },
+        )
+        .then(
+          () => 'resolved',
+          (error: Error) => `${error.name}: ${error.message}`,
+        )
+      return {
+        source: bins.source,
+        ends: Array.from(bins.ends),
+        values: Array.from(bins.tracks[0].values),
+        batchError,
+        diagnostics: reader.getDiagnostics(),
+      }
+    } finally {
+      await reader.close()
+    }
+  }, rangeServer.url)
+  expect(result.source).toBe('summary')
+  expect(result.ends).toEqual([256, 300])
+  expect(result.values).toEqual([Math.fround(2 ** 24 + 1.5) / 256, 0])
+  expect(result.batchError).toMatch(
+    /^RangeError: Required summaries.*chr2:1-65/,
+  )
+  expect(result.diagnostics).toMatchObject({ dataBytes: 0, chunksFetched: 0 })
+})
+
 test('cancels before and during reads while preserving another concurrent query', async ({
   page,
 }) => {

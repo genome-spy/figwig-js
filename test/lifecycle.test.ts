@@ -344,3 +344,43 @@ test('a warm single-region query rejects when close runs between its inner and o
   expect(state.reads).toBe(reads)
   expect(reader.getDiagnostics().cacheBytes).toBe(0)
 })
+
+test.each(['close', 'abort'] as const)(
+  'required summaries preserve %s cancellation when availability is checked',
+  async (mode) => {
+    const controller = new AbortController()
+    class CancellingReader extends FigWig {
+      override async getSummary(...args: Parameters<FigWig['getSummary']>) {
+        const cancel = () =>
+          mode === 'close' ? this.close() : controller.abort()
+        return {
+          ...(await super.getSummary(...args)),
+          get available() {
+            // Cancel after summaries load, just before reporting unavailable.
+            void cancel()
+            return false
+          },
+        }
+      }
+    }
+    const { filehandle } = controlledHandle()
+    const reader = new CancellingReader({ filehandle })
+    try {
+      await expect(
+        reader.getBins('chr1', 0, 64, {
+          tracks: ['wide'],
+          binSize: 64,
+          missing: 'zero',
+          requireSummaries: true,
+          signal: controller.signal,
+        }),
+      ).rejects.toHaveProperty('name', 'AbortError')
+      expect(reader.getDiagnostics()).toMatchObject({
+        dataBytes: 0,
+        chunksFetched: 0,
+      })
+    } finally {
+      await reader.close()
+    }
+  },
+)

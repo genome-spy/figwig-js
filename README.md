@@ -176,6 +176,12 @@ and float64 zoom sums accumulate those rounded values. Summaries have no
 valid-base counts and may differ from full-resolution results. See
 [FINDINGS.md](FINDINGS.md) for format limits versus reader policies.
 
+Set `requireSummaries: true` to forbid raw-data fallback across the entire batch.
+It implies summary use without needing `useSummaries: true`, and rejects
+incompatible missing policies, unaligned bins or unavailable summaries. Metadata
+and summary reads may still occur. This applies to bin and feature queries,
+including `basesPerSpan: 1`.
+
 ## Tile summaries and zooms
 
 ```ts

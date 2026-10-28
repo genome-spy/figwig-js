@@ -80,6 +80,8 @@ export interface BinOptions extends ReadOptions {
   missing?: MissingPolicy
   /** Opt into rounded tile/zoom sums, only with missing:'zero' and aligned bins. */
   useSummaries?: boolean
+  /** Require summaries with missing:'zero' for the whole batch; never read raw chunks. */
+  requireSummaries?: boolean
 }
 export interface BinsResult extends ValuesResult {
   tracks: { track: Track; values: Float64Array }[]
@@ -101,6 +103,8 @@ export interface FeatureOptions extends ReadOptions {
   /** NaN handling at every span. Default: propagate. */
   missing?: MissingPolicy
   useSummaries?: boolean
+  /** Require summaries with missing:'zero', including when basesPerSpan is 1. */
+  requireSummaries?: boolean
   /** Include zero intervals after missing-value handling; default true. */
   includeZeros?: boolean
 }
