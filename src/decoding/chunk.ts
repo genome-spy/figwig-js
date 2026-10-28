@@ -1,3 +1,5 @@
+import { FigWigError } from '../utils/binary.js'
+
 /** A decoded track keeps sparse entries sparse. Offsets are relative to a tile,
  * or absolute chromosome positions for a track-order block. */
 export interface DecodedTrack {
@@ -24,7 +26,7 @@ const EMPTY_OFFSETS = new Uint32Array(0)
 const EMPTY_VALUES = new Float64Array(0)
 
 function corrupt(message: string): never {
-  throw new Error(`Corrupt Figwig chunk: ${message}`)
+  throw new FigWigError(`corrupt chunk: ${message}`)
 }
 
 /** Validate a live tile's kind byte, or a track-order block's kind byte. */

@@ -234,3 +234,6 @@ further evaluation.
   `Uint32Array` (four bytes per track), and queries group selections in one pass.
   Regressions reorder metadata so group members are nonadjacent while retaining
   their encoded slot order; both raw reads and summaries must still agree.
+- Corrupt payloads and invalid JSON previously threw plain `Error`, unlike
+  checksum and decompression failures. Both now use the public `FigWigError`;
+  invalid JSON retains its original parsing error as `cause`.

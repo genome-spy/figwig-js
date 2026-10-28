@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { FigWigError } from '../src/index.js'
 import {
   decodeBlock,
   decodeChunk,
@@ -136,7 +137,7 @@ describe('corrupt payloads', () => {
   it.each([0, 5, 6, 7, 255, 1 | (9 << 3), -1, 256, 1.5])(
     'rejects kind byte %s',
     (kind) => {
-      expect(() => validateKind(kind)).toThrow(/Corrupt Figwig/)
+      expect(() => validateKind(kind)).toThrow(FigWigError)
     },
   )
 

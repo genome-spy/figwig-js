@@ -1,5 +1,5 @@
 import type { Header, DType, Track, Chromosome, Statistics } from '../types.js'
-import { check, crc, Cursor, utf8 } from '../utils/binary.js'
+import { check, crc, Cursor, FigWigError, utf8 } from '../utils/binary.js'
 
 export interface FixedHeader {
   flags: number
@@ -163,7 +163,7 @@ export function parseTables(f: FixedHeader, bytes: Uint8Array): MetadataState {
   try {
     metadata = JSON.parse(utf8.decode(c.take(f.metadataLength)))
   } catch (cause) {
-    throw new Error('Figwig: invalid JSON metadata', { cause })
+    throw new FigWigError('invalid JSON metadata', { cause })
   }
   check(
     object(metadata) &&
