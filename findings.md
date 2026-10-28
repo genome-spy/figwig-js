@@ -170,3 +170,50 @@ are evidence for the recorded setup, not general performance claims.
   and trailing-data probes in Node 22/26 and Chromium. It remains a viable
   alternative with an asynchronous internal refactor and separate native-buffer
   allocation testing; the selected change keeps the current synchronous design.
+
+## Kaitai parser experiment (2026-10-28)
+
+The [experiment branch](https://github.com/genome-spy/figwig-js/tree/experiment/kaitai-parser)
+evaluates Kaitai 0.11.0 against handwritten-parser baseline
+`64f6e2c3bb9f27997d61c0ca7e6fef92a45def5f`. Its
+[comparison report](https://github.com/genome-spy/figwig-js/blob/505ab34ec457d03662545c05945ad31db3e3d7f1/benchmarks/KAITAI.md)
+and [size data](https://github.com/genome-spy/figwig-js/blob/505ab34ec457d03662545c05945ad31db3e3d7f1/benchmarks/measurements/kaitai-size.json)
+retain the implementation, reproduction instructions and limitations.
+
+- **A missed initial evaluation:** the brief linked the upstream Kaitai schema,
+  but the initial implementation went directly to handwritten parsing without
+  comparing alternatives. The schema compiled successfully and was a viable
+  starting point; there was no demonstrated reason to reject it initially.
+- **Integration still requires custom code:** the experiment combines generated
+  metadata/index structures and primitive/varint readers with handwritten payload
+  sequencing, padding calculations and sparse reconstruction. HTTP range
+  planning, bounded decompression, CRCs, metadata interpretation and allocation
+  policy remain custom code. Exact uint64 checks, strict UTF-8/BOM handling and
+  portable browser runtime packaging also needed explicit adaptation.
+- **Generated code has its own failure modes:** a repeat-until index expression
+  initially stopped valid varints after two bytes. Tests caught it; checking the
+  group count explicitly fixes the three-byte limit. Repeated primitives produce
+  JavaScript arrays, so payload parsing uses windows of at most 4096 values before
+  conversion to typed arrays. Sparse varint objects remain ephemeral, and
+  generated index/summary staging needs conservative allocation estimates.
+- **Runtime size is only part of the cost:** the complete browser API grows from
+  61,299 to 82,416 minified bytes, or from 21,866 to 26,527 gzipped bytes: +4,661
+  bytes (+21.32%). Both builds retain all public exports with esbuild 0.28.2,
+  browser ESM/ES2022 and gzip level 9. These are static code-size measurements,
+  not performance benchmarks.
+- **Correctness and developer experience:** 176 Node tests and three Chromium
+  tests pass, including new boundary regressions. Declarative layouts help
+  review, but substantial adapters, handwritten TypeScript interfaces and
+  generation tooling remain. Generation checks catch stale artifacts; tests
+  must catch schema/interface mismatches. Passing tests do not establish
+  universal equivalence or greater correctness, and some allocation limits are
+  intentionally stricter to account for generated staging.
+- **Performance remains unmeasured:** generated objects, stream dispatch and
+  conversion may add CPU/GC work during decoding. Decoded-cache hits largely
+  bypass parsing. No timing, throughput, allocation or memory benchmarks were
+  run; bounded staging does not establish peak resident memory.
+
+Main retains the handwritten parser. The experiment remains available, but it
+did not remove enough custom complexity to establish a clear overall advantage.
+Performance measurements can follow if the schema-maintenance benefits warrant
+further evaluation.
