@@ -82,6 +82,7 @@ export interface BinOptions extends ReadOptions {
   useSummaries?: boolean
 }
 export interface BinsResult extends ValuesResult {
+  tracks: { track: Track; values: Float64Array }[]
   starts: Uint32Array
   ends: Uint32Array
   binSize: number
