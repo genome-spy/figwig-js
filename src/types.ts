@@ -19,10 +19,10 @@ export type NumericArray =
   | Float32Array
   | Float64Array
 export interface Statistics {
-  sum: number
-  nonzero: number
-  min: number
-  max: number
+  readonly sum: number
+  readonly nonzero: number
+  readonly min: number
+  readonly max: number
 }
 export interface Track {
   readonly index: number
