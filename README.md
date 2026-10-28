@@ -183,7 +183,12 @@ console.log(coarse.source) // 'summary' when aligned and available; otherwise 'v
 The reader uses the coarsest compatible zoom per group when bins align to its
 grid. A chromosome's last bin may be partial; zero padding contributes nothing.
 Unaligned requests or unavailable summaries fall back to full-resolution data.
-Summary use requires `missing: 'zero'` even for sums, because it cannot propagate
+Set `requireSummaries: true` to forbid that fallback. It enables summary use even
+without `useSummaries: true` and rejects incompatible missing policies, unaligned
+regions, or unavailable summaries before reading any raw chunks in the entire
+batch. Metadata and summary reads may still occur. This option also applies to
+`getFeatures()` / `getFeaturesMulti()` and never bypasses the requirement when
+`basesPerSpan` is 1. Summary use requires `missing: 'zero'` even for sums, because it cannot propagate
 NaNs or recover valid-base counts. Tile sums are rounded to float32 by the format;
 zoom sums are float64 sums of those rounded values. Thus even a sum may differ
 from full resolution. Figwig summaries are not BigWig zoom records.

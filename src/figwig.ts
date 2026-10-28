@@ -697,6 +697,8 @@ export class FigWig {
       !['propagate', 'omit', 'zero'].includes(missing)
     )
       throw new RangeError('Invalid binSize, aggregation, or missing policy')
+    if (options.requireSummaries && missing !== 'zero')
+      throw new RangeError("Required summaries need missing: 'zero'")
     const state = await this.state(options.signal),
       tracks = this.select(state.header, options.tracks)
     regions.forEach((r) => this.region(state.header, r))
@@ -729,14 +731,20 @@ export class FigWig {
       }
     })
     const fallback: number[] = []
+    // Check every region before raw reads so required-summary batches cannot partially fall back.
     for (let i = 0; i < regions.length; i++) {
       if (
-        options.useSummaries &&
+        (options.useSummaries || options.requireSummaries) &&
         missing === 'zero' &&
         (await this.summaryBins(results[i], state, options))
       )
         results[i].source = 'summary'
-      else fallback.push(i)
+      else if (options.requireSummaries) {
+        const region = regions[i]
+        throw new RangeError(
+          `Required summaries are unavailable or bins are not tile-aligned for ${region.chromosome}:${region.start}-${region.end}`,
+        )
+      } else fallback.push(i)
     }
     const missingCounts = countMissing
       ? results.map((r) => r.tracks.map(() => new Uint32Array(r.starts.length)))
@@ -862,7 +870,7 @@ export class FigWig {
         'Requested features exceed maxFeatures; use typed arrays or a larger basesPerSpan',
       )
     const values =
-      span === 1
+      span === 1 && !options.requireSummaries
         ? await this.getValuesMulti(regions, options)
         : await this.getBinsMulti(regions, { ...options, binSize: span })
     return values.map((result) => {

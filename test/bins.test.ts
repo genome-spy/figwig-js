@@ -7,6 +7,144 @@ import { parseFixed, parseTables } from '../src/format/header.js'
 import { parseGroup } from '../src/format/group.js'
 import { expectedValues, fixturePath } from './conformance/oracle.js'
 
+describe('required summaries', () => {
+  it('enables stored summaries without raw chunks, including a partial chromosome bin', async () => {
+    const reader = new FigWig({
+      filehandle: new LocalFile(fixturePath('zlib')),
+    })
+    const result = await reader.getBins('chr1', 0, 300, {
+      tracks: ['wide'],
+      binSize: 256,
+      aggregation: 'mean',
+      missing: 'zero',
+      useSummaries: false,
+      requireSummaries: true,
+    })
+    expect(result.source).toBe('summary')
+    expect([...result.ends]).toEqual([256, 300])
+    expect([...result.tracks[0].values]).toEqual([
+      Math.fround(2 ** 24 + 1.5) / 256,
+      0,
+    ])
+    expect(reader.getDiagnostics()).toMatchObject({
+      dataBytes: 0,
+      chunksFetched: 0,
+    })
+  })
+
+  it('rejects an unsupported region before any raw reads in the whole batch', async () => {
+    const reader = new FigWig({
+      filehandle: new LocalFile(fixturePath('zlib')),
+    })
+    await expect(
+      reader.getBinsMulti(
+        [
+          { chromosome: 'chr1', start: 0, end: 64 },
+          { chromosome: 'chr2', start: 1, end: 65 },
+        ],
+        {
+          tracks: ['wide'],
+          binSize: 64,
+          missing: 'zero',
+          requireSummaries: true,
+        },
+      ),
+    ).rejects.toThrow(/Required summaries.*chr2:1-65/)
+    expect(reader.getDiagnostics()).toMatchObject({
+      dataBytes: 0,
+      chunksFetched: 0,
+    })
+  })
+
+  it.each(['omit', 'propagate'] as const)(
+    'rejects the incompatible %s missing policy',
+    async (missing) => {
+      const reader = new FigWig({
+        filehandle: new LocalFile(fixturePath('zlib')),
+      })
+      await expect(
+        reader.getBins('chr1', 0, 64, {
+          binSize: 64,
+          missing,
+          requireSummaries: true,
+        }),
+      ).rejects.toThrow("Required summaries need missing: 'zero'")
+      expect(reader.getDiagnostics()).toMatchObject({
+        dataBytes: 0,
+        chunksFetched: 0,
+      })
+    },
+  )
+
+  it('rejects unavailable summaries without falling back on tracks that contain data', async () => {
+    const bytes = new Uint8Array(readFileSync(fixturePath('stored')))
+    const fixed = parseFixed(bytes),
+      state = parseTables(
+        fixed,
+        bytes.subarray(fixed.chroms, fixed.index + 8 * fixed.nGroups),
+      ),
+      groupId = fixed.nGroups - 1,
+      group = parseGroup(
+        bytes.subarray(state.directory[groupId]),
+        groupId,
+        state,
+        128 * 1024 ** 2,
+      ),
+      summaryBytes = group.summaries[0].bytes.length,
+      withoutSummary = bytes.slice(0, bytes.length - summaryBytes),
+      view = new DataView(withoutSummary.buffer)
+    // The last group has no zooms: replace its final summary by a valid absent record.
+    expect(group.summaries).toHaveLength(1)
+    withoutSummary.fill(
+      0,
+      withoutSummary.length - 12 - (fixed.optional & 1 ? 4 : 0),
+    )
+    view.setBigUint64(88, BigInt(withoutSummary.length), true)
+    view.setUint32(104, 0, true)
+    view.setUint32(104, crc32(withoutSummary.subarray(0, 128)), true)
+    const reader = new FigWig({
+      filehandle: new BlobFile(new Blob([withoutSummary])),
+    })
+    await expect(
+      reader.getBins('chr1', 0, 64, {
+        tracks: ['ones', state.members[groupId][0].name],
+        binSize: 64,
+        missing: 'zero',
+        requireSummaries: true,
+      }),
+    ).rejects.toThrow(/Required summaries are unavailable/)
+    expect(reader.getDiagnostics()).toMatchObject({
+      dataBytes: 0,
+      chunksFetched: 0,
+    })
+  })
+
+  it('requires summaries consistently for binned and single-base feature queries', async () => {
+    const reader = new FigWig({
+      filehandle: new LocalFile(fixturePath('zlib')),
+    })
+    const result = await reader.getFeatures('chr1', 0, 64, {
+      tracks: ['wide'],
+      basesPerSpan: 64,
+      missing: 'zero',
+      requireSummaries: true,
+    })
+    expect(result).toHaveLength(1)
+    expect(result[0].score).toBe(Math.fround(2 ** 24 + 1.5) / 64)
+    await expect(
+      reader.getFeaturesMulti([{ chromosome: 'chr1', start: 0, end: 1 }], {
+        tracks: ['wide'],
+        missing: 'zero',
+        requireSummaries: true,
+      }),
+    ).rejects.toThrow(/Required summaries.*tile-aligned/)
+    expect(reader.getDiagnostics()).toMatchObject({
+      dataBytes: 0,
+      chunksFetched: 0,
+    })
+  })
+})
+
 describe('direct binned aggregation', () => {
   it('reads a 200kb sparse region into bins under a 100-byte output budget', async () => {
     const reader = new FigWig({
