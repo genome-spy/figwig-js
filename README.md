@@ -100,6 +100,7 @@ const batches = await fw.getValuesMulti(regions, { tracks: ['atac', 'dnase'] })
 ```
 
 Batches preserve region order and share indexes, chunks, and range coalescing.
+Nearby group-index reads and chunk reads use the same coalescing options.
 Overlapping regions decode a required chunk once. Each numeric result contains
 `chromosome`, `start`, `end`, and `tracks: [{ track, values }]`. Values are always
 independent caller-owned output arrays, with no cached-array aliasing.
@@ -247,18 +248,18 @@ open a new reader/filehandle after appending or replacing a file.
 
 Important constructor defaults (bytes unless otherwise stated):
 
-| Option                  |   Default | Purpose                                                                             |
-| ----------------------- | --------: | ----------------------------------------------------------------------------------- |
-| `maxOutputBytes`        |   256 MiB | Total numeric output allocation per batch                                           |
-| `maxReadBytes`          |    64 MiB | One filehandle read, including metadata/group records                               |
-| `maxInflatedBytes`      |   128 MiB | One inflated payload / decoded chunk / parsed index                                 |
-| `indexCacheBytes`       |    32 MiB | Retained parsed group records                                                       |
-| `chunkCacheBytes`       |    64 MiB | Retained decoded chunks                                                             |
-| `summaryCacheBytes`     |    32 MiB | Retained decoded summaries                                                          |
-| `maxConcurrentRequests` |         6 | Reader-wide filehandle read concurrency                                             |
-| `coalesceGap`           |      4096 | Maximum gap fetched between nearby chunks                                           |
-| `maxCoalescedBytes`     |     4 MiB | Target maximum coalesced range; a larger single chunk is allowed within read limits |
-| `maxFeatures`           | 1,000,000 | Maximum potential interval objects per batch                                        |
+| Option                  |   Default | Purpose                                                                                             |
+| ----------------------- | --------: | --------------------------------------------------------------------------------------------------- |
+| `maxOutputBytes`        |   256 MiB | Total numeric output allocation per batch                                                           |
+| `maxReadBytes`          |    64 MiB | One filehandle read, including metadata/group records                                               |
+| `maxInflatedBytes`      |   128 MiB | One inflated payload / decoded chunk / parsed index                                                 |
+| `indexCacheBytes`       |    32 MiB | Retained parsed group records                                                                       |
+| `chunkCacheBytes`       |    64 MiB | Retained decoded chunks                                                                             |
+| `summaryCacheBytes`     |    32 MiB | Retained decoded summaries                                                                          |
+| `maxConcurrentRequests` |         6 | Reader-wide filehandle read concurrency                                                             |
+| `coalesceGap`           |      4096 | Maximum gap fetched between nearby chunks or group indexes                                          |
+| `maxCoalescedBytes`     |     4 MiB | Target maximum coalesced range; a larger single chunk or group record is allowed within read limits |
+| `maxFeatures`           | 1,000,000 | Maximum potential interval objects per batch                                                        |
 
 Limits are configurable and can reject otherwise valid very large v1 files.
 They bound individual allocations and retained caches, not total process memory
@@ -306,9 +307,9 @@ has coarser fetch units than [BigWig's spatial indexes](https://github.com/ucscG
 - **Summaries:** Each Figwig tile-summary or zoom level is one genome-wide
   stream per group. BigWig zoom data is spatially indexed.
 
-Our reader also fetches compressed summaries and zooms during initial group
-loading. This is an implementation choice: deferred summary loading and
-coalesced group-index requests could reduce overhead within v1.
+Our reader coalesces nearby group-index requests and also fetches compressed
+summaries and zooms during initial group loading. Deferred summary loading
+could further reduce transferred bytes within v1.
 
 See [FINDINGS.md](FINDINGS.md) for the format/implementation distinction and
 [benchmarks](benchmarks/RESULTS.md) for measurements. No equivalent BigWig

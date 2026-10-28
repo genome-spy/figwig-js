@@ -137,7 +137,11 @@ test.each(['header', 'stat', 'index', 'data'] as const)(
 
 test('close prevents queued group reads from starting after the active read finishes', async () => {
   const { filehandle, state } = controlledHandle()
-  const reader = new FigWig({ filehandle, maxConcurrentRequests: 1 })
+  const reader = new FigWig({
+    filehandle,
+    maxConcurrentRequests: 1,
+    maxCoalescedBytes: 1,
+  })
   const header = await reader.getHeader()
   const tracks = [
     ...new Map(
@@ -380,6 +384,65 @@ test.each(['close', 'abort'] as const)(
         chunksFetched: 0,
       })
     } finally {
+      await reader.close()
+    }
+  },
+)
+
+test.each([false, true])(
+  'coalesced group reads preserve another caller and abort only when all cancel (all: %s)',
+  async (all) => {
+    const { filehandle, state } = controlledHandle(),
+      reader = new FigWig({ filehandle })
+    await reader.getHeader()
+    const before = state.reads,
+      paused = gate(),
+      first = new AbortController(),
+      second = new AbortController()
+    state.nextRead = paused
+    const a = reader
+      .getZoomLevels({ tracks: ['ones'], signal: first.signal })
+      .then(
+        () => ({ name: 'unexpected success' }),
+        (error: Error) => error,
+      )
+    const b = reader
+      .getZoomLevels({ tracks: ['random'], signal: second.signal })
+      .then(
+        (levels) => levels,
+        (error: Error) => error,
+      )
+    try {
+      await paused.entered.promise
+      expect(state.reads - before).toBe(1)
+      first.abort()
+      expect(await promptly(a)).toHaveProperty('name', 'AbortError')
+      expect(state.signals.at(-1)?.aborted).toBe(false)
+      if (all) {
+        second.abort()
+        expect(await promptly(b)).toHaveProperty('name', 'AbortError')
+        expect(state.signals.at(-1)?.aborted).toBe(true)
+      }
+      paused.release.resolve()
+      await paused.finished.promise
+      const surviving = await b
+      if (!all) {
+        expect(Array.isArray(surviving)).toBe(true)
+        if (Array.isArray(surviving)) {
+          expect(surviving.length).toBeGreaterThan(0)
+          expect(
+            surviving.every(
+              (level) => level.groups.length === 1 && level.groups[0] === 1,
+            ),
+          ).toBe(true)
+        }
+      }
+      await setImmediate()
+      expect(state.reads - before).toBe(1)
+      if (all) expect(reader.getDiagnostics().cacheBytes).toBe(0)
+    } finally {
+      paused.release.resolve()
+      await Promise.all([a, b])
       await reader.close()
     }
   },

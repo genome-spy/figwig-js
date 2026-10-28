@@ -153,9 +153,10 @@ fetching, aggregation and memory representation differently.
   summaries do not store.
 - **Fetching policy:** this reader loads a selected group's live/block index
   together with all compressed summary/zoom sections, then inflates summaries
-  lazily. Deferred summary downloads and coalesced group-index requests can
-  improve this behavior within v1. They do not create spatial access inside a
-  whole-level summary stream.
+  lazily. Nearby selected-group index reads now coalesce under the configured
+  range/read limits, with independently owned buffers for cached groups.
+  Deferred summary downloads remain an opportunity within v1; neither change
+  creates spatial access inside a whole-level summary stream.
 
 ### Maintenance invariants
 
@@ -196,12 +197,13 @@ production code and v1. Raw samples and reproduction commands are in that report
   resolved Chromium benefit. Preserve ordering, identifier errors and metadata
   lifetime. The reader releases the map at close; clearing data caches keeps it
   with metadata. Numeric IDs continue to avoid the map and its allocation.
-- **Group-index I/O:** coalesce adjacent group records with the existing range
+- **Group-index I/O (implemented):** coalesce adjacent group records with the existing range
   policy. The ownership-preserving prototype reduced reads from 48 to 25 with
   identical transferred bytes in the measured 24-group query. Copy group slices
-  into independent buffers or explicitly account for shared backing buffers;
-  otherwise a small cached group can retain an entire coalesced response.
-  Retain per-group CRCs, cancellation and configured limits.
+  into independent buffers, as the reader now does, so a small cached group
+  cannot retain an entire coalesced response. Regression tests cover ownership
+  under cache eviction, CRCs, read/coalescing limits, cancellation and both orders,
+  including actual HTTP and Chromium reads.
 - **Dense aggregation:** calculate dense bin boundaries once per bin/chunk
   intersection while retaining the accumulation order. Pure dense cases improved,
   but the tested mixed-data case regressed in Chromium. Resolve that tradeoff
@@ -361,7 +363,7 @@ working sets fit those caches.
 2. **Format:** prototype spatial sum/count summaries with float64 base sums.
    Compare with raw statistics for all-missing bins, measured zeros, partial
    chromosome ends and exact brush edges. Define versioning and sparse omission.
-3. **figwig-js:** defer unneeded summary downloads, coalesce index reads, and
+3. **figwig-js:** defer unneeded summary downloads and
    evaluate rounded omission-aware summary sums. `requireSummaries` now prevents
    raw fallback for the entire batch, including feature queries; it requires
    compatible summaries and `missing: 'zero'`. This bounds the query strategy,

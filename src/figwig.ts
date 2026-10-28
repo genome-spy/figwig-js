@@ -28,7 +28,7 @@ import { decodeBlock, decodeChunk, validateKind } from './decoding/chunk.js'
 import type { DecodedChunk, DecodedTrack } from './decoding/chunk.js'
 import { aborted, check, crc, lowerBound } from './utils/binary.js'
 import { inflateZlib } from './utils/inflate.js'
-import { ChunkReads, ReadQueue, readExact } from './utils/io.js'
+import { RangeReads, ReadQueue, readExact } from './utils/io.js'
 
 const constructors = {
   uint8: Uint8Array,
@@ -97,7 +97,8 @@ export class FigWig {
   private readonly groups: SharedReadCache<number, GroupIndex>
   private readonly chunks: SharedReadCache<string, DecodedChunk>
   private readonly summaries: SharedReadCache<string, Summary>
-  private readonly reads: ChunkReads
+  private readonly reads: RangeReads
+  private readonly indexReads: RangeReads
   private readonly lifetime = new AbortController()
   private closePromise?: Promise<void>
   private trackNames?: Map<string, Track>
@@ -178,7 +179,12 @@ export class FigWig {
         return size <= this.options.summaryCacheBytes ? size : NaN
       },
     })
-    this.reads = new ChunkReads(
+    this.indexReads = new RangeReads(
+      (offset, size, signal) => this.read(offset, size, 'indexBytes', signal),
+      this.options.coalesceGap,
+      Math.min(this.options.maxCoalescedBytes, this.options.maxReadBytes),
+    )
+    this.reads = new RangeReads(
       (offset, size, signal) => this.read(offset, size, 'dataBytes', signal),
       this.options.coalesceGap,
       Math.min(this.options.maxCoalescedBytes, this.options.maxReadBytes),
@@ -247,8 +253,14 @@ export class FigWig {
       const started = performance.now(),
         start = state.directory[id],
         end = state.directory[id + 1] ?? state.fixed.length
-      const bytes = await this.read(start, end - start, 'indexBytes', shared)
+      const fetched = await this.indexReads.get(
+        { offset: start, size: end - start },
+        shared,
+      )
       aborted(shared)
+      // Each cached group owns its bytes, so retaining one record cannot pin
+      // an entire coalesced response outside the group's cache weight.
+      const bytes = Uint8Array.from(fetched)
       const group = parseGroup(bytes, id, state, this.options.maxInflatedBytes)
       this.metrics.indexLoadMs += performance.now() - started
       return group

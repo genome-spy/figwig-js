@@ -469,3 +469,35 @@ node --import tsx benchmarks/scripts/opportunities.mjs 7 named \
 
 These are warm-query measurements; they exclude map construction and do not
 claim a measurable benefit for every selection size.
+
+### Implemented group-index coalescing
+
+The production reader now uses the existing range coalescer for group-index
+reads as well as chunk reads. Both paths share the reader's request queue and
+configured coalescing/read limits. Every cached group receives an independent
+copy of its record before parsing, preserving cache accounting after eviction.
+
+The new regressions cover both orders, actual HTTP and Chromium range counts,
+per-group CRCs and retries, buffer ownership with a cache holding only one group,
+read/coalescing limits, cancellation of one/all callers, and close with queued
+reads. The independent binary fixtures/oracle are unchanged.
+
+Seven-sample production comparisons with the same 24-group workload and network
+model are in
+[`measurements/index-coalescing-production.json`](measurements/index-coalescing-production.json).
+They include the runtime diff from the pinned baseline:
+
+| Engine | Baseline ms | Implementation ms | Reads | Index bytes | Data bytes |
+|---|---:|---:|---:|---:|---:|
+| Node | 707.15 | 449.63 | 48 → 25 | 57,522 → 57,522 | 17,412 → 17,412 |
+| Chromium | 4044.50 | 2122.00 | 48 → 25 | 57,522 → 57,522 | 17,412 → 17,412 |
+
+All outputs match the baseline element by element; both fetch/decode 96 chunks.
+The measured time reductions are about 36% and 48%, respectively, for this
+specific network/layout workload. This does not establish the same benefit for
+single-group queries or other hosting conditions.
+
+```sh
+node --import tsx benchmarks/scripts/opportunities.mjs 7 manygroup \
+  benchmarks/measurements/index-coalescing-production.json production
+```

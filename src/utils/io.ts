@@ -1,6 +1,5 @@
 import type { GenericFilehandle } from 'generic-filehandle2'
 import { aborted, check } from './binary.js'
-import type { ChunkRef } from '../format/group.js'
 
 /** One semaphore per reader bounds metadata, index, and chunk reads together. */
 export class ReadQueue {
@@ -46,8 +45,12 @@ export class ReadQueue {
     }
   }
 }
+interface ReadRange {
+  offset: number
+  size: number
+}
 interface Job {
-  ref: ChunkRef
+  ref: ReadRange
   signal: AbortSignal
   resolve: (value: Uint8Array) => void
   reject: (e: unknown) => void
@@ -55,7 +58,7 @@ interface Job {
 
 /** Collect fills in a microtask so a whole batched query can coalesce ranges.
  * Each fill has the cache's shared signal. A range aborts only if all fills do. */
-export class ChunkReads {
+export class RangeReads {
   private jobs: Job[] = []
   private scheduled = false
   constructor(
@@ -67,7 +70,7 @@ export class ChunkReads {
     private gap: number,
     private maxSize: number,
   ) {}
-  get(ref: ChunkRef, signal: AbortSignal): Promise<Uint8Array> {
+  get(ref: ReadRange, signal: AbortSignal): Promise<Uint8Array> {
     return new Promise((resolve, reject) => {
       this.jobs.push({ ref, signal, resolve, reject })
       if (!this.scheduled) {

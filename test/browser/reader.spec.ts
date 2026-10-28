@@ -403,3 +403,44 @@ test('closing a reader cancels pending browser reads and prevents late cache ref
   expect(result.cacheAfterLateCompletion).toBe(0)
   expect(result.closes).toBe(1)
 })
+
+test('coalesces adjacent group-index ranges in both storage orders', async ({
+  page,
+}) => {
+  const results = await page.evaluate(async (url) => {
+    const results = []
+    for (const file of ['zlib', 'tracks_zlib']) {
+      const reader = new window.FigWig({ url: `${url}/${file}.fw` })
+      try {
+        const header = await reader.getHeader(),
+          tracks = [
+            ...new Map(
+              header.tracks.map((track) => [track.group, track.name]),
+            ).values(),
+          ].slice(0, 3)
+        reader.resetDiagnostics()
+        const levels = await reader.getZoomLevels({ tracks })
+        const first = reader.getDiagnostics()
+        const repeated = await reader.getZoomLevels({
+          tracks: [...tracks].reverse(),
+        })
+        results.push({
+          levels,
+          repeated,
+          first,
+          after: reader.getDiagnostics(),
+        })
+      } finally {
+        await reader.close()
+      }
+    }
+    return results
+  }, rangeServer.url)
+  for (const result of results) {
+    expect(result.first).toMatchObject({ readRequests: 1, dataBytes: 0 })
+    expect(result.repeated).toEqual(result.levels)
+    expect(result.after.readRequests).toBe(1)
+    expect(result.levels.length).toBeGreaterThan(0)
+    for (const level of result.levels) expect(level.groups).toEqual([0, 1, 2])
+  }
+})

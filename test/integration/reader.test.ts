@@ -133,3 +133,45 @@ test('batch deduplication fetches each chunk once and coalescing is configurable
   expect(coalesced.getDiagnostics().chunkCacheHits).toBeGreaterThan(hits)
   await Promise.all([coalesced.close(), separate.close()])
 })
+
+test.each(['zlib', 'tracks_zlib'])(
+  '%s coalesces HTTP index ranges without transferring extra bytes',
+  async (name) => {
+    const coalesced = new FigWig({ url: `${server.url}/${name}.fw` }),
+      separate = new FigWig({
+        url: `${server.url}/${name}.fw`,
+        maxCoalescedBytes: 1,
+      })
+    try {
+      const header = await coalesced.getHeader()
+      await separate.getHeader()
+      const tracks = [
+        ...new Map(
+          header.tracks.map((track) => [track.group, track.name]),
+        ).values(),
+      ].slice(0, 3)
+      await settled()
+      server.resetMetrics()
+      coalesced.resetDiagnostics()
+      const together = await coalesced.getZoomLevels({ tracks })
+      await settled()
+      const togetherMetrics = server.metrics
+      expect(togetherMetrics.requests).toBe(1)
+      expect(coalesced.getDiagnostics()).toMatchObject({
+        readRequests: 1,
+        dataBytes: 0,
+      })
+      server.resetMetrics()
+      separate.resetDiagnostics()
+      expect(await separate.getZoomLevels({ tracks })).toEqual(together)
+      await settled()
+      expect(server.metrics.requests).toBe(3)
+      expect(server.metrics.bodyBytes).toBe(togetherMetrics.bodyBytes)
+      expect(separate.getDiagnostics().indexBytes).toBe(
+        coalesced.getDiagnostics().indexBytes,
+      )
+    } finally {
+      await Promise.all([coalesced.close(), separate.close()])
+    }
+  },
+)
