@@ -237,3 +237,16 @@ further evaluation.
 - Corrupt payloads and invalid JSON previously threw plain `Error`, unlike
   checksum and decompression failures. Both now use the public `FigWigError`;
   invalid JSON retains its original parsing error as `cause`.
+- Clearing `SharedReadCache` only detaches pending fills; it does not cancel
+  them. Reader shutdown now composes a lifetime signal into all cache waiters
+  and reads, so pending queries reject even when a filehandle ignores aborts.
+  Late completions cannot start more reads or refill caches; `stat()` itself
+  cannot be cancelled because its filehandle interface has no signal parameter.
+- Warm-cache inner promises can settle just before `close()` while their public
+  wrappers are still waiting to resume. Completion checks are needed as well as
+  I/O checks to prevent those pending calls from returning after shutdown.
+- The close promise is saved before abort listeners run, preventing reentrant
+  or concurrent calls from closing the handle twice. Both synchronous and
+  asynchronous handle-close failures are memoized. Native `AbortSignal.any()`
+  composes cancellation without manual listener bookkeeping and is now named
+  in the browser requirements.

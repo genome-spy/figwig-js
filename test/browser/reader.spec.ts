@@ -256,3 +256,95 @@ test('cancels before and during reads while preserving another concurrent query'
   expect(result.aborted).toBe('AbortError')
   expect(result.values).toEqual(expectedValues('runs', 0, 100))
 })
+
+test('closing a reader cancels pending browser reads and prevents late cache refills', async ({
+  page,
+}) => {
+  const result = await page.evaluate(async (url) => {
+    const blob = await (await fetch(`${url}/zlib.fw`)).blob()
+    const underlying = new window.BlobFile(blob)
+    let reads = 0,
+      closes = 0,
+      blockNext = false
+    let enter!: () => void, release!: () => void, complete!: () => void
+    const entered = new Promise<void>((resolve) => {
+      enter = resolve
+    })
+    const blocked = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const completed = new Promise<void>((resolve) => {
+      complete = resolve
+    })
+    const reader = new window.FigWig({
+      filehandle: {
+        read: async (...args: Parameters<typeof underlying.read>) => {
+          reads++
+          const held = blockNext
+          if (held) {
+            blockNext = false
+            enter()
+            // Deliberately ignore cancellation to simulate a late filehandle.
+            await blocked
+          }
+          try {
+            return await underlying.read(...args)
+          } finally {
+            if (held) complete()
+          }
+        },
+        stat: underlying.stat.bind(underlying),
+        readFile: underlying.readFile.bind(underlying),
+        close: async () => {
+          closes++
+          await underlying.close()
+        },
+      },
+    })
+    await reader.getHeader()
+    blockNext = true
+    const pending = reader
+      .getValues('chr1', 0, 100, { tracks: ['signal'] })
+      .then(
+        () => 'resolved',
+        (error: Error) => error.name,
+      )
+    await entered
+    const readsAtClose = reads
+    await Promise.all([reader.close(), reader.close()])
+    // This timeout only bounds a failure: cancellation must settle while the
+    // underlying read is still blocked, not after it eventually returns.
+    const outcome = await new Promise<string>((resolve) => {
+      const timeout = setTimeout(() => resolve('pending'), 5000)
+      void pending.then((value) => {
+        clearTimeout(timeout)
+        resolve(value)
+      })
+    })
+    const cacheAtClose = reader.getDiagnostics().cacheBytes
+    release()
+    await completed
+    // Let all late read/cache promise continuations finish before inspection.
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
+    const afterClose = await reader.getHeader().then(
+      () => 'resolved',
+      (error: Error) => error.name,
+    )
+    await reader.close()
+    return {
+      outcome,
+      afterClose,
+      readsAtClose,
+      readsAfterLateCompletion: reads,
+      cacheAtClose,
+      cacheAfterLateCompletion: reader.getDiagnostics().cacheBytes,
+      closes,
+    }
+  }, rangeServer.url)
+  expect(result.outcome).toBe('AbortError')
+  expect(result.afterClose).toBe('AbortError')
+  expect(result.readsAfterLateCompletion).toBe(result.readsAtClose)
+  expect(result.cacheAtClose).toBe(0)
+  expect(result.cacheAfterLateCompletion).toBe(0)
+  expect(result.closes).toBe(1)
+})

@@ -89,6 +89,8 @@ export class FigWig {
   private readonly chunks: SharedReadCache<string, DecodedChunk>
   private readonly summaries: SharedReadCache<string, Summary>
   private readonly reads: ChunkReads
+  private readonly lifetime = new AbortController()
+  private closePromise?: Promise<void>
   private metrics = diagnostic()
 
   constructor(options: FigWigOptions) {
@@ -173,12 +175,27 @@ export class FigWig {
     )
   }
 
+  private signal(signal?: AbortSignal): AbortSignal {
+    const combined = signal
+      ? AbortSignal.any([this.lifetime.signal, signal])
+      : this.lifetime.signal
+    aborted(combined)
+    return combined
+  }
+  // A close/abort can land after an inner promise settles but before its
+  // caller resumes, including when every requested value was cached.
+  private completed<T>(value: T, signal?: AbortSignal): T {
+    aborted(this.lifetime.signal)
+    aborted(signal)
+    return value
+  }
   private async read(
     offset: number,
     size: number,
     category: 'indexBytes' | 'dataBytes',
     signal?: AbortSignal,
   ) {
+    signal = this.signal(signal)
     const result = await readExact(
       this.filehandle,
       this.queue,
@@ -187,13 +204,17 @@ export class FigWig {
       this.options.maxReadBytes,
       signal,
     )
+    aborted(signal)
     this.metrics.readRequests++
     this.metrics[category] += result.length
     return result
   }
   private state(signal?: AbortSignal) {
+    signal = this.signal(signal)
     return this.metadata.get('metadata', signal, async (shared) => {
-      const fixed = parseFixed(await this.read(0, 128, 'indexBytes', shared))
+      const header = await this.read(0, 128, 'indexBytes', shared)
+      aborted(shared)
+      const fixed = parseFixed(header)
       const stat = await this.filehandle.stat()
       aborted(shared)
       check(
@@ -206,33 +227,45 @@ export class FigWig {
         'indexBytes',
         shared,
       )
+      aborted(shared)
       return parseTables(fixed, bytes)
     })
   }
   private group(id: number, state: MetadataState, signal?: AbortSignal) {
+    signal = this.signal(signal)
     return this.groups.get(id, signal, async (shared) => {
       const started = performance.now(),
         start = state.directory[id],
         end = state.directory[id + 1] ?? state.fixed.length
       const bytes = await this.read(start, end - start, 'indexBytes', shared)
+      aborted(shared)
       const group = parseGroup(bytes, id, state, this.options.maxInflatedBytes)
       this.metrics.indexLoadMs += performance.now() - started
       return group
     })
   }
   async getHeader(options: { signal?: AbortSignal } = {}): Promise<Header> {
-    return (await this.state(options.signal)).header
+    return this.completed(
+      (await this.state(options.signal)).header,
+      options.signal,
+    )
   }
   async getTracks(
     options: { signal?: AbortSignal } = {},
   ): Promise<readonly Track[]> {
-    return (await this.getHeader(options)).tracks
+    return this.completed(
+      (await this.getHeader(options)).tracks,
+      options.signal,
+    )
   }
   async selectTracks(
     selection: TrackSelection,
     options: { signal?: AbortSignal } = {},
   ): Promise<Track[]> {
-    return this.select((await this.state(options.signal)).header, selection)
+    return this.select(
+      this.completed((await this.state(options.signal)).header, options.signal),
+      selection,
+    )
   }
   private select(header: Header, selection?: TrackSelection): Track[] {
     if (selection === undefined) return [...header.tracks]
@@ -287,15 +320,19 @@ export class FigWig {
     end: number,
     options: ReadOptions = {},
   ): Promise<ValuesResult> {
-    return (await this.getValuesMulti([{ chromosome, start, end }], options))[0]
+    return this.completed(
+      (await this.getValuesMulti([{ chromosome, start, end }], options))[0],
+      options.signal,
+    )
   }
   async getValuesMulti(
     regions: readonly Region[],
     options: ReadOptions = {},
   ): Promise<ValuesResult[]> {
+    options = { ...options, signal: this.signal(options.signal) }
+    const state = await this.state(options.signal)
     aborted(options.signal)
-    const state = await this.state(options.signal),
-      { header } = state,
+    const { header } = state,
       tracks = this.select(header, options.tracks)
     regions.forEach((r) => this.region(header, r))
     this.output(
@@ -333,7 +370,7 @@ export class FigWig {
         )
       },
     )
-    return results
+    return this.completed(results, options.signal)
   }
   /** Numeric, binned, and interval queries share the same index/range plan.
    * Consume a bounded window of chunks at a time in physical file order, so
@@ -364,6 +401,7 @@ export class FigWig {
         ),
       ),
     )
+    aborted(options.signal)
     const refs = new Map<string, ChunkRef>()
     const plans: { ref: ChunkRef; regionIndex: number }[] = []
     for (const [id, index] of indexes) {
@@ -474,6 +512,7 @@ export class FigWig {
     }
   }
   private chunk(ref: ChunkRef, state: MetadataState, signal?: AbortSignal) {
+    signal = this.signal(signal)
     if (this.chunks.has(ref.key)) this.metrics.chunkCacheHits++
     else this.metrics.chunkCacheMisses++
     return this.chunks.get(ref.key, signal, async (shared) => {
@@ -624,7 +663,9 @@ export class FigWig {
     level = 0,
     options: { signal?: AbortSignal } = {},
   ): Promise<Summary> {
-    const state = await this.state(options.signal)
+    const signal = this.signal(options.signal)
+    const state = await this.state(signal)
+    aborted(signal)
     if (
       !Number.isInteger(group) ||
       group < 0 ||
@@ -633,12 +674,13 @@ export class FigWig {
       level < 0
     )
       throw new RangeError('Invalid group or summary level')
-    return this.summaries.get(
+    const summary = await this.summaries.get(
       `${group}:${level}`,
-      options.signal,
+      signal,
       async (shared) => {
-        const index = await this.group(group, state, shared),
-          ref = index.summaries[level]
+        const index = await this.group(group, state, shared)
+        aborted(shared)
+        const ref = index.summaries[level]
         if (!ref)
           throw new RangeError(
             `Zoom level ${level} is unavailable for group ${group}`,
@@ -646,14 +688,18 @@ export class FigWig {
         return parseSummary(ref, group, state, this.options.maxInflatedBytes)
       },
     )
+    return this.completed(summary, signal)
   }
   async getZoomLevels(options: ReadOptions = {}): Promise<ZoomLevel[]> {
-    const state = await this.state(options.signal),
-      tracks = this.select(state.header, options.tracks)
+    options = { ...options, signal: this.signal(options.signal) }
+    const state = await this.state(options.signal)
+    aborted(options.signal)
+    const tracks = this.select(state.header, options.tracks)
     const levels = new Map<number, ZoomLevel>()
     await Promise.all(
       [...new Set(tracks.map((t) => t.group))].map(async (group) => {
         const index = await this.group(group, state, options.signal)
+        aborted(options.signal)
         index.summaries.slice(1).forEach((s, i) => {
           const level = i + 1,
             item = levels.get(level) ?? {
@@ -667,6 +713,7 @@ export class FigWig {
         })
       }),
     )
+    aborted(options.signal)
     return [...levels.values()]
       .sort((a, b) => a.level - b.level)
       .map((l) => ({ ...l, groups: l.groups.sort((a, b) => a - b) }))
@@ -677,13 +724,16 @@ export class FigWig {
     end: number,
     options: BinOptions,
   ): Promise<BinsResult> {
-    return (await this.getBinsMulti([{ chromosome, start, end }], options))[0]
+    return this.completed(
+      (await this.getBinsMulti([{ chromosome, start, end }], options))[0],
+      options.signal,
+    )
   }
   async getBinsMulti(
     regions: readonly Region[],
     options: BinOptions,
   ): Promise<BinsResult[]> {
-    aborted(options.signal)
+    options = { ...options, signal: this.signal(options.signal) }
     const { binSize, aggregation = 'mean', missing = 'propagate' } = options
     if (
       !Number.isSafeInteger(binSize) ||
@@ -692,8 +742,9 @@ export class FigWig {
       !['propagate', 'omit', 'zero'].includes(missing)
     )
       throw new RangeError('Invalid binSize, aggregation, or missing policy')
-    const state = await this.state(options.signal),
-      tracks = this.select(state.header, options.tracks)
+    const state = await this.state(options.signal)
+    aborted(options.signal)
+    const tracks = this.select(state.header, options.tracks)
     regions.forEach((r) => this.region(state.header, r))
     const countMissing = missing === 'omit' && aggregation === 'mean'
     // Output coordinates + binary64 sums, plus at most one uint32 NaN count
@@ -790,6 +841,7 @@ export class FigWig {
     await Promise.all(
       ids.map(async (id) => {
         const index = await this.group(id, state, options.signal)
+        aborted(options.signal)
         let level = 0
         for (let k = 1; k < index.summaries.length; k++) {
           const size = tile * index.summaries[k].factor
@@ -803,6 +855,7 @@ export class FigWig {
         summaries.set(id, await this.getSummary(id, level, options))
       }),
     )
+    aborted(options.signal)
     if ([...summaries.values()].some((s) => !s.available)) return false
     for (const { track, values } of result.tracks) {
       const s = summaries.get(track.group)!,
@@ -832,19 +885,22 @@ export class FigWig {
     end: number,
     options: FeatureOptions = {},
   ): Promise<Feature[]> {
-    return (
-      await this.getFeaturesMulti([{ chromosome, start, end }], options)
-    )[0]
+    return this.completed(
+      (await this.getFeaturesMulti([{ chromosome, start, end }], options))[0],
+      options.signal,
+    )
   }
   async getFeaturesMulti(
     regions: readonly Region[],
     options: FeatureOptions = {},
   ): Promise<Feature[][]> {
+    options = { ...options, signal: this.signal(options.signal) }
     const span = options.basesPerSpan ?? 1
     if (!Number.isSafeInteger(span) || span < 1)
       throw new RangeError('Invalid basesPerSpan')
-    const state = await this.state(options.signal),
-      tracks = this.select(state.header, options.tracks)
+    const state = await this.state(options.signal)
+    aborted(options.signal)
+    const tracks = this.select(state.header, options.tracks)
     regions.forEach((r) => this.region(state.header, r))
     const potential = regions.reduce(
       (n, r) => n + Math.ceil((r.end - r.start) / span) * tracks.length,
@@ -858,6 +914,7 @@ export class FigWig {
       span === 1
         ? await this.getValuesMulti(regions, options)
         : await this.getBinsMulti(regions, { ...options, binSize: span })
+    aborted(options.signal)
     return values.map((result) => {
       const features: Feature[] = []
       for (const t of result.tracks)
@@ -892,9 +949,18 @@ export class FigWig {
     this.chunks.clear()
     this.summaries.clear()
   }
-  async close() {
-    this.clearCache()
-    this.metadata.clear()
-    await this.filehandle.close()
+  close(): Promise<void> {
+    if (!this.closePromise) {
+      // Store the promise before abort events run: a listener may call close()
+      // again. Deferring the handle call also turns synchronous throws into a
+      // single memoized rejection, just like an asynchronous close failure.
+      this.closePromise = Promise.resolve().then(() => this.filehandle.close())
+      this.lifetime.abort(
+        new DOMException('Figwig reader is closed', 'AbortError'),
+      )
+      this.clearCache()
+      this.metadata.clear()
+    }
+    return this.closePromise
   }
 }

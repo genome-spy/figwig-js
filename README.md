@@ -20,7 +20,7 @@ does not publish automatically. Until released, build the checkout with
 `npm ci && npm run build` and install its tarball from `npm pack`.
 
 ESM and generated TypeScript declarations are provided. Runtime requirements:
-Node.js 22+ or a modern browser with `fetch`, `BigInt`, `AbortController`,
+Node.js 22+ or a modern browser with `fetch`, `BigInt`, `AbortController`, `AbortSignal.any()`,
 `TextDecoder`, and typed arrays. The browser build has no Node built-ins or
 mandatory WebAssembly asset. Actual Chromium coverage is described below.
 
@@ -242,8 +242,16 @@ Header metadata is cached for the reader's lifetime. Parsed indexes, summaries,
 and decoded chunks have separate byte budgets. Large single entries can be read
 without being retained; zero cache budgets disable retention while keeping
 in-flight sharing. Cache byte accounting estimates object overhead. `clearCache()`
-clears parsed group/summary/chunk caches while retaining metadata, and `close()`
-clears everything and closes the supplied filehandle.
+clears parsed group/summary/chunk caches while retaining metadata.
+
+`close()` permanently shuts down the reader: it rejects pending and future data
+queries with an `AbortError`, cancels queued reads, clears all caches, and closes
+the supplied filehandle once. Concurrent or repeated calls return the same close
+promise, including when the filehandle close fails. Diagnostics remain available,
+and previously returned caller-owned arrays remain valid. Cancellation is
+cooperative: an already-running filehandle operation may finish if it ignores
+its signal (`stat()` has no signal parameter), but it cannot start subsequent
+reads or refill caches. Synchronous decoding is not interruptible.
 
 Raw byte-range caching is delegated to external filehandles, such as
 [`@gmod/range-cache-filehandle`](https://github.com/GMOD/range-cache-filehandle).
