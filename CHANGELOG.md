@@ -1,5 +1,11 @@
 # @genome-spy/figwig
 
+## 0.2.2
+
+### Patch Changes
+
+- 7a18069: Reduce latency when reading new regions of missing data without changing missing-value or summary behavior.
+
 ## 0.2.1
 
 ### Patch Changes
