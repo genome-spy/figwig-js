@@ -215,6 +215,16 @@ storage orders, absent base summaries, valid compressed empty summaries/zooms,
 and zlib integrity for zero-bin zooms. The absence and integrity rules belong to
 v1; this corrects the reader without changing the format.
 
+### Chromosome-name corruption errors
+
+Invalid UTF-8 chromosome names previously escaped as `TextDecoder`'s
+`TypeError`, unlike invalid metadata text. The reader now wraps name-decoding
+failures in the public `FigWigError`, preserving the original error as `cause`,
+so callers can consistently identify corrupt files. `test/errors.test.ts`
+repairs the header/table CRCs of malformed names in both storage orders to
+exercise this error path. Valid UTF-8 names and binary extent checks retain
+their existing behavior; this is a reader error-contract correction.
+
 ### Inflate-only entry point and bundle size
 
 The choice of decompressor is specific to this JS implementation. Its strict

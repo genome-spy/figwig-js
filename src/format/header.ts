@@ -137,8 +137,14 @@ export function parseTables(f: FixedHeader, bytes: Uint8Array): MetadataState {
   for (let id = 0; id < f.nChroms; id++) {
     const size = c.u16()
     check(c.at + size + 8 <= f.tracks - f.chroms, 'truncated chromosome table')
-    const name = utf8.decode(c.take(size)),
-      length = c.u64('chromosome length')
+    const nameBytes = c.take(size)
+    let name: string
+    try {
+      name = utf8.decode(nameBytes)
+    } catch (cause) {
+      throw new FigWigError('invalid UTF-8 chromosome name', { cause })
+    }
+    const length = c.u64('chromosome length')
     check(
       name.length > 0 && !names.has(name) && length > 0 && length <= 0xffffffff,
       'invalid or duplicate chromosome',
