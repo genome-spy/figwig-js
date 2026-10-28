@@ -64,9 +64,10 @@ npm run changeset
 ```
 
 Choose patch for a compatible fix, minor for a compatible addition, or major
-for a breaking change, and write a concise note. Commit the generated
-`.changeset/*.md` file with the implementation. Notes can accumulate across
-several changes; documentation-only edits need no changeset.
+for a breaking change. Write a concise, end-user-oriented note describing changed
+behavior or practical benefits. Each non-trivial commit needs its own new
+`.changeset/*.md` file in the same commit; notes accumulate until versioning.
+See [AGENTS.md](AGENTS.md) for the policy and limited exceptions.
 
 When ready to release from `main`:
 

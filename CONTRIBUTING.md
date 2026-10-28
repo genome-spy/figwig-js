@@ -38,5 +38,7 @@ Performance claims need measured evidence and reproducible commands in
 standalone, so the task's former `packages/figwig/benchmarks/RESULTS.md` path maps
 to `benchmarks/RESULTS.md` here.
 
-Add a changeset for user-visible changes with `npm run changeset`. Keep the note
-focused on behavior that matters to package consumers.
+Every non-trivial commit must include its own new `.changeset/*.md` file in the
+same commit; use `npm run changeset` to create it. Keep entries concise and
+end-user oriented, describing changed behavior or practical benefits. See
+[AGENTS.md](AGENTS.md) for the policy and limited exceptions.
