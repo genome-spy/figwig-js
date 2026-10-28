@@ -1,5 +1,23 @@
 # @genome-spy/figwig
 
+## 0.2.0
+
+### Minor Changes
+
+- Add `requireSummaries` to bin and feature queries so callers can reject requests
+  that would fall back to full-resolution data.
+
+### Patch Changes
+
+- 76018bb: Reduce the CPU cost of reading compressed data while preserving strict zlib integrity checks.
+- 187709e: Reduce HTTP requests for multi-group queries by coalescing nearby group-index reads while preserving cache budgets and cancellation.
+- ebe4336: Read valid compressed track-order blocks even when zlib expansion exceeds the position-order chunk size limit.
+- 23e68ef: Speed up repeated track selections by caching name lookups for each reader.
+- 9f60f43: Published versions now get GitHub Releases with notes from the changelog.
+- eaf7556: Report invalid UTF-8 chromosome names as FigWigError, preserving the underlying decoding error as the cause.
+- b89eeb6: Speed up binned queries while preserving missing-value handling and numeric accumulation order.
+- 8c3431e: Reject malformed zoom records that omit their required compressed stream.
+
 ## 0.1.0
 
 ### Minor Changes
