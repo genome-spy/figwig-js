@@ -1,4 +1,4 @@
-import { Inflate } from 'pako/lib/inflate.js'
+import { Inflate } from 'pako-esm2'
 import { check, FigWigError } from './binary.js'
 
 /** A single RFC1950 stream: bounded output, Adler32, and no trailing bytes. */
@@ -49,22 +49,19 @@ export function inflateZlib(
     }
   }
   try {
-    inflater.push(bytes.subarray(2, -4), true)
+    // The finish flag can accept incomplete DEFLATE in this Pako fork. Let a
+    // real end marker finish the stream, then require ended below.
+    inflater.push(bytes.subarray(2, -4), false)
   } catch (e) {
     if (e instanceof FigWigError) throw e
     throw new FigWigError('corrupt DEFLATE payload', { cause: e })
   }
-  // Pako's raw inflater exposes the zlib stream state. Raw mode prevents its
-  // wrapper from automatically accepting concatenated zlib streams.
-  const state = inflater as unknown as {
-    ended: boolean
-    strm: { next_in: number }
-  }
+  // Raw mode lets us check that one DEFLATE stream consumed the entire payload.
   check(
-    !inflater.err &&
-      state.ended &&
+    inflater.err === 0 &&
+      inflater.ended &&
       count === expected &&
-      state.strm.next_in === bytes.length - 6,
+      inflater.strm?.next_in === bytes.length - 6,
     'corrupt, truncated, trailing, or wrong-sized zlib stream',
   )
   const checksum = new DataView(

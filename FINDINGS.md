@@ -189,14 +189,28 @@ fetching, aggregation and memory representation differently.
 
 The choice of decompressor is specific to this JS implementation. Its strict
 synchronous Pako path checks bounded output, RFC1950 headers, Adler32, exact
-produced length, and trailing/concatenated input. `pako/lib/inflate.js` avoids
-encoder code retained by a named import from the root ESM entry. Browser bundlers
-must support CommonJS; public declarations must not expose the Pako type shim.
+produced length, and trailing/concatenated input. It now imports `Inflate` from
+[`pako-esm2` 2.0.2](https://github.com/cmdcolin/pako-esm), Colin Diesh's ESM fork.
+GenomeSpy's inspected lockfile resolves the same version through
+[`@gmod/bgzf-filehandle` 6.7.0](https://github.com/GMOD/bgzf-filehandle/blob/v6.7.0/package.json#L51-L54),
+used by BAM and Tabix. Matching versions and ESM resolution let both readers
+share an inflater; different installed versions or CommonJS resolution can still
+duplicate it. Compression code is tree-shaken out, and the old CommonJS subpath
+and local type shim are no longer needed.
 
-In the recorded esbuild 0.28.2 browser/ES2022 snapshot, changing only that import
-reduced the complete API from 85,444 to 60,921 minified bytes and from 29,352 to
-21,748 gzip bytes (about 26%). These historical sizes use `gzipSync`'s default
-level; they are not properties of the Figwig format or a current size guarantee.
+Despite its version number, this fork derives from Pako 1. Its finish flag can
+accept a nonfinal DEFLATE block even when output length and Adler32 match. The
+adapter passes `false` and requires automatic stream termination; a regression
+test covers the missing-final-block case. Keep these checks when changing
+decompressors.
+
+An esbuild 0.28.2 browser/ES2022 probe of the packed API reduced gzip size from
+22,051 to 21,430 bytes versus the previous Pako 2.2 inflate-only import. Exporting
+both the API and BGZF 6.7.0 reduced it from 74,979 to 67,551 bytes: the metafile
+confirmed one shared ESM inflater and no encoder. This used minification and
+`gzipSync`'s default level, with normal npm resolution and no aliases. It is a
+dependency-sharing probe, not a measurement of GenomeSpy's complete bundle or
+decompression speed. Earlier root-entry Pako measurements remain historical.
 
 The [GMOD libdeflate experiment](benchmarks/DECOMPRESSION.md) measured dense-chunk
 raw BBI inflation at 370.8 MiB/s versus 110.7 MiB/s for strict Pako. Adding JS

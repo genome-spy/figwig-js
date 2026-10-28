@@ -21,8 +21,8 @@ ESM and TypeScript declarations are provided. Runtime requirements:
 Node.js 22+ or a modern browser with `fetch`, `BigInt`, `AbortController`, `AbortSignal.any()`,
 `TextDecoder`, and typed arrays. No Node polyfills or WebAssembly asset is required.
 
-Browser applications need a bundler with CommonJS support, such as Vite or
-esbuild; Node.js can import the built ESM package directly.
+The reader uses `pako-esm2`, also used by GMOD's BGZF reader, so applications
+can share the same ESM inflater when their dependency versions align.
 
 ## Open a file and read two tracks
 

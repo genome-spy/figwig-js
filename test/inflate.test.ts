@@ -127,6 +127,17 @@ describe('strict RFC1950 decompression', () => {
     }
   })
 
+  it('requires a final DEFLATE block even when the output and Adler32 match', () => {
+    // One nonfinal stored block containing "A", followed by its valid Adler32.
+    const bytes = new Uint8Array([
+      0x78, 0x9c, 0, 1, 0, 0xfe, 0xff, 65, 0, 0x42, 0, 0x42,
+    ])
+    expect(() => inflateZlib(bytes, 1, 1)).toThrow(/truncated/)
+    // Marking the same block final makes this a complete stream.
+    bytes[2] = 1
+    expect(inflateZlib(bytes, 1, 1)).toEqual(Uint8Array.of(65))
+  })
+
   it('rejects corrupt DEFLATE bytes', () => {
     const compressed = Uint8Array.from(deflateSync(text))
     // BTYPE=3 is a reserved DEFLATE block type regardless of the payload.

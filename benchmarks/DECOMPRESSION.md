@@ -9,9 +9,9 @@ chunks and batches. The exact current GMOD APIs are not interchangeable with
 this reader's strict RFC1950 decoder. The production package retains its verified
 Pako implementation; this experiment adds no runtime dependency or vendored WASM.
 
-These measurements used Pako's root ESM entry point. The reader now imports
-`pako/lib/inflate.js`; its strict validation logic is unchanged. The original
-asset sizes and first-use timings below describe the measured snapshot. See
+These measurements used Pako 2.2.0's root ESM entry point. The reader subsequently
+used its inflate-only subpath and now uses GMOD's `pako-esm2` fork. The original
+throughput, asset sizes and first-use timings below describe the measured snapshot. See
 [`../FINDINGS.md`](../FINDINGS.md#inflate-only-entry-point-and-bundle-size)
 for the subsequent bundle-size comparison.
 
