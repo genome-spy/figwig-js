@@ -250,3 +250,9 @@ further evaluation.
   asynchronous handle-close failures are memoized. Native `AbortSignal.any()`
   composes cancellation without manual listener bookkeeping and is now named
   in the browser requirements.
+- One-base features bypass binning to preserve native output budgets and raw
+  numeric values, but that path also bypassed missing-value policies. A NaN
+  now becomes zero for `missing: 'zero'` or an omission-aware sum, before zero
+  filtering; propagation and omission-aware means retain NaN. Finite values
+  and negative zero stay unchanged. Shared validation rejects invalid policies
+  at every span, without routing unit spans through float64 bin buffers.

@@ -98,9 +98,10 @@ export interface Feature {
 export interface FeatureOptions extends ReadOptions {
   basesPerSpan?: number
   aggregation?: 'sum' | 'mean'
+  /** NaN handling at every span. Default: propagate. */
   missing?: MissingPolicy
   useSummaries?: boolean
-  /** Include zero intervals; default true. NaNs are always included. */
+  /** Include zero intervals after missing-value handling; default true. */
   includeZeros?: boolean
 }
 export interface Summary {

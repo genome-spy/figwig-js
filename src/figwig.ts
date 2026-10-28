@@ -78,6 +78,15 @@ function representable(value: number, dtype: DType): boolean {
     value <= (unsigned ? 2 ** width - 1 : 2 ** (width - 1) - 1)
   )
 }
+function validAggregationOptions(
+  aggregation: 'sum' | 'mean',
+  missing: MissingPolicy,
+): boolean {
+  return (
+    ['sum', 'mean'].includes(aggregation) &&
+    ['propagate', 'omit', 'zero'].includes(missing)
+  )
+}
 
 /** Immutable-file, read-only Figwig v1 random-access reader. */
 export class FigWig {
@@ -738,8 +747,7 @@ export class FigWig {
     if (
       !Number.isSafeInteger(binSize) ||
       binSize < 1 ||
-      !['sum', 'mean'].includes(aggregation) ||
-      !['propagate', 'omit', 'zero'].includes(missing)
+      !validAggregationOptions(aggregation, missing)
     )
       throw new RangeError('Invalid binSize, aggregation, or missing policy')
     const state = await this.state(options.signal)
@@ -896,8 +904,11 @@ export class FigWig {
   ): Promise<Feature[][]> {
     options = { ...options, signal: this.signal(options.signal) }
     const span = options.basesPerSpan ?? 1
+    const { aggregation = 'mean', missing = 'propagate' } = options
     if (!Number.isSafeInteger(span) || span < 1)
       throw new RangeError('Invalid basesPerSpan')
+    if (!validAggregationOptions(aggregation, missing))
+      throw new RangeError('Invalid aggregation or missing policy')
     const state = await this.state(options.signal)
     aborted(options.signal)
     const tracks = this.select(state.header, options.tracks)
@@ -915,11 +926,16 @@ export class FigWig {
         ? await this.getValuesMulti(regions, options)
         : await this.getBinsMulti(regions, { ...options, binSize: span })
     aborted(options.signal)
+    // Binned results already applied the policy; their NaNs may be arithmetic.
+    const zeroMissing =
+      span === 1 &&
+      (missing === 'zero' || (missing === 'omit' && aggregation === 'sum'))
     return values.map((result) => {
       const features: Feature[] = []
       for (const t of result.tracks)
         for (let i = 0; i < t.values.length; i++) {
-          const score = t.values[i]
+          let score = t.values[i]
+          if (zeroMissing && Number.isNaN(score)) score = 0
           if (options.includeZeros === false && score === 0) continue
           features.push({
             track: t.track.name,

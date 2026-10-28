@@ -124,10 +124,12 @@ const featureBatches = await fw.getFeaturesMulti(regions, {
 ```
 
 Features are ordered by selected track, then coordinate. By default a feature
-covers one base and includes zeros and NaNs; `includeZeros: false` drops only
-zero scores. Larger `basesPerSpan` uses the binning API below. The default limit
-is one million potential feature records per logical batch, checked before
-reading data. Use typed arrays or increase span for larger requests.
+covers one base and includes zeros and NaNs. The missing-value policies below
+apply at every span; `includeZeros: false` drops zero scores after applying the
+policy. Remaining NaNs are always included. One-base features retain raw numeric
+values, including negative zero; larger `basesPerSpan` uses the binning API below.
+The default limit is one million potential feature records per logical batch,
+checked before reading data. Use typed arrays or increase span for larger requests.
 
 ## Binned values and missing data
 
