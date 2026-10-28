@@ -1,5 +1,9 @@
 # @genome-spy/figwig
 
+[![npm version](https://img.shields.io/npm/v/%40genome-spy%2Ffigwig?logo=npm)](https://www.npmjs.com/package/@genome-spy/figwig)
+[![CI](https://img.shields.io/github/actions/workflow/status/genome-spy/figwig-js/ci.yml?branch=main&label=CI&logo=github)](https://github.com/genome-spy/figwig-js/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/genome-spy/figwig-js)](LICENSE)
+
 A standalone, read-only TypeScript reader for **Figwig v1**, a binary format for
 multitrack genomic signals. Uses `generic-filehandle2` random access in Node.js
 and modern browsers. Independent of GenomeSpy and its visualization engine.
