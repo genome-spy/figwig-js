@@ -131,6 +131,12 @@ reading data. Use typed arrays or increase span for larger requests.
 
 ## Binned values and missing data
 
+`getBins()` and `getBinsMulti()` add arbitrary binning as a reader convenience.
+The Figwig format stores raw values and fixed tile/zoom sums. Consumers could
+implement aggregation using `getValues()` and `getSummary()`, but keeping it in
+the reader lets sparse entries and runs aggregate directly, without dense
+per-base query results or consumer-managed windowing.
+
 ```ts
 const bins = await fw.getBins('chr1', 1_000_000, 2_000_000, {
   tracks: ['atac', 'dnase'],
