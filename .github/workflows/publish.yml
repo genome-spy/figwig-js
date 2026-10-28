@@ -35,12 +35,43 @@ jobs:
           assert.match(pkg.version, /^\d+\.\d+\.\d+$/, 'This workflow publishes stable versions only')
           assert.equal(process.env.GITHUB_REF_TYPE, 'tag', 'Select a release tag with --ref')
           assert.equal(process.env.GITHUB_REF_NAME, `v${pkg.version}`, 'Tag must match package.json')
-          assert.ok(readFileSync('CHANGELOG.md', 'utf8').split('\n').includes(`## ${pkg.version}`), 'Missing changelog entry')
           assert.ok(!readdirSync('.changeset').some(file => file.endsWith('.md') && file !== 'README.md'), 'Run release:version to consume pending changesets')
           NODE
+          node scripts/release-notes.mjs > /dev/null
           git merge-base --is-ancestor HEAD origin/main
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run release:check
       - name: Publish with npm trusted publishing
         run: npm publish --access public --provenance --ignore-scripts
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Prepare GitHub Release notes
+        run: node scripts/release-notes.mjs > "$RUNNER_TEMP/release-notes.md"
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if draft=$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft); then
+            if [ "$draft" = true ]; then
+              echo "::error::A draft release already exists for $GITHUB_REF_NAME. Publish or remove it before retrying."
+              exit 1
+            fi
+            echo "GitHub Release $GITHUB_REF_NAME already exists."
+          else
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+              --verify-tag --title "$GITHUB_REF_NAME" \
+              --notes-file "$RUNNER_TEMP/release-notes.md"
+          fi
