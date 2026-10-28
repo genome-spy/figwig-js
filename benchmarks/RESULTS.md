@@ -667,3 +667,83 @@ FIGWIG_PROFILE_OUTPUT=benchmarks/results/adler-profiles \
 FIGWIG_PROFILE_SUMMARY=benchmarks/measurements/adler-cpu.json \
   node --import tsx benchmarks/scripts/profile.mjs 2000
 ```
+
+## Bin aggregation optimization — 2026-10-28
+
+The production reader now calculates dense bin boundaries once per bin/chunk
+intersection and accumulates into a local copy of the existing output value.
+Each addition stays in the original visitation order, including across chunks;
+separately summing each chunk would change binary64 cancellation and rounding.
+One-base dense bins have a direct loop. Sparse point chunks use a clipped point
+loop without the general interval helper. Runs retain their existing interval
+arithmetic, and implicit zero gaps remain unexpanded. NaN policies and omit-mean
+denominators are unchanged. New tests compare exact sums and NaN counts across
+dense/sparse chunks, partial bins, one-base bins, extreme values, all missing
+policies and reversed chunk visitation against a scalar reference.
+
+The initial dense-only implementation regressed on one-base bins; its samples
+are retained in
+[`measurements/binning-dense-only.json`](measurements/binning-dense-only.json).
+The mixed workload uses sparse chunks throughout this query, explaining why
+changing only dense aggregation did not resolve its hotspot. An intermediate
+version grouped sparse entries by bin, but showed a small Chromium track-order
+regression. The final direct point loop avoids that tradeoff and is simpler.
+
+The independent baseline is `76018bb0638eb831600a94967c492a49a2a03998`, which
+already includes the Adler32 optimization. Eleven unprofiled samples per variant
+alternate execution order after three untimed warm-up queries. Each timed sample
+contains 10 queries, 50 for the small toy/track-order cases, or three for one-base
+bins; times below are per-query medians. These warm queries retain decoded caches
+and issue zero reads. Chromium's network cache is disabled. Every output value
+matches the baseline with `Object.is`, checked outside timing. Raw samples,
+diagnostics and the runtime diff are in
+[`measurements/binning-production.json`](measurements/binning-production.json).
+Environment: Node 24.22.1 and Chromium 156.0.8078.4 on Apple M5, darwin/arm64.
+
+| Warm binned query | Node baseline → optimized ms | Chromium baseline → optimized ms |
+|---|---:|---:|
+| Eight dense tracks / 200 kb, bins 1,000 bp | 5.710 → 5.020 | 5.540 → 1.080 |
+| 24 mixed tracks / 200 kb, bins 997 bp | 16.196 → 8.190 | 8.280 → 7.560 |
+| 96 sparse tracks / 200 kb, bins 1,000 bp | 3.652 → 2.256 | 1.980 → 1.690 |
+| Track-order fixture / 200 kb, bins 1,000 bp | 0.588 → 0.442 | 0.476 → 0.446 |
+| Toy fixture / 300 bp, bins 17 bp | 0.522 → 0.512 | 0.648 → 0.630 |
+| Eight masked tracks / 200 kb, omit | 7.312 → 3.401 | 5.680 → 2.600 |
+| Same masked tracks, zero | 5.774 → 2.859 | 5.280 → 2.300 |
+| Same masked tracks, propagate | 5.723 → 5.082 | 5.580 → 4.140 |
+| Eight dense tracks / 200 kb, bins 1 bp | 18.050 → 17.859 | 17.400 → 13.867 |
+| Track-order fixture / 200 kb, bins 1 bp | 9.379 → 9.086 | 9.200 → 8.767 |
+
+All use mean aggregation and omit missing values unless another policy is
+specified. Masked queries use bins of 1,000 bp. Gains depend strongly on the
+workload and runtime: Chromium's dense case improves about 80%, mixed about 9%,
+sparse about 15%, and masked omit about 54%. Small toy and one-base Node
+differences are too small to establish a useful general benefit. The measured
+cases have no observed median slowdown with the final implementation; this does
+not guarantee all input distributions or browser versions improve.
+
+The masked profile uses the pinned writer with deterministic float32 signals
+and NaN stretches covering roughly 94% of positions. Its ignored binary is
+4,041,052 bytes; its sidecar records all generation parameters. Generate it with
+the same Python environment and pinned upstream checkout used above:
+
+```sh
+.venv/bin/python benchmarks/scripts/generate.py \
+  --upstream /tmp/figwig-reference --profile masked --tracks 8 \
+  --length 2000000 --second-length 500000 --tile 4096 --group 4
+FIGWIG_BENCH_BASELINE=76018bb0638eb831600a94967c492a49a2a03998 \
+  node --import tsx benchmarks/scripts/opportunities.mjs 11 \
+  dense-warm,mixed-warm,sparse-warm,track-warm,toy-warm,masked-warm \
+  benchmarks/measurements/binning-production.json production cache-disabled
+FIGWIG_PROFILE_BASELINE=76018bb0638eb831600a94967c492a49a2a03998 \
+FIGWIG_PROFILE_CASES=dense-bins,mixed-bins \
+FIGWIG_PROFILE_OUTPUT=benchmarks/results/binning-profiles \
+FIGWIG_PROFILE_SUMMARY=benchmarks/measurements/binning-cpu.json \
+  node --import tsx benchmarks/scripts/profile.mjs 2000
+```
+
+Eight follow-up sampling profiles are summarized in
+[`measurements/binning-cpu.json`](measurements/binning-cpu.json), with raw captures
+and source maps in ignored `benchmarks/results/binning-profiles/`. These use the
+same two-second capture method described above. Aggregation remains the main CPU
+cost after the change; a smaller complete-query time does not imply its share of
+remaining CPU must fall. Use the unprofiled table for speed comparisons.

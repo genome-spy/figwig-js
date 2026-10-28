@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs'
 import { BlobFile, LocalFile } from 'generic-filehandle2'
 import { describe, expect, it } from 'vitest'
 import { FigWig } from '../src/index.js'
+import type { BinsResult, MissingPolicy } from '../src/index.js'
+import type { DecodedTrack } from '../src/decoding/chunk.js'
 import { crc32 } from '../src/utils/binary.js'
 import { parseFixed, parseTables } from '../src/format/header.js'
 import { parseGroup } from '../src/format/group.js'
@@ -146,6 +148,118 @@ describe('required summaries', () => {
 })
 
 describe('direct binned aggregation', () => {
+  it('preserves binary64 addition order and NaN counts across dense and sparse chunks', async () => {
+    const reader = new FigWig({
+      filehandle: new LocalFile(fixturePath('zlib')),
+    })
+    try {
+      const track = (await reader.getTracks()).find((t) => t.name === 'wide')!,
+        aggregate = Reflect.get(reader, 'aggregate') as (
+          track: DecodedTrack,
+          base: number,
+          result: BinsResult,
+          outputIndex: number,
+          tileSize: number,
+          missing: MissingPolicy,
+          nanCounts?: Uint32Array,
+        ) => void
+      const patterns = [
+        [2 ** 54, 1, -(2 ** 54), -1, Number.MIN_VALUE, -0, NaN, 0.25, -0.25],
+        [NaN],
+        [0, -0],
+        [Number.MAX_VALUE, Number.MAX_VALUE, -Number.MAX_VALUE],
+        [...Array<number>(70).fill(0), 1, NaN, -1],
+      ]
+      for (const pattern of patterns) {
+        const values = Float64Array.from(
+          { length: 128 },
+          (_, i) => pattern[i % pattern.length],
+        )
+        for (const missing of ['propagate', 'omit', 'zero'] as const) {
+          for (const binSize of [1, 7, 33, 128]) {
+            for (const order of [
+              [0, 64],
+              [64, 0],
+            ]) {
+              for (const sparse of [false, true]) {
+                const start = 5,
+                  end = 123,
+                  n = Math.ceil((end - start) / binSize),
+                  expected = new Float64Array(n),
+                  expectedNaNs = new Uint32Array(n),
+                  nanCounts =
+                    missing === 'omit' ? new Uint32Array(n) : undefined,
+                  result: BinsResult = {
+                    chromosome: 'chr1',
+                    start,
+                    end,
+                    binSize,
+                    source: 'values',
+                    starts: Uint32Array.from(
+                      { length: n },
+                      (_, i) => start + i * binSize,
+                    ),
+                    ends: Uint32Array.from({ length: n }, (_, i) =>
+                      Math.min(end, start + (i + 1) * binSize),
+                    ),
+                    tracks: [{ track, values: new Float64Array(n) }],
+                  }
+                for (const base of order) {
+                  // Scalar oracle follows visitation order, including cancellation
+                  // that would change if a chunk's sum were computed separately.
+                  for (
+                    let p = Math.max(start, base);
+                    p < Math.min(end, base + 64);
+                    p++
+                  ) {
+                    const bin = Math.floor((p - start) / binSize),
+                      value = values[p]
+                    if (Number.isNaN(value)) {
+                      if (missing === 'propagate') expected[bin] = NaN
+                      else if (missing === 'omit') expectedNaNs[bin]++
+                    } else if (value !== 0) expected[bin] += value
+                  }
+                  const chunkValues = values.subarray(base, base + 64),
+                    offsets = Uint32Array.from(
+                      Array.from({ length: 64 }, (_, i) => i).filter(
+                        (i) => chunkValues[i] !== 0,
+                      ),
+                    ),
+                    decoded = sparse
+                      ? {
+                          offsets,
+                          values: Float64Array.from(
+                            offsets,
+                            (i) => chunkValues[i],
+                          ),
+                        }
+                      : { values: chunkValues }
+                  aggregate.call(
+                    reader,
+                    decoded,
+                    base,
+                    result,
+                    0,
+                    64,
+                    missing,
+                    nanCounts,
+                  )
+                }
+                for (let b = 0; b < n; b++)
+                  expect(
+                    Object.is(result.tracks[0].values[b], expected[b]),
+                  ).toBe(true)
+                if (nanCounts) expect(nanCounts).toEqual(expectedNaNs)
+              }
+            }
+          }
+        }
+      }
+    } finally {
+      await reader.close()
+    }
+  })
+
   it('reads a 200kb sparse region into bins under a 100-byte output budget', async () => {
     const reader = new FigWig({
       filehandle: new LocalFile(fixturePath('blocks')),

@@ -19,7 +19,7 @@ def arguments():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--upstream', type=pathlib.Path, required=True)
     parser.add_argument('--output', type=pathlib.Path, default=pathlib.Path('benchmarks/fixtures'))
-    parser.add_argument('--profile', choices=['sparse', 'dense', 'mixed', 'collection'], default='mixed')
+    parser.add_argument('--profile', choices=['sparse', 'dense', 'mixed', 'collection', 'masked'], default='mixed')
     parser.add_argument('--tracks', type=int, default=24)
     parser.add_argument('--length', type=int, default=8_000_000, help='chr1 length')
     parser.add_argument('--second-length', type=int, default=2_000_000, help='chr2 length')
@@ -84,8 +84,9 @@ def main():
                             values[0, index, mask] = rng.integers(1, 32, int(mask.sum()))
                         else:
                             row = (np.sin(positions / (1000 + index * 173)) + 2 + rng.normal(0, .05, width)).astype(np.float32)
-                            if args.profile == 'mixed':
-                                row[(positions // 8192 + index) % 17 == 0] = np.nan
+                            if args.profile in ('mixed', 'masked'):
+                                mask = (positions // 8192 + index) % 17 == 0
+                                row[~mask if args.profile == 'masked' else mask] = np.nan
                             values[0, index] = row
                     writer.write(chrom, [start], values)
         parameters['file'] = path.name

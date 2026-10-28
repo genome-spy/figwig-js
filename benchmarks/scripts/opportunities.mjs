@@ -149,7 +149,12 @@ async function benchmarkCase(apis, urls, name, count) {
       : name.startsWith('named')
         ? 20
         : name.includes('warm-bins')
-          ? 3
+          ? name.startsWith('toy') ||
+            (name.startsWith('track') && !name.endsWith('-unit'))
+            ? 50
+            : name.endsWith('-unit')
+              ? 3
+              : 10
           : 1
   for (const [variant, api] of Object.entries(apis)) {
     const data = new Uint8Array(1024 ** 2)
@@ -169,9 +174,11 @@ async function benchmarkCase(apis, urls, name, count) {
                 ? urls.collection
                 : name.startsWith('toy')
                   ? urls.toy
-                  : name.startsWith('mixed')
-                    ? urls.mixed
-                    : urls.dense
+                  : name.startsWith('masked')
+                    ? urls.masked
+                    : name.startsWith('mixed')
+                      ? urls.mixed
+                      : urls.dense
       reader = new api.FigWig({ url })
       const header = await reader.getHeader()
       const names = name.startsWith('named4')
@@ -195,11 +202,30 @@ async function benchmarkCase(apis, urls, name, count) {
         run = () => reader.getValues('chr1', 1000000, 1200000)
       else
         run = () =>
-          reader.getBins('chr1', 1000000, 1200000, {
-            binSize: name.startsWith('mixed') ? 997 : 1000,
-            aggregation: 'mean',
-            missing: 'omit',
-          })
+          reader.getBins(
+            name.startsWith('track') ? 'chrA' : 'chr1',
+            name.startsWith('track') || name.startsWith('toy') ? 0 : 1000000,
+            name.startsWith('toy')
+              ? 300
+              : name.startsWith('track')
+                ? 200000
+                : 1200000,
+            {
+              binSize: name.startsWith('toy')
+                ? 17
+                : name.endsWith('-unit')
+                  ? 1
+                  : name.startsWith('mixed')
+                    ? 997
+                    : 1000,
+              aggregation: 'mean',
+              missing: name.endsWith('-zero')
+                ? 'zero'
+                : name.endsWith('-propagate')
+                  ? 'propagate'
+                  : 'omit',
+            },
+          )
     }
     let expected
     for (let i = 0; i < 3; i++) expected = await run()
@@ -308,6 +334,7 @@ const urls = {
   collection: `${local.url}/benchmarks/fixtures/collection-n96-tile4096-g8-positions-l6-s1701.fw`,
   many: `${typical.url}/benchmarks/fixtures/sparse-n24-tile4096-g1-positions-l6-s1701.fw`,
   track: `${local.url}/test/fixtures/blocks.fw`,
+  masked: `${local.url}/benchmarks/fixtures/masked-n8-tile4096-g4-positions-l6-s1701.fw`,
 }
 const cases = [
   ['crc-1MiB', 'crc'],
@@ -322,6 +349,18 @@ const cases = [
     : []),
   ['dense-warm-bins', 'dense-bins'],
   ['mixed-warm-bins', 'dense-bins'],
+  ...(production
+    ? [
+        ['sparse-warm-bins', 'production'],
+        ['track-warm-bins', 'production'],
+        ['toy-warm-bins', 'production'],
+        ['masked-warm-bins', 'production'],
+        ['masked-warm-bins-zero', 'production'],
+        ['masked-warm-bins-propagate', 'production'],
+        ['dense-warm-bins-unit', 'production'],
+        ['track-warm-bins-unit', 'production'],
+      ]
+    : []),
   ['named600-warm-values', 'name-map'],
   ['named96-warm-values', 'name-map'],
   ['named4-warm-values', 'name-map'],

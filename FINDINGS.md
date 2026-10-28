@@ -204,10 +204,11 @@ production code and v1. Raw samples and reproduction commands are in that report
   cannot retain an entire coalesced response. Regression tests cover ownership
   under cache eviction, CRCs, read/coalescing limits, cancellation and both orders,
   including actual HTTP and Chromium reads.
-- **Dense aggregation:** calculate dense bin boundaries once per bin/chunk
-  intersection while retaining the accumulation order. Pure dense cases improved,
-  but the tested mixed-data case regressed in Chromium. Resolve that tradeoff
-  before treating the prototype as a general binning improvement.
+- **Bin aggregation (implemented after profiling):** calculate dense bin boundaries
+  once per bin/chunk intersection while retaining the accumulation order. The
+  initial prototype regressed on mixed data in Chromium; the final implementation
+  also simplifies sparse point accumulation and handles one-base dense bins
+  directly. See the follow-up measurements below for the measured scope.
 - **CRC loops:** slicing by eight retained checks and improved the measured cold
   dense query less than the isolated CRC microbenchmark suggested. It adds seven
   KiB of lookup tables. Validate small and unaligned inputs and startup/bundle
@@ -221,9 +222,9 @@ baseline and `187709e`, with source maps and browser request timelines. They
 confirm the former named-selection bottleneck and identify aggregation as the
 dominant warm-bin CPU cost. Cold dense reads spend most sampled active time in
 strict inflation; its output callback's ticks concentrate in the Adler32 loop.
-This gives a concrete checksum-loop investigation target without weakening
-verification or claiming an unmeasured improvement. The earlier mixed-data
-aggregation regression still needs resolution before adopting its prototype.
+This identified a concrete checksum-loop target while retaining verification.
+The implementation follow-ups below resolve the earlier aggregation tradeoff
+and measure both changes independently.
 
 The timelines also qualify the earlier Chromium network result. Default browser
 cache behavior serialized these range sends despite zero disk-cache hits and
@@ -248,6 +249,26 @@ the larger dense, mixed, sparse and track-order cases, with no resolved change i
 the small-file case. Follow-up profiles confirm the callback's reduced CPU share.
 These are reader implementation improvements within v1, rather than format or
 compression-backend changes; no allocation or extra lookup table is added.
+
+### Bin aggregation (implemented)
+
+Dense chunks now find boundaries and load/store accumulated output once per
+bin/chunk intersection, retaining sequential binary64 additions to the existing
+output. Computing each chunk's sum separately would change cancellation and
+rounding. One-base dense bins use a direct loop. Sparse point chunks use a
+clipped point loop without the general interval helper; sparse gaps remain valid
+implicit zeros. Run chunks retain the interval implementation, including
+value-times-covered-width arithmetic. No expanded region buffer is introduced.
+
+The measured mixed workload uses sparse chunks throughout the queried region,
+so changing only the dense loop does not address its hotspot. Grouping sparse
+entries by bin helped Node but regressed on the small track-order workload in
+Chromium; the simpler point loop removed that tradeoff. Exact-result tests cover
+both dense and sparse chunks, reversed chunk visitation, extreme magnitudes,
+NaNs, partial bins and all missing policies. Existing conformance tests retain
+coverage of runs, both storage orders and independent Python/specification data.
+See the [complete-query measurements](benchmarks/RESULTS.md#bin-aggregation-optimization--2026-10-28)
+for timings, scope, rejected prototypes and reproduction commands.
 
 ### Compressed track-block size
 

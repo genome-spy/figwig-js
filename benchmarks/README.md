@@ -36,7 +36,8 @@ git -C /tmp/figwig-reference checkout c0e5d6522c677b9f03cd6831e2dbcea759866628
 ```
 
 Profiles are `sparse` (low-density positive integer counts), `dense` (varying
-float32 signals), `mixed` (alternating counts/float32 with NaN stretches), and
+float32 signals), `mixed` (alternating counts/float32 with NaN stretches),
+`masked` (float32 signals with NaNs covering roughly 94% of positions), and
 `collection` (counts, intended for tens or hundreds of tracks). `--tracks`,
 `--length`, `--second-length`, `--tile`, `--group`, `--order`, `--level`, `--zooms`,
 `--density`, `--seed`, and `--chunk-bases` are configurable. File sizes and full

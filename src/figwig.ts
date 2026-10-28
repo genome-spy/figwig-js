@@ -636,30 +636,59 @@ export class FigWig {
   ) {
     const out = result.tracks[outputIndex].values,
       { start, end, binSize } = result
-    const add = (value: number, first: number, last: number) => {
-      let lo = Math.max(start, first)
-      const hi = Math.min(end, last)
-      if (lo >= hi || value === 0) return
-      let bin = Math.floor((lo - start) / binSize)
-      const nan = Number.isNaN(value)
-      while (lo < hi) {
-        const stop = Math.min(hi, start + (bin + 1) * binSize),
-          width = stop - lo
-        if (nan) {
-          if (missing === 'propagate') out[bin] = NaN
-          else if (nanCounts) nanCounts[bin] += width
-        } else out[bin] += value * width
-        lo = stop
+    if (!track.offsets) {
+      let position = Math.max(start, base)
+      const last = Math.min(end, base + track.values.length)
+      if (binSize === 1) {
+        for (; position < last; position++) {
+          const value = track.values[position - base],
+            bin = position - start
+          if (Number.isNaN(value)) {
+            if (missing === 'propagate') out[bin] = NaN
+            else if (nanCounts) nanCounts[bin]++
+          } else if (value !== 0) out[bin] += value
+        }
+        return
+      }
+      let bin = Math.floor((position - start) / binSize)
+      while (position < last) {
+        const stop = Math.min(last, start + (bin + 1) * binSize)
+        let sum = out[bin],
+          nans = 0
+        for (; position < stop; position++) {
+          const value = track.values[position - base]
+          if (Number.isNaN(value)) {
+            if (missing === 'propagate') sum = NaN
+            else if (nanCounts) nans++
+          } else if (value !== 0) sum += value
+        }
+        // Keep base-by-base binary64 addition order across chunks, while
+        // loading/storing the output and finding the boundary once per bin.
+        out[bin] = sum
+        if (nans) nanCounts![bin] += nans
         bin++
       }
+      return
     }
-    if (!track.offsets) {
-      const first = Math.max(start, base),
-        last = Math.min(end, base + track.values.length)
-      for (let position = first; position < last; position++)
-        add(track.values[position - base], position, position + 1)
-    } else if (track.runs) {
-      const offsets = track.offsets
+    const offsets = track.offsets
+    if (track.runs) {
+      const add = (value: number, first: number, last: number) => {
+        let lo = Math.max(start, first)
+        const hi = Math.min(end, last)
+        if (lo >= hi || value === 0) return
+        let bin = Math.floor((lo - start) / binSize)
+        const nan = Number.isNaN(value)
+        while (lo < hi) {
+          const stop = Math.min(hi, start + (bin + 1) * binSize),
+            width = stop - lo
+          if (nan) {
+            if (missing === 'propagate') out[bin] = NaN
+            else if (nanCounts) nanCounts[bin] += width
+          } else out[bin] += value * width
+          lo = stop
+          bin++
+        }
+      }
       for (
         let i = Math.max(0, lowerBound(offsets, Math.max(0, start - base)) - 1);
         i < offsets.length && base + offsets[i] < end;
@@ -672,13 +701,19 @@ export class FigWig {
         )
       }
     } else {
+      const first = start - base,
+        last = end - base
       for (
-        let i = lowerBound(track.offsets, Math.max(0, start - base));
-        i < track.offsets.length && base + track.offsets[i] < end;
+        let i = lowerBound(offsets, Math.max(0, first));
+        i < offsets.length && offsets[i] < last;
         i++
       ) {
-        const position = base + track.offsets[i]
-        add(track.values[i], position, position + 1)
+        const value = track.values[i],
+          bin = Math.floor((offsets[i] - first) / binSize)
+        if (Number.isNaN(value)) {
+          if (missing === 'propagate') out[bin] = NaN
+          else if (nanCounts) nanCounts[bin]++
+        } else if (value !== 0) out[bin] += value
       }
     }
   }
