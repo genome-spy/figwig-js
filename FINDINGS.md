@@ -428,6 +428,40 @@ The attribution matters:
   per-track coverage inside them. A BigWig overview with Figwig detail is another
   possible bridge. None of these integration conventions is currently built in.
 
+### First visits to missing tiles
+
+A subsequent Chrome trace around `chr12:37553934-49989062` in the same recipe
+showed 2,124.5 ms sampled inclusive time in zlib inflation and only 2.1 ms in
+aggregation. Release 0.2.1's compact NaN tiles prevented decoded-cache churn,
+but every newly visited physical tile still inflated its dense payload. The
+89,771,464-byte conversion used for this investigation has a distinct fingerprint
+from the earlier conversion above; see the [measurements](benchmarks/RESULTS.md#missing-stream-reuse-during-navigation--2026-10-28).
+
+The reader now keeps one bounded, query-local copy of a successfully validated
+all-NaN dense tile's stored bytes and compact decoded result. Reuse requires
+identical complete bytes, kind, raw length and group width. Each destination's
+CRC and declared track dtypes are still checked. The entry owns its bytes,
+accounts for compact data and track overhead, and is capped at the smaller of
+64 KiB and the configured inflation limit. It does not persist between queries.
+This avoids redundant inflation without assuming that equal summaries, checksums
+or compressed lengths imply equal values. Ordinary mixed tiles still decode.
+
+In an eleven-sample localhost Chromium comparison against 0.2.1, cold exact
+queries over that chr12 interval with 10,000-base bins fell from 1,627.0 to
+37.4 ms. Both fetched 2,280 physical chunks; inflations fell from 2,280 to one.
+This is a measurement of this file's repeated missing streams, not a general
+navigation or network-latency guarantee.
+
+**Summary and integration scope:** the trace contained no sampled summary work.
+The inspected GenomeSpy fast-mode source selects stored summaries only when its
+desired bin size reaches the 16,384-base tile size, then aligns bins and uses
+`missing: 'zero'`. Below that threshold it requests exact omission-aware means.
+Thus an empty view can still visit raw tiles in fast mode. Required aligned
+summary queries over the chr12 gap read no raw chunks in either reader version.
+Their zeros differ deliberately from exact omission-aware NaNs; sums cannot
+establish the missing-value denominator. This reader change does not alter that
+selection policy or summary arithmetic.
+
 ### HTTP/layout measurements
 
 In this reader's synthetic benchmarks, an all-24-track 10 kb query required

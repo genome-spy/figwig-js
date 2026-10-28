@@ -37,6 +37,10 @@ const runtimeDiff = execFileSync('git', ['diff', '--', 'src'], {
   cwd: root,
   encoding: 'utf8',
 })
+const gapQuery = JSON.parse(
+  process.env.FIGWIG_GAP_QUERY ??
+    '{"chromosome":"chr10","start":10000000,"end":12000000,"binSize":2000}',
+)
 
 async function createWorkload(FigWig, name, url) {
   const reader = new FigWig({ url }),
@@ -48,11 +52,19 @@ async function createWorkload(FigWig, name, url) {
   const context = { reader, last: undefined, run: undefined }
   context.run = async () => {
     if (name.endsWith('cold')) reader.clearCache()
-    context.last = name.startsWith('gap-bins')
-      ? await reader.getBins('chr10', 10000000, 12000000, {
-          binSize: 2000,
-          missing: 'omit',
-        })
+    const summary = name.startsWith('gap-summary'),
+      size = summary ? 65536 : gapQuery.binSize
+    context.last = name.startsWith('gap-')
+      ? await reader.getBins(
+          gapQuery.chromosome,
+          summary ? Math.floor(gapQuery.start / size) * size : gapQuery.start,
+          summary ? Math.ceil(gapQuery.end / size) * size : gapQuery.end,
+          {
+            binSize: size,
+            missing: summary ? 'zero' : 'omit',
+            requireSummaries: summary,
+          },
+        )
       : name === 'named600'
         ? await reader.getValues('chr1', 0, 64, { tracks })
         : name === 'dense-bins' || name === 'mixed-bins'
@@ -108,7 +120,7 @@ for (const variant of ['baseline', 'current']) {
   const result = await build({
     absWorkingDir: root,
     stdin: {
-      contents: `export { FigWig } from './src/index.ts'; export const createWorkload = ${createWorkload.toString()}; export const runWorkload = ${runWorkload.toString()}; export const compareResults = ${compareResults.toString()};`,
+      contents: `export { FigWig } from './src/index.ts'; const gapQuery = ${JSON.stringify(gapQuery)}; export const createWorkload = ${createWorkload.toString()}; export const runWorkload = ${runWorkload.toString()}; export const compareResults = ${compareResults.toString()};`,
       sourcefile: 'profile-workload.js',
       resolveDir: root,
       loader: 'js',
@@ -259,6 +271,8 @@ const cases = [
     ? [
         ['gap-bins', `${gapServer.url}/${basename(gapFile)}`],
         ['gap-bins-cold', `${gapServer.url}/${basename(gapFile)}`],
+        ['gap-summary', `${gapServer.url}/${basename(gapFile)}`],
+        ['gap-summary-cold', `${gapServer.url}/${basename(gapFile)}`],
       ]
     : []),
   ['named600', `${local.url}/test/fixtures/zlib.fw`],
@@ -446,6 +460,7 @@ try {
     date: '2026-10-28',
     revision,
     baseline,
+    gapQuery: gapFile ? gapQuery : undefined,
     runtimeDiff,
     node: process.version,
     chromium: browser.version(),

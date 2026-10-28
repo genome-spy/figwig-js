@@ -6,7 +6,9 @@ import type { BinsResult, MissingPolicy } from '../src/index.js'
 import type { DecodedTrack } from '../src/decoding/chunk.js'
 import { crc32 } from '../src/utils/binary.js'
 import { parseFixed, parseTables } from '../src/format/header.js'
+import type { MetadataState } from '../src/format/header.js'
 import { parseGroup } from '../src/format/group.js'
+import type { ChunkRef, GroupIndex } from '../src/format/group.js'
 import { expectedValues, fixturePath } from './conformance/oracle.js'
 
 describe('required summaries', () => {
@@ -148,6 +150,181 @@ describe('required summaries', () => {
 })
 
 describe('direct binned aggregation', () => {
+  it('uses summaries only at supported resolution and keeps exact missing gaps as NaNs', async () => {
+    const reader = new FigWig({
+      filehandle: new LocalFile(fixturePath('nan_positions')),
+    })
+    try {
+      const summary = await reader.getBins('missing', 0, 128, {
+        binSize: 64,
+        missing: 'zero',
+        requireSummaries: true,
+      })
+      expect(summary.source).toBe('summary')
+      expect(summary.tracks.every((t) => t.values.every((v) => v === 0))).toBe(
+        true,
+      )
+      expect(reader.getDiagnostics()).toMatchObject({
+        dataBytes: 0,
+        chunksFetched: 0,
+      })
+      reader.resetDiagnostics()
+      await expect(
+        reader.getBins('missing', 0, 128, {
+          binSize: 32,
+          missing: 'zero',
+          requireSummaries: true,
+        }),
+      ).rejects.toThrow(/Required summaries/)
+      expect(reader.getDiagnostics().dataBytes).toBe(0)
+      const exact = await reader.getBins('missing', 0, 128, {
+        binSize: 32,
+        missing: 'omit',
+        useSummaries: true,
+      })
+      expect(exact.source).toBe('values')
+      expect(exact.tracks.every((t) => t.values.every(Number.isNaN))).toBe(true)
+      expect(reader.getDiagnostics()).toMatchObject({
+        chunksFetched: 2,
+        chunksDecompressed: 1,
+      })
+    } finally {
+      await reader.close()
+    }
+  })
+
+  it('inflates identical missing tiles once per query without retaining a new cache', async () => {
+    const reader = new FigWig({
+      filehandle: new LocalFile(fixturePath('nan_positions')),
+      chunkCacheBytes: 0,
+    })
+    try {
+      for (let repeat = 0; repeat < 2; repeat++) {
+        reader.resetDiagnostics()
+        const result = await reader.getBins('missing', 3, 125, {
+          binSize: 17,
+          missing: 'omit',
+        })
+        expect(
+          result.tracks.every((track) => track.values.every(Number.isNaN)),
+        ).toBe(true)
+        expect(reader.getDiagnostics()).toMatchObject({
+          chunksFetched: 2,
+          chunksDecompressed: 1,
+          chunkCacheHits: 0,
+        })
+      }
+    } finally {
+      await reader.close()
+    }
+  })
+
+  it.each([true, false])(
+    'does not reuse a modified stream with verify=%s',
+    async (verify) => {
+      const bytes = new Uint8Array(readFileSync(fixturePath('nan_positions')))
+      const fixed = parseFixed(bytes),
+        state = parseTables(
+          fixed,
+          bytes.subarray(fixed.chroms, fixed.index + 8 * fixed.nGroups),
+        )
+      const index = parseGroup(
+        bytes.subarray(state.directory[0], state.directory[1]),
+        0,
+        state,
+        128 * 1024 ** 2,
+      )
+      const ref = index.chunks[1]
+      expect(ref.kind).toBe(1 | (6 << 3))
+      bytes[ref.offset + ref.size - 1] ^= 1
+      const reader = new FigWig({
+        filehandle: new BlobFile(new Blob([bytes])),
+        verify,
+      })
+      try {
+        await expect(
+          reader.getBins('missing', 0, 128, { binSize: 17, missing: 'omit' }),
+        ).rejects.toThrow(verify ? /chunk CRC/ : /Adler-32/)
+      } finally {
+        await reader.close()
+      }
+    },
+  )
+
+  it.each(['crc', 'raw', 'kind'] as const)(
+    "checks each missing tile's %s metadata before reuse",
+    async (field) => {
+      const reader = new FigWig({
+        filehandle: new LocalFile(fixturePath('nan_positions')),
+      })
+      try {
+        const state = await (
+          Reflect.get(reader, 'state') as () => Promise<MetadataState>
+        ).call(reader)
+        const index = await (
+          Reflect.get(reader, 'group') as (
+            id: number,
+            state: MetadataState,
+          ) => Promise<GroupIndex>
+        ).call(reader, 0, state)
+        if (field === 'kind') index.chunks[1].kind = 1 | (8 << 3)
+        else index.chunks[1][field] += field === 'raw' ? 8 : 1
+        await expect(
+          reader.getBins('missing', 0, 128, { binSize: 17, missing: 'omit' }),
+        ).rejects.toThrow(
+          field === 'crc'
+            ? /chunk CRC/
+            : field === 'raw'
+              ? /wrong-sized/
+              : /truncated/,
+        )
+      } finally {
+        await reader.close()
+      }
+    },
+  )
+
+  it('owns reused bytes and rechecks the destination group shape and dtype', async () => {
+    const reader = new FigWig({
+      filehandle: new LocalFile(fixturePath('nan_positions')),
+      chunkCacheBytes: 0,
+    })
+    try {
+      const state = await (
+        Reflect.get(reader, 'state') as () => Promise<MetadataState>
+      ).call(reader)
+      const index = await (
+        Reflect.get(reader, 'group') as (
+          id: number,
+          state: MetadataState,
+        ) => Promise<GroupIndex>
+      ).call(reader, 0, state)
+      const reuse: { last?: { bytes: Uint8Array } } = {}
+      const chunk = Reflect.get(reader, 'chunk') as (
+        ref: ChunkRef,
+        state: MetadataState,
+        reuse: unknown,
+      ) => Promise<{ tracks: DecodedTrack[] }>
+      await chunk.call(reader, index.chunks[0], state, reuse)
+      expect(reuse.last!.bytes.buffer.byteLength).toBe(
+        reuse.last!.bytes.byteLength,
+      )
+      state.members[0] = state.members[0].slice(0, 3)
+      expect(
+        (await chunk.call(reader, index.chunks[1], state, reuse)).tracks,
+      ).toHaveLength(3)
+      state.members[0] = state.members[0].map((track) => ({
+        ...track,
+        dtype: 'uint32',
+      }))
+      await expect(
+        chunk.call(reader, index.chunks[0], state, reuse),
+      ).rejects.toThrow(/declared uint32/)
+    } finally {
+      await reader.close()
+    }
+  })
+
   it.each(['nan_positions', 'nan_tracks'])(
     'preserves missing gaps and observed zeros in %s',
     async (file) => {

@@ -859,3 +859,105 @@ uploading it. Stored summaries cannot establish that a zero-sum tile has no
 observed values, so this fix does not use summaries or statistics to skip reads.
 A future writer improvement could encode uniform NaN spans as short runs to
 reduce initial inflation work, but is outside this reader change.
+
+## Missing-stream reuse during navigation — 2026-10-28
+
+The user supplied a Chrome trace while navigating around
+`chr12:37553934-49989062`. Its fingerprint and weighted sample analysis are in
+[`measurements/navigation-trace.json`](measurements/navigation-trace.json).
+Of 10,891.6 ms sampled time, 7,741.7 ms was idle. Zlib inflation accounted for
+2,124.5 ms inclusive; aggregation accounted for only 2.1 ms. The inflater callback
+and `inflate_fast` had 31.9% and 27.4% of active self time, respectively. Summary
+functions had no samples. The trace contains 32 Figwig range responses totaling
+1,768,710 bytes. This identifies the cost in that recorded navigation, not a
+complete query count or end-to-end latency measurement.
+
+### Reader change and summary controls
+
+Release 0.2.1 compacted decoded all-NaN tiles, making cached queries cheap.
+Newly visited chunks still inflated dense streams. The reader now remembers one
+validated all-NaN dense stream within each query and reuses its compact result
+only when all stored bytes, kind, raw length and group width match. CRC checks
+still run for each physical chunk and destination dtype checks still run after
+reuse. The memo owns its stored bytes and is capped at 64 KiB or the configured
+inflation limit, whichever is smaller. It does not add a persistent reader cache.
+Nonmissing tiles and differing/corrupt streams follow the existing strict path.
+
+GenomeSpy's inspected fast-mode source selects summaries when its desired bin
+size is at least the file's 16,384-base tile size. Smaller bins use exact
+omission-aware means, including in an empty part of a chromosome with data
+elsewhere. This fix preserves that behavior. The summary controls below require
+aligned 65,536-base bins and `missing: 'zero'`; their zero results intentionally
+differ from exact omission-aware NaNs. Required summaries perform no raw-chunk
+reads in either version. Tests also cover below-tile rejection without raw
+fallback, exact fallback, modified streams, metadata, dtype and byte ownership.
+
+### Controlled timings
+
+Baseline: `837e7d6` (release 0.2.1). Same 89,771,464-byte file and SHA-256 as the
+preceding gap experiment. Node 24.22.1, Chromium 156.0.8078.4, Apple M5,
+darwin/arm64. Eleven alternating unprofiled samples after warm-up, localhost,
+no simulated latency/bandwidth limit, browser network cache disabled. Cold reads
+clear parsed caches but retain the header. Each gap sample runs one query;
+all baseline/fixed output values match with `Object.is` outside timing.
+
+Exact queries request all 24 tracks, `chr12:37553934-49989062`, 10,000-base bins,
+mean aggregation and `missing: 'omit'`. Summary controls align the same interval
+outward to their bin boundaries.
+
+| Runtime / query | Baseline median ms | Fixed median ms | Inflations per query |
+|---|---:|---:|---:|
+| Node, exact cold | 1,624.87 | 52.10 | 2,280 → 1 |
+| Chromium, exact cold | 1,627.00 | 37.40 | 2,280 → 1 |
+| Node, exact cached | 5.28 | 4.72 | 0 → 0 |
+| Chromium, exact cached | 2.10 | 2.30 | 0 → 0 |
+| Node, summary cold | 11.15 | 9.50 | 0 → 0 |
+| Chromium, summary cold | 9.10 | 10.30 | 0 → 0 |
+| Node, summary cached | 0.067 | 0.065 | 0 → 0 |
+| Chromium, summary cached | 0.10 | 0.10 | 0 → 0 |
+
+Both exact cold variants issue 21 reads, transferring 264,858 index bytes and
+1,219,800 data bytes, fetching 2,280 chunks and accounting for 13,964,154 retained
+cache bytes. Summary cold queries issue one 264,858-byte index read and fetch
+zero raw chunks. Cached queries issue no reads. The Chromium cold exact reduction
+is about 43.5×; there is no claimed cached-query or summary improvement. These
+figures do not measure peak process memory, full visualization latency or WAN
+behavior. Raw samples, diagnostics and the runtime diff are retained in
+[`measurements/navigation-production.json`](measurements/navigation-production.json).
+
+Eleven-sample ordinary-data controls are in
+[`measurements/navigation-controls.json`](measurements/navigation-controls.json).
+Changes go in both directions, within roughly 4% for the larger cold cases:
+Chromium dense 80.1 → 82.8 ms, mixed 128.0 → 127.5 ms, sparse 34.7 → 35.0 ms,
+and track order 9.3 → 9.4 ms. Existing masked omit/zero/propagate medians remain
+close (0.65/0.64/0.44 → 0.65/0.65/0.43 ms). No general nonmissing-data speedup
+is claimed.
+
+### CPU follow-up and reproduction
+
+Eight Node/Chromium profiles compare cold exact and summary queries for at least
+two seconds at a requested 1 ms sampling interval. Summaries are in
+[`measurements/navigation-cpu.json`](measurements/navigation-cpu.json); raw
+captures and maps are ignored under `benchmarks/results/navigation-profiles/`.
+The Chromium exact capture completes two baseline queries with 4,560 inflations
+versus 55 fixed queries with 55 inflations. Baseline self time is dominated by
+the inflater callback (41.4%) and `inflate_fast` (35.9%). Summary controls have
+zero raw inflations in both versions. These profiled runs establish where work
+went; use the separate unprofiled table for timing comparisons.
+
+```sh
+export FIGWIG_GAP_FILE=/absolute/path/to/output/figwig/h3k27ac.fw
+export FIGWIG_GAP_QUERY='{"chromosome":"chr12","start":37553934,"end":49989062,"binSize":10000}'
+FIGWIG_BENCH_BASELINE=837e7d6 \
+  node --import tsx benchmarks/scripts/opportunities.mjs 11 gap \
+  benchmarks/measurements/navigation-production.json production cache-disabled
+FIGWIG_PROFILE_BASELINE=837e7d6 \
+FIGWIG_PROFILE_CASES=gap-bins-cold,gap-summary-cold \
+FIGWIG_PROFILE_OUTPUT=benchmarks/results/navigation-profiles \
+FIGWIG_PROFILE_SUMMARY=benchmarks/measurements/navigation-cpu.json \
+  node --import tsx benchmarks/scripts/profile.mjs 2000
+FIGWIG_BENCH_BASELINE=837e7d6 \
+  node --import tsx benchmarks/scripts/opportunities.mjs 11 \
+  dense-cold,mixed-cold,sparse-cold,track-cold,toy-cold,masked-warm \
+  benchmarks/measurements/navigation-controls.json production cache-disabled
+```

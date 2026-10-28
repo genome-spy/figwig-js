@@ -88,6 +88,19 @@ function validAggregationOptions(
   )
 }
 
+interface MissingTile {
+  bytes: Uint8Array
+  kind: number
+  raw: number
+  decoded: DecodedChunk
+}
+
+function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false
+  return true
+}
+
 /** Immutable-file, read-only Figwig v1 random-access reader. */
 export class FigWig {
   readonly filehandle: GenericFilehandle
@@ -484,6 +497,9 @@ export class FigWig {
     const ordered = [...refs.values()].sort(
       (a, b) => a.offset - b.offset || a.group - b.group,
     )
+    // One bounded, query-local entry avoids repeatedly inflating identical
+    // missing tiles during navigation. It never keeps a coalesced read buffer.
+    const missing: { last?: MissingTile } = {}
     let first = 0
     while (first < ordered.length) {
       let end = first,
@@ -516,7 +532,7 @@ export class FigWig {
       }
       const batch = ordered.slice(first, end)
       const chunks = await Promise.all(
-        batch.map((ref) => this.chunk(ref, state, options.signal)),
+        batch.map((ref) => this.chunk(ref, state, missing, options.signal)),
       )
       for (let i = 0; i < batch.length; i++) {
         aborted(options.signal)
@@ -535,7 +551,12 @@ export class FigWig {
       first = end
     }
   }
-  private chunk(ref: ChunkRef, state: MetadataState, signal?: AbortSignal) {
+  private chunk(
+    ref: ChunkRef,
+    state: MetadataState,
+    missing: { last?: MissingTile },
+    signal?: AbortSignal,
+  ) {
     signal = this.signal(signal)
     if (this.chunks.has(ref.key)) this.metrics.chunkCacheHits++
     else this.metrics.chunkCacheMisses++
@@ -549,31 +570,43 @@ export class FigWig {
       this.metrics.chunksFetched++
       if (this.options.verify || (state.fixed.codec === 1 && ref.kind & 128))
         crc(bytes, ref.crc, 'chunk')
-      let payload = bytes
-      if (state.fixed.codec === 1 && !(ref.kind & 128)) {
-        const before = performance.now()
-        payload = inflateZlib(bytes, ref.raw, this.options.maxInflatedBytes)
-        this.metrics.decompressionMs += performance.now() - before
-        this.metrics.chunksDecompressed++
+      let before = performance.now()
+      const previous = missing.last,
+        reused =
+          previous &&
+          ref.n === undefined &&
+          ref.kind === previous.kind &&
+          ref.raw === previous.raw &&
+          state.members[ref.group].length === previous.decoded.tracks.length &&
+          sameBytes(bytes, previous.bytes)
+      let decoded: DecodedChunk
+      if (reused) decoded = previous.decoded
+      else {
+        let payload = bytes
+        if (state.fixed.codec === 1 && !(ref.kind & 128)) {
+          payload = inflateZlib(bytes, ref.raw, this.options.maxInflatedBytes)
+          this.metrics.decompressionMs += performance.now() - before
+          this.metrics.chunksDecompressed++
+        }
+        before = performance.now()
+        decoded =
+          ref.n === undefined
+            ? decodeChunk(
+                payload,
+                ref.kind,
+                state.members[ref.group].length,
+                state.fixed.tile,
+                this.options.maxInflatedBytes,
+              )
+            : decodeBlock(
+                payload,
+                ref.kind,
+                ref.n,
+                ref.first!,
+                ref.last!,
+                this.options.maxInflatedBytes,
+              )
       }
-      const before = performance.now()
-      const decoded =
-        ref.n === undefined
-          ? decodeChunk(
-              payload,
-              ref.kind,
-              state.members[ref.group].length,
-              state.fixed.tile,
-              this.options.maxInflatedBytes,
-            )
-          : decodeBlock(
-              payload,
-              ref.kind,
-              ref.n,
-              ref.first!,
-              ref.last!,
-              this.options.maxInflatedBytes,
-            )
       const storageCode = (ref.kind >>> 3) & 15
       for (let slot = 0; slot < decoded.tracks.length; slot++) {
         const dtype = state.members[ref.group][slot].dtype
@@ -587,6 +620,29 @@ export class FigWig {
               false,
               `chunk value cannot be represented in declared ${dtype} dtype`,
             )
+      }
+      if (
+        !reused &&
+        ref.n === undefined &&
+        (ref.kind & 7) === 1 &&
+        bytes.byteLength +
+          decoded.byteLength +
+          decoded.tracks.length * 128 +
+          64 <=
+          Math.min(65536, this.options.maxInflatedBytes) &&
+        decoded.tracks.every(
+          (track) =>
+            track.runs &&
+            track.values.length === 1 &&
+            Number.isNaN(track.values[0]),
+        )
+      ) {
+        missing.last = {
+          bytes: Uint8Array.from(bytes),
+          kind: ref.kind,
+          raw: ref.raw,
+          decoded,
+        }
       }
       this.metrics.decodingMs += performance.now() - before
       return decoded

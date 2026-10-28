@@ -301,6 +301,63 @@ test('keeps missing gaps distinct from zeros and caches compact NaN tiles', asyn
   }
 })
 
+test('reuses only verified missing streams within each browser query and keeps summaries separate', async ({
+  page,
+}) => {
+  const result = await page.evaluate(async (url) => {
+    const reader = new window.FigWig({
+      url: `${url}/nan_positions.fw`,
+      chunkCacheBytes: 0,
+    })
+    try {
+      const summary = await reader.getBins('missing', 0, 128, {
+        binSize: 64,
+        missing: 'zero',
+        requireSummaries: true,
+      })
+      const summaryMetrics = reader.getDiagnostics()
+      const exact = []
+      for (let i = 0; i < 2; i++) {
+        reader.resetDiagnostics()
+        const bins = await reader.getBins('missing', 3, 125, {
+          binSize: 17,
+          missing: 'omit',
+        })
+        exact.push({
+          source: bins.source,
+          allMissing: bins.tracks.every((t) => t.values.every(Number.isNaN)),
+          metrics: reader.getDiagnostics(),
+        })
+      }
+      return {
+        summarySource: summary.source,
+        summaryZero: summary.tracks.every((t) =>
+          t.values.every((v) => v === 0),
+        ),
+        summaryMetrics,
+        exact,
+      }
+    } finally {
+      await reader.close()
+    }
+  }, rangeServer.url)
+  expect(result.summarySource).toBe('summary')
+  expect(result.summaryZero).toBe(true)
+  expect(result.summaryMetrics).toMatchObject({
+    dataBytes: 0,
+    chunksFetched: 0,
+  })
+  for (const row of result.exact) {
+    expect(row.source).toBe('values')
+    expect(row.allMissing).toBe(true)
+    expect(row.metrics).toMatchObject({
+      chunksFetched: 2,
+      chunksDecompressed: 1,
+      chunkCacheHits: 0,
+    })
+  }
+})
+
 test('requires stored summaries over HTTP without falling back to raw chunks', async ({
   page,
 }) => {

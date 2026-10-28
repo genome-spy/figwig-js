@@ -15,6 +15,10 @@ const baselineRevision =
   process.env.FIGWIG_BENCH_BASELINE ??
   'eaf75569b5bfcc0a6673e3af211042c5ac9f071f'
 const production = process.argv[5] === 'production'
+const gapQuery = JSON.parse(
+  process.env.FIGWIG_GAP_QUERY ??
+    '{"chromosome":"chr10","start":10000000,"end":12000000,"binSize":2000}',
+)
 const browserCacheDisabled = process.argv[6] === 'cache-disabled'
 const repetitions = Number(process.argv[2] ?? 7)
 if (!Number.isInteger(repetitions) || repetitions < 3)
@@ -188,11 +192,21 @@ async function benchmarkCase(apis, urls, name, count) {
         ? [0, 31, 63, 95].map((i) => header.tracks[i].name)
         : header.tracks.slice(-600).map((t) => t.name)
       if (name.startsWith('gap'))
-        run = () =>
-          reader.getBins('chr10', 10000000, 12000000, {
-            binSize: 2000,
-            missing: 'omit',
-          })
+        run = () => {
+          const query = urls.gapQuery
+          const summary = name.startsWith('gap-summary'),
+            binSize = summary ? 65536 : query.binSize
+          return reader.getBins(
+            query.chromosome,
+            summary ? Math.floor(query.start / binSize) * binSize : query.start,
+            summary ? Math.ceil(query.end / binSize) * binSize : query.end,
+            {
+              binSize,
+              missing: summary ? 'zero' : 'omit',
+              requireSummaries: summary,
+            },
+          )
+        }
       else if (name.startsWith('named'))
         run = () =>
           name.startsWith('named600')
@@ -341,6 +355,7 @@ await new Promise((resolveListen) => app.listen(0, '127.0.0.1', resolveListen))
 const address = app.address()
 const appUrl = `http://127.0.0.1:${address.port}`
 const urls = {
+  gapQuery,
   gap: gapServer ? `${gapServer.url}/${basename(gapFile)}` : undefined,
   dense: `${local.url}/benchmarks/fixtures/dense-n8-tile4096-g4-positions-l6-s1701.fw`,
   mixed: `${local.url}/benchmarks/fixtures/mixed-n24-tile4096-g4-positions-l6-s1701.fw`,
@@ -355,6 +370,8 @@ const cases = [
     ? [
         ['gap-warm-bins', 'production'],
         ['gap-cold-bins', 'production'],
+        ['gap-summary-warm-bins', 'production'],
+        ['gap-summary-cold-bins', 'production'],
       ]
     : []),
   ['crc-1MiB', 'crc'],
@@ -442,6 +459,7 @@ try {
       encoding: 'utf8',
     }).trim(),
     baselineRevision,
+    gapQuery: gapFile ? gapQuery : undefined,
     mode: production ? 'production' : 'prototype',
     browserCacheDisabled,
     productionDiff: production

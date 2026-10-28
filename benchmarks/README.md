@@ -35,6 +35,26 @@ The small `nan_positions` and `nan_tracks` conformance fixtures reproduce the
 missing/zero semantics without this dataset. Regenerate them through the pinned
 fixture/oracle process, not through the benchmark signal generator.
 
+Override the region and exact bin size with `FIGWIG_GAP_QUERY`, for example
+`'{"chromosome":"chr12","start":37553934,"end":49989062,"binSize":10000}'`.
+The additional `gap-summary` cases align that region outward to 65,536-base
+bins and require stored summaries with `missing: 'zero'`. They are controls for
+summary behavior, not equivalent missing-value statistics. See the
+[navigation results](RESULTS.md#missing-stream-reuse-during-navigation--2026-10-28)
+for complete commands.
+
+To summarize an exported Chrome navigation trace with one V8 CPU profile:
+
+```sh
+node benchmarks/scripts/analyze-navigation-trace.mjs /absolute/path/to/trace.json \
+  benchmarks/measurements/navigation-trace.json
+```
+
+The analyzer weights incremental CPU samples by their time deltas and reports
+Figwig response ranges. It retains a trace fingerprint and script basenames,
+without copying the raw trace or its full URLs into the report. Inclusive CPU
+rows overlap; missing samples do not prove a function never ran.
+
 ## Generate data
 
 Use the Python environment described in `test/fixtures/README.md` or the environment
