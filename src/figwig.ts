@@ -511,13 +511,19 @@ export class FigWig {
               ref.last!,
               this.options.maxInflatedBytes,
             )
+      const storageCode = (ref.kind >>> 3) & 15
       for (let slot = 0; slot < decoded.tracks.length; slot++) {
         const dtype = state.members[ref.group][slot].dtype
+        // Decoding already rejects infinities. Float32 storage is exact in
+        // float32, and every decoded value is representable in float64.
+        if (dtype === 'float64' || (dtype === 'float32' && storageCode === 6))
+          continue
         for (const v of decoded.tracks[slot].values)
-          check(
-            representable(v, dtype),
-            `chunk value cannot be represented in declared ${dtype} dtype`,
-          )
+          if (!representable(v, dtype))
+            check(
+              false,
+              `chunk value cannot be represented in declared ${dtype} dtype`,
+            )
       }
       this.metrics.decodingMs += performance.now() - before
       return decoded

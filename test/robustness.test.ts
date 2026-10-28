@@ -44,9 +44,11 @@ function patchGroup(data: Uint8Array, at = firstGroup(data)) {
   v.setUint32(at + 4, crc32(data.subarray(at + 8, end)), true)
   return data
 }
-function rewriteMetadata(change: (metadata: Record<string, unknown>) => void) {
-  const data = fixture(),
-    f = parseFixed(data),
+function rewriteMetadata(
+  change: (metadata: Record<string, unknown>) => void,
+  data = fixture(),
+) {
+  const f = parseFixed(data),
     bytes = data.subarray(f.metadata, f.metadata + f.metadataLength)
   const object = JSON.parse(new TextDecoder().decode(bytes)) as Record<
     string,
@@ -169,6 +171,103 @@ describe('malformed files fail before unsafe reads or allocations', () => {
     })
     await expect(reader(data).getHeader()).rejects.toThrow(/metadata|track/)
   })
+  test.each([
+    ['wide', 'float32'],
+    ['wide', 'int32'],
+    ['u32', 'int32'],
+    ['neg16', 'uint8'],
+  ])('rejects %s values that cannot fit declared %s', async (name, dtype) => {
+    const data = rewriteMetadata((metadata) => {
+      const tracks = metadata.tracks as Record<string, unknown>[]
+      tracks.find((track) => track.name === name)!.dtype = dtype
+    })
+    // Bins must reject incompatible values before any output conversion;
+    // disabling optional CRC verification must not disable numeric validation.
+    await expect(
+      reader(data, { verify: false }).getBins('chr1', 0, 64, {
+        tracks: [name],
+        binSize: 64,
+      }),
+    ).rejects.toThrow(`cannot be represented in declared ${dtype} dtype`)
+  })
+  test.each([
+    { track: 'runs', value: NaN, dtype: 'float32', error: undefined },
+    {
+      track: 'runs',
+      value: NaN,
+      dtype: 'int32',
+      error: /cannot be represented/,
+    },
+    {
+      track: 'runs',
+      value: Infinity,
+      dtype: 'float32',
+      error: /infinite numeric value/,
+    },
+    {
+      track: 'runs',
+      value: -Infinity,
+      dtype: 'float32',
+      error: /infinite numeric value/,
+    },
+    { track: 'wide', value: NaN, dtype: 'float64', error: undefined },
+    {
+      track: 'wide',
+      value: Infinity,
+      dtype: 'float64',
+      error: /infinite numeric value/,
+    },
+    {
+      track: 'wide',
+      value: -Infinity,
+      dtype: 'float64',
+      error: /infinite numeric value/,
+    },
+  ])(
+    'validates $value in $track declared $dtype',
+    async ({ track, value, dtype, error }) => {
+      const data = rewriteMetadata((metadata) => {
+        const tracks = metadata.tracks as Record<string, unknown>[]
+        tracks.find((t) => t.name === track)!.dtype = dtype
+      }, storedFixture())
+      const s = state(data),
+        groupId = s.header.tracks.find((t) => t.name === track)!.group,
+        members = s.members[groupId],
+        group = parseGroup(
+          data.subarray(s.directory[groupId], s.directory[groupId + 1]),
+          groupId,
+          s,
+          128 * 1024 ** 2,
+        ),
+        ref = group.chunks.find((chunk) => chunk.tile === 0)!,
+        payload = new DataView(data.buffer, ref.offset, ref.size)
+      expect(members[0].name).toBe(track)
+      const offsetsEnd =
+          4 +
+          4 * members.length +
+          members.reduce(
+            (n, _, i) => n + payload.getUint32(4 + i * 4, true),
+            0,
+          ),
+        valuesAt = Math.ceil(offsetsEnd / 4) * 4
+      // Each target is its group's first track; change one value without altering
+      // the valid sparse/run layout. Optional payload CRC checking is disabled.
+      if (track === 'runs') payload.setFloat32(valuesAt, value, true)
+      else payload.setFloat64(valuesAt, value, true)
+      const result = reader(data, { verify: false }).getBins(
+        'chr1',
+        track === 'runs' ? 20 : 10,
+        track === 'runs' ? 21 : 11,
+        {
+          tracks: [track],
+          binSize: 1,
+          missing: 'omit',
+        },
+      )
+      if (error) await expect(result).rejects.toThrow(error)
+      else expect((await result).tracks[0].values[0]).toBeNaN()
+    },
+  )
   test('unsafe group offsets and invalid chromosome lengths', async () => {
     const data = fixture(),
       f = parseFixed(data)
