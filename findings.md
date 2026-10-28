@@ -170,3 +170,44 @@ are evidence for the recorded setup, not general performance claims.
   and trailing-data probes in Node 22/26 and Chromium. It remains a viable
   alternative with an asynchronous internal refactor and separate native-buffer
   allocation testing; the selected change keeps the current synchronous design.
+
+## Kaitai parser experiment (2026-10-28)
+
+- The initial implementation linked the upstream Kaitai schema but went directly
+  to handwritten parsing without comparing generated parsing. This experiment
+  evaluates that omitted option on `experiment/kaitai-parser`, against baseline
+  `64f6e2c3bb9f27997d61c0ca7e6fef92a45def5f`.
+- The pinned upstream schema compiles with Kaitai 0.11.0. It already describes
+  much of the binary format, but its whole-file seeks and automatic zlib
+  processing do not directly fit this reader's fetched-range and bounded-inflate
+  architecture. The local schema retains useful structures and adds small
+  headers/array types for incremental validation and parsing.
+- Generated parsing does not replace CRC validation, metadata interpretation,
+  index ordering, allocation policy or sparse reconstruction. The default
+  JavaScript runtime also needs exact uint64 checking before conversion to
+  `number`, plus strict UTF-8/BOM handling to match the existing reader.
+- A repeat-until `_index == 2` condition unexpectedly stopped after two varint
+  bytes in generated JavaScript because the loop counter increments before the
+  check. Conformance tests exposed this; `groups.size == 3` expresses the intended
+  limit explicitly, and continuation after three groups is rejected by the
+  adapter.
+- Repeated primitives become JavaScript arrays. A direct full-payload parse
+  temporarily duplicates numeric storage before typed-array conversion. The
+  experiment instead parses payload arrays in windows of at most 4096 values;
+  sparse varint objects remain ephemeral. Index/summary arrays have conservative
+  staging estimates, and sparse/matrix header workspace is checked separately.
+  These bounds do not establish peak resident memory or GC behavior.
+- The official runtime's optional Node zlib and legacy text-decoding hooks
+  complicate direct browser bundling. Generation now creates a portable ESM
+  runtime with those unused hooks stubbed. Existing strict Pako inflation stays
+  in place. Compiler/runtime provenance and licenses ship with the package;
+  consumers do not install the compiler or separate Kaitai runtime.
+- The JavaScript compiler does not generate TypeScript declarations. Adapter
+  interfaces are handwritten, so schema/property agreement is not fully checked
+  statically. Pinned regeneration checks and conformance tests remain necessary.
+- The complete browser API grows from 61,299 to 82,416 minified bytes, and from
+  21,866 to 26,527 bytes with gzip level 9: about 4.7 kB (+21.32%) compressed.
+  This is code-size evidence only. Expected extra dispatch, staging conversion
+  and varint-object work are hypotheses; no timing, throughput, allocation or
+  memory benchmarks were run. See [the comparison](benchmarks/KAITAI.md) and
+  [reproducible size data](benchmarks/measurements/kaitai-size.json).

@@ -20,11 +20,19 @@ binary validation, and test both storage orders. Respect the frozen v1 format.
 Architecture:
 
 - `src/format/`: validated metadata, directory, runs/blocks, and summaries.
+- `schema/`: adapted Kaitai definitions; see its README for provenance and limits.
+- `src/kaitai/`: safe stream adapters and tracked generated parser/runtime.
 - `src/decoding/`: sparse-preserving, little-endian payload decoding.
 - `src/utils/`: binary primitives, strict bounded zlib, and abortable coalesced I/O.
 - `src/figwig.ts`: public API, shared query planning, caching, and aggregation.
 - `test/`: Python-backed conformance, malformed inputs, HTTP, and Chromium tests.
 - `benchmarks/`: deterministic writer, local network simulation, runner, evidence.
+
+This branch uses a Kaitai-generated parser. After editing `schema/figwig.ksy` or
+the generator, run `npm run parser:generate` and then `npm run parser:check`.
+Do not edit `src/kaitai/generated/` directly. The compiler and runtime are pinned
+development dependencies; consumers receive a portable ESM runtime with the
+package. See [`benchmarks/KAITAI.md`](benchmarks/KAITAI.md) for the comparison.
 
 Keep runtime independent of Node built-ins and GenomeSpy packages. Preserve
 declared track dtypes and distinguish NaNs from implicit zeros. Do not infer

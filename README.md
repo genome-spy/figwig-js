@@ -302,6 +302,11 @@ tested; Firefox and WebKit have not been exercised in this implementation.
 
 ## Development and reproducibility
 
+This branch evaluates a Kaitai-generated binary parser. See the
+[parser comparison](benchmarks/KAITAI.md) for bundle sizes, correctness evidence,
+developer experience and expected performance tradeoffs, and the
+[schema notes](schema/README.md) for generation instructions.
+
 ```sh
 npm ci
 npm run format:check

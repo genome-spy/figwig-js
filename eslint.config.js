@@ -8,6 +8,7 @@ export default ts.config(
       'test-results/**',
       'playwright-report/**',
       'benchmarks/results/**',
+      'src/kaitai/generated/**',
     ],
   },
   js.configs.recommended,

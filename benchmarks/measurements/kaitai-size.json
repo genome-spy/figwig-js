@@ -1,0 +1,26 @@
+{
+  "baselineCommit": "64f6e2c3bb9f27997d61c0ca7e6fef92a45def5f",
+  "kaitaiCompiler": "0.11.0",
+  "kaitaiRuntime": "0.11.0",
+  "esbuildVersion": "0.28.2",
+  "configuration": "All public exports; browser ESM; ES2022; minify; gzip level 9; legal notices shipped separately",
+  "handwritten": {
+    "minifiedBytes": 61299,
+    "gzip9Bytes": 21866
+  },
+  "kaitai": {
+    "minifiedBytes": 82416,
+    "gzip9Bytes": 26527
+  },
+  "difference": {
+    "minifiedBytes": 21117,
+    "gzip9Bytes": 4661,
+    "minifiedPercent": 34.45,
+    "gzip9Percent": 21.32
+  },
+  "portableRuntimeAlone": {
+    "minifiedBytes": 12982,
+    "gzip9Bytes": 3498
+  },
+  "scope": "Static code-size measurements only; no latency, throughput, allocation, or memory benchmarks"
+}

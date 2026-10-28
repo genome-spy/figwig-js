@@ -1,5 +1,6 @@
 import type { Header, DType, Track, Chromosome, Statistics } from '../types.js'
-import { check, crc, Cursor, utf8 } from '../utils/binary.js'
+import { check, crc, utf8 } from '../utils/binary.js'
+import { parse, ParseStream } from '../kaitai/parse.js'
 
 export interface FixedHeader {
   flags: number
@@ -35,34 +36,56 @@ export const dtypeWidths: Record<DType, number> = {
   float32: 4,
   float64: 8,
 }
+interface ParsedHeader {
+  version: number
+  flags: number
+  tile: number
+  codec: number
+  level: number
+  nChroms: number
+  nTracks: number
+  nGroups: number
+  tablesCrc: number
+  chromsOffset: number
+  tracksOffset: number
+  indexOffset: number
+  dataOffset: number
+  metadataOffset: number
+  metadataLength: number
+  length: number
+  required: number
+  optional: number
+}
 export function parseFixed(bytes: Uint8Array): FixedHeader {
-  const c = new Cursor(bytes)
+  const c = new ParseStream(bytes)
   c.need(128)
-  check(c.u32() === 0x57474946, 'bad magic; expected FIGW')
+  check(c.view.getUint32(0, true) === 0x57474946, 'bad magic; expected FIGW')
   const headerBytes = Uint8Array.from(bytes.subarray(0, 128)),
     view = new DataView(headerBytes.buffer)
   const checksum = view.getUint32(104, true)
   view.setUint32(104, 0, true)
   crc(headerBytes, checksum, 'header')
-  check(c.u16() === 1, 'unsupported format version')
-  const flags = c.u16(),
-    tile = c.u32(),
-    codec = c.u16(),
-    level = c.u16()
-  const nChroms = c.u32(),
-    nTracks = c.u32(),
-    nGroups = c.u32(),
-    tablesCrc = c.u32()
-  const chroms = c.u64('chromosome table offset'),
-    tracks = c.u64('statistics offset'),
-    index = c.u64('index offset')
-  const data = c.u64('data offset'),
-    metadata = c.u64('metadata offset'),
-    metadataLength = c.u64('metadata length')
-  c.u64('reserved zoom offset')
-  const length = c.u64('file length'),
-    required = c.u32(),
-    optional = c.u32()
+  const parsed = parse<ParsedHeader>('Header', c)
+  check(parsed.version === 1, 'unsupported format version')
+  const {
+    flags,
+    tile,
+    codec,
+    level,
+    nChroms,
+    nTracks,
+    nGroups,
+    tablesCrc,
+    chromsOffset: chroms,
+    tracksOffset: tracks,
+    indexOffset: index,
+    dataOffset: data,
+    metadataOffset: metadata,
+    metadataLength,
+    length,
+    required,
+    optional,
+  } = parsed
   check(required === 0, 'unsupported required feature bits')
   check(!(flags & ~1), 'unsupported header flags')
   check(
@@ -94,7 +117,7 @@ export function parseFixed(bytes: Uint8Array): FixedHeader {
   return {
     flags,
     tile,
-    codec,
+    codec: codec as 0 | 1,
     level,
     nChroms,
     nTracks,
@@ -125,7 +148,7 @@ function freeze<T>(value: T): T {
 }
 export function parseTables(f: FixedHeader, bytes: Uint8Array): MetadataState {
   crc(bytes, f.tablesCrc, 'tables')
-  const c = new Cursor(bytes),
+  const c = new ParseStream(bytes),
     chromosomes: Chromosome[] = [],
     names = new Set<string>()
   let nTiles = 0
@@ -134,10 +157,13 @@ export function parseTables(f: FixedHeader, bytes: Uint8Array): MetadataState {
     'chromosome count exceeds table bounds',
   )
   for (let id = 0; id < f.nChroms; id++) {
-    const size = c.u16()
-    check(c.at + size + 8 <= f.tracks - f.chroms, 'truncated chromosome table')
-    const name = utf8.decode(c.take(size)),
-      length = c.u64('chromosome length')
+    c.need(2)
+    const size = c.view.getUint16(c.at, true)
+    check(
+      c.at + 2 + size + 8 <= f.tracks - f.chroms,
+      'truncated chromosome table',
+    )
+    const { name, length } = parse<{ name: string; length: number }>('Chrom', c)
     check(
       name.length > 0 && !names.has(name) && length > 0 && length <= 0xffffffff,
       'invalid or duplicate chromosome',
@@ -150,13 +176,11 @@ export function parseTables(f: FixedHeader, bytes: Uint8Array): MetadataState {
   check(c.at === f.tracks - f.chroms, 'chromosome table extent mismatch')
   check(nTiles <= 2 ** 26, 'genome exceeds 2**26 tiles')
   const statistics: Statistics[] = []
-  for (let i = 0; i < f.nTracks; i++)
-    statistics.push({
-      sum: c.f64(),
-      nonzero: c.u64('nonzero base count'),
-      min: c.f64(),
-      max: c.f64(),
-    })
+  c.need(f.nTracks * 32)
+  for (let i = 0; i < f.nTracks; i++) {
+    const { sum, nonzero, min, max } = parse<Statistics>('TrackStats', c)
+    statistics.push({ sum, nonzero, min, max })
+  }
   c.at = f.metadata - f.chroms
   let metadata: unknown
   try {
@@ -223,16 +247,20 @@ export function parseTables(f: FixedHeader, bytes: Uint8Array): MetadataState {
     'empty or oversized track group',
   )
   c.at = f.index - f.chroms
-  const directory: number[] = []
-  for (let i = 0; i < f.nGroups; i++) {
-    const offset = c.u64('group index offset')
+  c.need(f.nGroups * 8)
+  const { offsets: directory } = parse<{ offsets: number[] }>(
+    'Directory',
+    c,
+    f.nGroups,
+  )
+  for (let i = 0; i < directory.length; i++) {
+    const offset = directory[i]
     check(
       offset >= f.index + 8 * f.nGroups &&
         offset < f.length &&
         (i === 0 || offset > directory[i - 1]),
       'invalid group directory offsets',
     )
-    directory.push(offset)
   }
   check(
     directory[0] === f.index + 8 * f.nGroups,

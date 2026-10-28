@@ -1,3 +1,5 @@
+import { parse, ParseStream } from '../kaitai/parse.js'
+
 /** A decoded track keeps sparse entries sparse. Offsets are relative to a tile,
  * or absolute chromosome positions for a track-order block. */
 export interface DecodedTrack {
@@ -20,6 +22,7 @@ export interface KindInfo {
 }
 
 const WIDTHS = [1, 2, 4, 1, 2, 4, 4, 0, 8] as const
+const PARSE_WINDOW = 4096
 const EMPTY_OFFSETS = new Uint32Array(0)
 const EMPTY_VALUES = new Float64Array(0)
 
@@ -61,56 +64,47 @@ function requireExtent(payload: Uint8Array, end: number): void {
   }
 }
 
-function payloadView(payload: Uint8Array): DataView {
+function payloadStream(payload: Uint8Array): ParseStream {
   if (payload.byteLength % 8 !== 0)
     corrupt('payload length is not a multiple of 8')
-  return new DataView(payload.buffer, payload.byteOffset, payload.byteLength)
+  return new ParseStream(payload)
 }
 
-function readValues(
-  view: DataView,
-  at: number,
-  count: number,
-  code: number,
-): Float64Array {
+interface ParsedValues {
+  values: number[]
+}
+
+function readValues(stream: ParseStream, count: number, code: number) {
   const values = new Float64Array(count)
-  const width = WIDTHS[code]!
-  for (let i = 0; i < count; i++, at += width) {
-    let value: number
-    switch (code) {
-      case 0:
-        value = view.getUint8(at)
-        break
-      case 1:
-        value = view.getUint16(at, true)
-        break
-      case 2:
-        value = view.getUint32(at, true)
-        break
-      case 3:
-        value = view.getInt8(at)
-        break
-      case 4:
-        value = view.getInt16(at, true)
-        break
-      case 5:
-        value = view.getInt32(at, true)
-        break
-      case 6:
-        value = view.getFloat32(at, true)
-        break
-      case 7:
-        value = 1
-        break
-      case 8:
-        value = view.getFloat64(at, true)
-        break
-      default:
-        return corrupt('unsupported element code')
+  if (code === 7) return values.fill(1)
+  // Kaitai emits number[] for repeated primitives. Keep only a bounded
+  // staging window live instead of another array proportional to the payload.
+  for (let first = 0; first < count; first += PARSE_WINDOW) {
+    const parsed = parse<ParsedValues>(
+      'ElementValues',
+      stream,
+      code,
+      Math.min(PARSE_WINDOW, count - first),
+    )
+    for (let i = 0; i < parsed.values.length; i++) {
+      const value = parsed.values[i]
+      if (value === Infinity || value === -Infinity)
+        corrupt('infinite numeric value')
+      values[first + i] = value
     }
-    if (value === Infinity || value === -Infinity)
-      corrupt('infinite numeric value')
-    values[i] = value
+  }
+  return values
+}
+
+function readIntegers(stream: ParseStream, count: number, width: 16 | 32) {
+  const values = new Uint32Array(count)
+  for (let first = 0; first < count; first += PARSE_WINDOW) {
+    const parsed = parse<ParsedValues>(
+      width === 16 ? 'U16Array' : 'U32Array',
+      stream,
+      Math.min(PARSE_WINDOW, count - first),
+    )
+    values.set(parsed.values, first)
   }
   return values
 }
@@ -151,12 +145,12 @@ export function decodeChunk(
 ): DecodedChunk {
   const info = validateKind(kindByte)
   checkDimensions(tracks, tile)
-  const view = payloadView(payload)
+  const stream = payloadStream(payload)
   if (info.kind === 1) {
     const count = tracks * tile
     requireExtent(payload, pad(count * info.width, 8))
     checkDecodedBudget(count * 8, maxDecodedBytes)
-    const values = readValues(view, 0, count, info.code)
+    const values = readValues(stream, count, info.code)
     return {
       tracks: Array.from({ length: tracks }, (_, slot) => ({
         values: values.subarray(slot * tile, (slot + 1) * tile),
@@ -165,19 +159,17 @@ export function decodeChunk(
     }
   }
   if (info.kind === 3)
-    return decodeMatrix(payload, view, info, tracks, tile, maxDecodedBytes)
+    return decodeMatrix(payload, stream, info, tracks, tile, maxDecodedBytes)
 
   requireExtent(payload, 4 + 4 * tracks)
-  const total = view.getUint32(0, true)
+  const total = parse<ParsedValues>('U32Array', stream, 1).values[0]
   if (total > tracks * tile) corrupt('too many sparse entries or run changes')
   checkDecodedBudget(total * 12, maxDecodedBytes)
-  const lengths = new Uint32Array(tracks)
+  // Lengths are temporary workspace, separately bounded before allocating.
+  checkDecodedBudget(tracks * 4, maxDecodedBytes)
+  const lengths = readIntegers(stream, tracks, 32)
   let offsetsEnd = 4 + 4 * tracks
-  for (let slot = 0; slot < tracks; slot++) {
-    const length = view.getUint32(4 + slot * 4, true)
-    lengths[slot] = length
-    offsetsEnd += length
-  }
+  for (const length of lengths) offsetsEnd += length
   // Every offset needs between one and three varint bytes. Check this before
   // allocating from the claimed count, including the zero-width one encoding.
   const offsetBytes = offsetsEnd - 4 - 4 * tracks
@@ -193,21 +185,21 @@ export function decodeChunk(
   for (let slot = 0; slot < tracks; slot++) {
     const firstEntry = entry
     const end = at + lengths[slot]!
+    // Parse one varint at a time rather than retaining Kaitai's object graph
+    // for the entire sparse chunk. The adapted schema caps groups at three.
+    const offsetsStream = new ParseStream(payload.subarray(at, end))
     let position = 0
     let first = true
-    while (at < end) {
-      let delta = 0
-      let terminated = false
-      for (let byteIndex = 0; byteIndex < 3; byteIndex++) {
-        if (at >= end) corrupt("a varint runs past its track's bytes")
-        const byte = payload[at++]!
-        delta += (byte & 127) * 2 ** (7 * byteIndex)
-        if (byte < 128) {
-          terminated = true
-          break
-        }
+    while (offsetsStream.pos < lengths[slot]!) {
+      let varint: { groups: { hasNext: boolean }[]; value: number }
+      try {
+        varint = parse('Varint', offsetsStream)
+      } catch {
+        corrupt("a varint runs past its track's bytes")
       }
-      if (!terminated) corrupt('a varint is longer than three bytes')
+      if (varint.groups[varint.groups.length - 1].hasNext)
+        corrupt('a varint is longer than three bytes')
+      const delta = varint.value
       if (!first && delta === 0)
         corrupt('sparse offsets or run changes do not strictly ascend')
       position += delta
@@ -216,6 +208,7 @@ export function decodeChunk(
       offsets[entry++] = position
       first = false
     }
+    at = end
     decoded.push({
       offsets: offsets.subarray(firstEntry, entry),
       values: EMPTY_VALUES,
@@ -224,7 +217,8 @@ export function decodeChunk(
   }
   if (entry !== total)
     corrupt('decoded offsets do not add up to the entry count')
-  const values = readValues(view, valuesAt, total, info.code)
+  stream.at = valuesAt
+  const values = readValues(stream, total, info.code)
   let valueAt = 0
   for (const track of decoded) {
     const count = track.offsets!.length
@@ -236,26 +230,29 @@ export function decodeChunk(
 
 function decodeMatrix(
   payload: Uint8Array,
-  view: DataView,
+  stream: ParseStream,
   info: KindInfo,
   tracks: number,
   tile: number,
   maxDecodedBytes: number,
 ): DecodedChunk {
   requireExtent(payload, 8)
-  const present = view.getUint32(0, true)
+  const present = parse<ParsedValues>('U32Array', stream, 1).values[0]
   if (present > tracks) corrupt('matrix has too many present tracks')
-  const pointersAt = 4 + 4 * present
   const offsetsAt = 8 + 8 * present
   requireExtent(payload, offsetsAt)
-  const total = view.getUint32(pointersAt + present * 4, true)
+  // Slots and pointers are bounded workspace. The extra initial pointer is a
+  // single scalar; an empty matrix still fits a zero decoded-value budget.
+  checkDecodedBudget(present * 8, maxDecodedBytes)
+  const slots = readIntegers(stream, present, 32)
+  const pointers = readIntegers(stream, present + 1, 32)
+  const total = pointers[present]
   if (total > present * tile) corrupt('matrix has too many entries')
   checkDecodedBudget(total * 12, maxDecodedBytes)
   const valuesAt = pad(offsetsAt + 2 * total, 4)
   requireExtent(payload, pad(valuesAt + total * info.width, 8))
-  if (view.getUint32(pointersAt, true) !== 0)
-    corrupt('matrix first pointer is not zero')
-  const offsets = new Uint32Array(total)
+  if (pointers[0] !== 0) corrupt('matrix first pointer is not zero')
+  const offsets = readIntegers(stream, total, 16)
   const decoded: DecodedTrack[] = Array.from({ length: tracks }, () => ({
     offsets: EMPTY_OFFSETS,
     values: EMPTY_VALUES,
@@ -263,18 +260,17 @@ function decodeMatrix(
   let previousSlot = -1
   let previousPointer = 0
   for (let i = 0; i < present; i++) {
-    const slot = view.getUint32(4 + i * 4, true)
+    const slot = slots[i]
     if (slot <= previousSlot || slot >= tracks)
       corrupt('matrix slots must strictly ascend and be in range')
-    const next = view.getUint32(pointersAt + (i + 1) * 4, true)
+    const next = pointers[i + 1]
     if (next < previousPointer || next > total)
       corrupt('matrix pointers must not decrease or exceed the entry count')
     let previousOffset = -1
     for (let j = previousPointer; j < next; j++) {
-      const offset = view.getUint16(offsetsAt + j * 2, true)
+      const offset = offsets[j]
       if (offset <= previousOffset || offset >= tile)
         corrupt('matrix offsets must strictly ascend and be in range')
-      offsets[j] = offset
       previousOffset = offset
     }
     decoded[slot] = {
@@ -284,11 +280,12 @@ function decodeMatrix(
     previousSlot = slot
     previousPointer = next
   }
-  const values = readValues(view, valuesAt, total, info.code)
+  stream.at = valuesAt
+  const values = readValues(stream, total, info.code)
   for (let i = 0; i < present; i++) {
-    const slot = view.getUint32(4 + i * 4, true)
-    const first = view.getUint32(pointersAt + i * 4, true)
-    const last = view.getUint32(pointersAt + (i + 1) * 4, true)
+    const slot = slots[i]
+    const first = pointers[i]
+    const last = pointers[i + 1]
     decoded[slot]!.values = values.subarray(first, last)
   }
   return { tracks: decoded, byteLength: offsets.byteLength + values.byteLength }
@@ -317,21 +314,21 @@ export function decodeBlock(
   ) {
     corrupt('invalid block entry count or position bounds')
   }
-  const view = payloadView(payload)
+  const stream = payloadStream(payload)
   const valuesAt = pad(4 * n, 8)
   requireExtent(payload, pad(valuesAt + n * info.width, 8))
   checkDecodedBudget(n * 12, maxDecodedBytes)
-  const offsets = new Uint32Array(n)
+  const offsets = readIntegers(stream, n, 32)
   let previous = -1
   for (let i = 0; i < n; i++) {
-    const position = view.getUint32(i * 4, true)
+    const position = offsets[i]
     if (position <= previous) corrupt('block positions do not strictly ascend')
-    offsets[i] = position
     previous = position
   }
   if (offsets[0] !== first || offsets[n - 1] !== last)
     corrupt('block positions do not match its index record')
-  const values = readValues(view, valuesAt, n, info.code)
+  stream.at = valuesAt
+  const values = readValues(stream, n, info.code)
   return {
     tracks: [{ offsets, values }],
     byteLength: offsets.byteLength + values.byteLength,

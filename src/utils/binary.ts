@@ -14,49 +14,6 @@ export function safe(value: bigint, name: string): number {
   )
   return Number(value)
 }
-export class Cursor {
-  readonly view: DataView
-  at = 0
-  constructor(readonly bytes: Uint8Array) {
-    this.view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
-  }
-  need(n: number) {
-    check(
-      Number.isSafeInteger(n) && n >= 0 && this.at + n <= this.bytes.length,
-      'truncated or invalid binary structure',
-    )
-  }
-  u16() {
-    this.need(2)
-    const v = this.view.getUint16(this.at, true)
-    this.at += 2
-    return v
-  }
-  u32() {
-    this.need(4)
-    const v = this.view.getUint32(this.at, true)
-    this.at += 4
-    return v
-  }
-  u64(name = 'uint64 value') {
-    this.need(8)
-    const v = safe(this.view.getBigUint64(this.at, true), name)
-    this.at += 8
-    return v
-  }
-  f64() {
-    this.need(8)
-    const v = this.view.getFloat64(this.at, true)
-    this.at += 8
-    return v
-  }
-  take(n: number) {
-    this.need(n)
-    const b = this.bytes.subarray(this.at, this.at + n)
-    this.at += n
-    return b
-  }
-}
 const crcTable = Uint32Array.from({ length: 256 }, (_, i) => {
   let c = i
   for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1

@@ -1,6 +1,7 @@
 import type { MetadataState } from './header.js'
 import type { Summary } from '../types.js'
-import { check, crc, Cursor, lowerBound } from '../utils/binary.js'
+import { check, crc, lowerBound } from '../utils/binary.js'
+import { parse, ParseStream } from '../kaitai/parse.js'
 import { inflateZlib } from '../utils/inflate.js'
 import { validateKind } from '../decoding/chunk.js'
 
@@ -55,13 +56,16 @@ export function parseGroup(
   state: MetadataState,
   maxInflated: number,
 ): GroupIndex {
-  const c = new Cursor(bytes),
+  const c = new ParseStream(bytes),
     f = state.fixed,
     chunks: ChunkRef[] = [],
     tracks = state.members[group].length
-  const n = c.u32(),
-    checksum = c.u32(),
-    tiles: number[] = []
+  c.need(8)
+  const { numEntries: n, crc: checksum } = parse<{
+    numEntries: number
+    crc: number
+  }>('GroupPrefix', c)
+  const tiles: number[] = []
   if (f.flags & 1) {
     check(
       bytes.length + n * 112 <= maxInflated,
@@ -71,10 +75,27 @@ export function parseGroup(
     crc(bytes.subarray(c.at, c.at + n * 40), checksum, 'block index')
     let previous: ChunkRef | undefined
     for (let k = 0; k < n; k++) {
-      const chrom = c.u32(),
-        first = c.u32(),
-        last = c.u32(),
-        count = c.u32()
+      const {
+        chrom,
+        first,
+        last,
+        numEntries: count,
+        offset,
+        lenBody: size,
+        raw,
+        kind,
+        crc: checksum,
+      } = parse<{
+        chrom: number
+        first: number
+        last: number
+        numEntries: number
+        offset: number
+        lenBody: number
+        raw: number
+        kind: number
+        crc: number
+      }>('BlockRecord', c)
       const ref: ChunkRef = {
         key: `${group}:${k}`,
         group,
@@ -82,11 +103,11 @@ export function parseGroup(
         first,
         last,
         n: count,
-        offset: c.u64('block offset'),
-        size: c.u32(),
-        raw: c.u32(),
-        kind: c.u32(),
-        crc: c.u32(),
+        offset,
+        size,
+        raw,
+        kind,
+        crc: checksum,
       }
       check(
         chrom < state.header.chromosomes.length &&
@@ -115,33 +136,55 @@ export function parseGroup(
       )
   } else {
     c.need(n * 32 + 8)
+    check(
+      bytes.length + n * 64 <= maxInflated,
+      'parsed group index allocation exceeds maxInflatedBytes',
+    )
     const runs: {
       first: number
       last: number
       offset: number
       size: number
     }[] = []
-    for (let i = 0; i < n; i++)
-      runs.push({
-        first: c.u64('first tile'),
-        last: c.u64('last tile'),
-        offset: c.u64('run offset'),
-        size: c.u64('run size'),
-      })
-    const live = c.u32(),
-      length = c.u32(),
-      start = c.at
+    for (let i = 0; i < n; i++) {
+      const {
+        first,
+        last,
+        offset,
+        bytes: size,
+      } = parse<{
+        first: number
+        last: number
+        offset: number
+        bytes: number
+      }>('Run', c)
+      runs.push({ first, last, offset, size })
+    }
+    const { nLive: live, lenLive: length } = parse<{
+      nLive: number
+      lenLive: number
+    }>('LiveHeader', c)
+    const start = c.at
     check(live <= state.nTiles, 'too many live tiles')
     check(
-      bytes.length + live * 128 + n * 64 <= maxInflated,
+      // Include the generated parser's five temporary numeric JS arrays,
+      // inflated live bytes, retained chunk objects, and coordinate arrays.
+      // These are conservative allocation estimates, not heap measurements.
+      bytes.length + live * 256 + n * 64 <= maxInflated,
       'parsed group index allocation exceeds maxInflatedBytes',
     )
     const stream = c.take(length)
     crc(bytes.subarray(8, start + length), checksum, 'group index')
-    const raw = inflateZlib(stream, live * 17, maxInflated),
-      v = new DataView(raw.buffer, raw.byteOffset, raw.byteLength)
+    const raw = inflateZlib(stream, live * 17, maxInflated)
+    const parsed = parse<{
+      tiles: number[]
+      kinds: number[]
+      sizes: number[]
+      raws: number[]
+      crcs: number[]
+    }>('LiveTiles', new ParseStream(raw), live)
     for (let k = 0; k < live; k++) {
-      const tile = v.getUint32(k * 4, true)
+      const tile = parsed.tiles[k]
       check(
         tile < state.nTiles && (k === 0 || tile > tiles[k - 1]),
         'live tiles out of order or range',
@@ -152,10 +195,10 @@ export function parseGroup(
         group,
         tile,
         offset: 0,
-        kind: raw[4 * live + k],
-        size: v.getUint32(5 * live + 4 * k, true),
-        raw: v.getUint32(9 * live + 4 * k, true),
-        crc: v.getUint32(13 * live + 4 * k, true),
+        kind: parsed.kinds[k],
+        size: parsed.sizes[k],
+        raw: parsed.raws[k],
+        crc: parsed.crcs[k],
       })
     }
     const tileRuns = [...runs].sort((a, b) => a.first - b.first),
@@ -213,15 +256,29 @@ export function parseGroup(
     crc(compressed, checksum, factor === 1 ? 'summary' : 'zoom')
     summaries.push({ factor, n, bytes: compressed, binCount })
   }
-  readSummary(1, c.u32(), c.u32(), c.u32())
+  const tileSummary = parse<{ nSum: number; lenStream: number; crc: number }>(
+    'SummaryHeader',
+    c,
+  )
+  readSummary(1, tileSummary.nSum, tileSummary.lenStream, tileSummary.crc)
   if (f.optional & 1) {
-    const levels = c.u32()
+    const { count: levels } = parse<{ count: number }>('ZoomCount', c)
     check(levels <= 12, 'too many zoom levels')
     check(!levels || summaries[0].bytes.length > 0, 'zoom without summary')
     for (let i = 1; i <= levels; i++) {
-      const factor = c.u32()
+      const {
+        factor,
+        n,
+        lenStream,
+        crc: checksum,
+      } = parse<{
+        factor: number
+        n: number
+        lenStream: number
+        crc: number
+      }>('ZoomHeader', c)
       check(factor === 4 ** i, 'invalid zoom factor')
-      readSummary(factor, c.u32(), c.u32(), c.u32())
+      readSummary(factor, n, lenStream, checksum)
     }
   }
   check(c.at === bytes.length, 'group record extent mismatch')
@@ -249,28 +306,33 @@ export function parseSummary(
       tracks,
       available: false,
     }
+  const nValues = ref.n * tracks.length
+  // JS numeric-array staging plus typed output: budget 16 bytes per parsed
+  // number and retain room for the inflated stream and final typed arrays.
+  check(
+    ref.n * (24 + (wide ? 32 : 24) * tracks.length) <= maxInflated,
+    'parsed summary allocation exceeds maxInflatedBytes',
+  )
   const raw = inflateZlib(
     ref.bytes,
     ref.n * (4 + (wide ? 8 : 4) * tracks.length),
     maxInflated,
   )
-  const c = new Cursor(raw),
-    bins = new Uint32Array(ref.n)
-  for (let i = 0; i < ref.n; i++) {
-    bins[i] = c.u32()
+  const stream = new ParseStream(raw)
+  const parsed = wide
+    ? parse<{ bins: number[]; sums: number[] }>('ZoomStream', stream, ref.n)
+    : parse<{ tiles: number[]; sums: number[] }>('SummaryStream', stream, ref.n)
+  const bins = Uint32Array.from('bins' in parsed ? parsed.bins : parsed.tiles)
+  for (let i = 0; i < bins.length; i++) {
     check(
       bins[i] < ref.binCount && (i === 0 || bins[i] > bins[i - 1]),
       'summary bins out of order or range',
     )
   }
+  check(parsed.sums.length === nValues, 'summary value count mismatch')
   const sums = wide
-    ? new Float64Array(ref.n * tracks.length)
-    : new Float32Array(ref.n * tracks.length)
-  for (let i = 0; i < sums.length; i++) {
-    c.need(wide ? 8 : 4)
-    sums[i] = wide ? c.f64() : c.view.getFloat32(c.at, true)
-    if (!wide) c.at += 4
-  }
+    ? Float64Array.from(parsed.sums)
+    : Float32Array.from(parsed.sums)
   return {
     factor: ref.factor,
     binSize: ref.factor * state.fixed.tile,

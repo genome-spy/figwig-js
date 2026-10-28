@@ -19,7 +19,8 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "LICENSES"
   ],
   "sideEffects": false,
   "publishConfig": {
@@ -34,6 +35,9 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "parser:generate": "node scripts/generate-parser.mjs",
+    "parser:check": "node scripts/generate-parser.mjs --check",
+    "compare:parser-size": "node scripts/compare-parser-size.mjs",
     "test": "vitest run",
     "test:browser": "playwright test",
     "fixtures": "python3 scripts/generate-fixtures.py",
@@ -47,17 +51,20 @@
     "pako": "^2.2.0"
   },
   "devDependencies": {
+    "kaitai-struct": "0.11.0",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.56.0",
     "@types/node": "^22.0.0",
     "@types/pako": "^2.0.4",
     "esbuild": "^0.28.2",
     "eslint": "^10.13.0",
+    "kaitai-struct-compiler": "0.11.0",
     "prettier": "^3.9.10",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.72.1",
     "vite": "^8.3.5",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "yaml": "2.9.1"
   }
 }
