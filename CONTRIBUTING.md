@@ -30,7 +30,8 @@ Keep runtime independent of Node built-ins and GenomeSpy packages. Preserve
 declared track dtypes and distinguish NaNs from implicit zeros. Do not infer
 valid-base counts or exact sums from rounded Figwig summaries.
 
-Record remarkable observations and failed assumptions in `findings.md`.
+Record actionable observations and design constraints in `FINDINGS.md`,
+distinguishing reader/writer improvements from proposed format extensions.
 Performance claims need measured evidence and reproducible commands in
 `benchmarks/RESULTS.md`; keep large generated files out of Git. Source layout is
 standalone, so the task's former `packages/figwig/benchmarks/RESULTS.md` path maps

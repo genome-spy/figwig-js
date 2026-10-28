@@ -12,7 +12,7 @@ Pako implementation; this experiment adds no runtime dependency or vendored WASM
 These measurements used Pako's root ESM entry point. The reader now imports
 `pako/lib/inflate.js`; its strict validation logic is unchanged. The original
 asset sizes and first-use timings below describe the measured snapshot. See
-[`../findings.md`](../findings.md#inflate-only-entry-point-and-bundle-size)
+[`../FINDINGS.md`](../FINDINGS.md#inflate-only-entry-point-and-bundle-size)
 for the subsequent bundle-size comparison.
 
 ## Source versions and compatibility
