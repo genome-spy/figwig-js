@@ -217,3 +217,12 @@ Main retains the handwritten parser. The experiment remains available, but it
 did not remove enough custom complexity to establish a clear overall advantage.
 Performance measurements can follow if the schema-maintenance benefits warrant
 further evaluation.
+
+## KISS review follow-ups (2026-10-28)
+
+- An eight-byte empty matrix can describe a group with thousands of tracks.
+  Numeric-entry limits alone did not bound the per-track decoded descriptors.
+  Decoding now checks the conservative `tracks * 128` descriptor/workspace
+  estimate before allocation, independently of the existing numeric-buffer
+  checks. This preserves the numeric-budget boundary and does not claim to
+  bound total JavaScript heap usage.

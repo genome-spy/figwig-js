@@ -198,6 +198,37 @@ describe('corrupt payloads', () => {
     )
   })
 
+  it.each([
+    { name: 'matrix', kind: 3, length: 8 },
+    { name: 'sparse', kind: 2 | (7 << 3), length: 24 },
+  ])(
+    'bounds per-track allocation for empty $name chunks',
+    ({ kind, length }) => {
+      const payload = new Uint8Array(length)
+      // Numeric storage is empty, but five track descriptors/views still need
+      // a meaningful allocation budget. Sparse chunks also have lengths workspace.
+      expect(() => decodeChunk(payload, kind, 5, 16, 512)).toThrow(
+        /maxDecodedBytes/,
+      )
+      const decoded = decodeChunk(payload, kind, 5, 16, 640)
+      expect(decoded.tracks).toHaveLength(5)
+      expect(decoded.byteLength).toBe(0)
+      expect(decoded.tracks.every((track) => track.values.length === 0)).toBe(
+        true,
+      )
+    },
+  )
+
+  it('bounds track-order descriptor allocation for tiny blocks', () => {
+    const payload = new Uint8Array(8)
+    expect(() => decodeBlock(payload, 57, 1, 0, 0, 127)).toThrow(
+      /maxDecodedBytes/,
+    )
+    const decoded = decodeBlock(payload, 57, 1, 0, 0, 128)
+    expect([...decoded.tracks[0].values]).toEqual([1])
+    expect(decoded.byteLength).toBe(12)
+  })
+
   it('rejects duplicate sparse offsets and unterminated varints', () => {
     const payload = bytes(16)
     payload.view.setUint32(0, 2, true)

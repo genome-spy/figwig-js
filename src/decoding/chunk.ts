@@ -152,6 +152,9 @@ export function decodeChunk(
   const info = validateKind(kindByte)
   checkDimensions(tracks, tile)
   const view = payloadView(payload)
+  // Bound track descriptors/views and sparse workspace independently of numeric
+  // buffers. This matches the cache/planner estimate, not exact total heap use.
+  checkDecodedBudget(tracks * 128, maxDecodedBytes)
   if (info.kind === 1) {
     const count = tracks * tile
     requireExtent(payload, pad(count * info.width, 8))
@@ -320,6 +323,7 @@ export function decodeBlock(
   const view = payloadView(payload)
   const valuesAt = pad(4 * n, 8)
   requireExtent(payload, pad(valuesAt + n * info.width, 8))
+  checkDecodedBudget(128, maxDecodedBytes)
   checkDecodedBudget(n * 12, maxDecodedBytes)
   const offsets = new Uint32Array(n)
   let previous = -1
