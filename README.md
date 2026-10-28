@@ -14,8 +14,8 @@ See [FINDINGS.md](FINDINGS.md) for format and implementation findings, and the
 npm install @genome-spy/figwig generic-filehandle2
 ```
 
-Until released, build the checkout with `npm ci && npm run build` and install
-its tarball from `npm pack`.
+To install a checkout, build it with `npm ci && npm run build` and install its
+tarball from `npm pack`.
 
 ESM and TypeScript declarations are provided. Runtime requirements:
 Node.js 22+ or a modern browser with `fetch`, `BigInt`, `AbortController`, `AbortSignal.any()`,
@@ -272,6 +272,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and checks, and the
 [fixture documentation](test/fixtures/README.md) for the pinned independent Python
 oracle. Ordinary tests need neither Python nor external network access; HTTP
 tests use localhost. CI checks Node 22/24 and Chromium.
+
+See [RELEASING.md](RELEASING.md) for changelogs and npm trusted publishing, and
+[CHANGELOG.md](CHANGELOG.md) for release notes.
 
 Performance experiments run separately: [commands](benchmarks/README.md),
 [HTTP results](benchmarks/RESULTS.md), and [decompression results](benchmarks/DECOMPRESSION.md).

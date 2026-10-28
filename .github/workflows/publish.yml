@@ -1,0 +1,46 @@
+name: Publish package
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.repository == 'genome-spy/figwig-js'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Check release tag and notes
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict'
+          import { readFileSync, readdirSync } from 'node:fs'
+          const pkg = JSON.parse(readFileSync('package.json', 'utf8'))
+          assert.equal(pkg.name, '@genome-spy/figwig')
+          assert.match(pkg.version, /^\d+\.\d+\.\d+$/, 'This workflow publishes stable versions only')
+          assert.equal(process.env.GITHUB_REF_TYPE, 'tag', 'Select a release tag with --ref')
+          assert.equal(process.env.GITHUB_REF_NAME, `v${pkg.version}`, 'Tag must match package.json')
+          assert.ok(readFileSync('CHANGELOG.md', 'utf8').split('\n').includes(`## ${pkg.version}`), 'Missing changelog entry')
+          assert.ok(!readdirSync('.changeset').some(file => file.endsWith('.md') && file !== 'README.md'), 'Run release:version to consume pending changesets')
+          NODE
+          git merge-base --is-ancestor HEAD origin/main
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run release:check
+      - name: Publish with npm trusted publishing
+        run: npm publish --access public --provenance --ignore-scripts

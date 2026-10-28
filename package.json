@@ -18,6 +18,7 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist",
+    "CHANGELOG.md",
     "README.md",
     "LICENSE"
   ],
@@ -39,6 +40,9 @@
     "fixtures": "python3 scripts/generate-fixtures.py",
     "benchmark": "tsx benchmarks/scripts/run.ts",
     "benchmark:generate": "python3 benchmarks/scripts/generate.py",
+    "changeset": "changeset",
+    "release:version": "changeset version && npm install --package-lock-only --ignore-scripts && prettier --write CHANGELOG.md package.json package-lock.json",
+    "release:check": "npm run format:check && npm run typecheck && npm run lint && npm test && npm run test:browser && npm run build && npm pack --dry-run",
     "prepack": "npm run build"
   },
   "dependencies": {
@@ -47,6 +51,7 @@
     "pako-esm2": "^2.0.2"
   },
   "devDependencies": {
+    "@changesets/cli": "^3.0.3",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.56.0",
     "@types/node": "^22.0.0",

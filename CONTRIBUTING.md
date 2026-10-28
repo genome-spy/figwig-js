@@ -1,10 +1,11 @@
 # Development
 
-Use Node.js 22+ and `npm ci`. Run `npm run format:check`, `npm run typecheck`, `npm run lint`, `npm test`,
+Use Node.js 24 LTS and `npm ci`. Run `npm run format:check`, `npm run typecheck`, `npm run lint`, `npm test`,
 `npm run test:browser` (after `npx playwright install chromium`), and
 `npm run build` before submitting changes. Local HTTP tests require permission
 to bind a localhost port; actual browser tests require permission to launch
-Chromium. There is no npm publish workflow.
+Chromium. `npm run release:check` runs all of these checks and previews the npm
+package contents. See [RELEASING.md](RELEASING.md) for changelogs and publishing.
 
 Run `npm run format` to format maintained TypeScript, JavaScript, JSON, Markdown,
 and workflow files with Prettier. Generated fixtures, oracle data, benchmark
@@ -37,13 +38,5 @@ Performance claims need measured evidence and reproducible commands in
 standalone, so the task's former `packages/figwig/benchmarks/RESULTS.md` path maps
 to `benchmarks/RESULTS.md` here.
 
-If creating the GitHub remote in a fresh checkout without one:
-
-```sh
-gh auth login
-gh repo create genome-spy/figwig-js --private --source=. --remote=origin
-git push -u origin main
-```
-
-An existing organization repository should be connected with `git remote add`
-instead. Do not publish this package to npm as part of initial development.
+Add a changeset for user-visible changes with `npm run changeset`. Keep the note
+focused on behavior that matters to package consumers.
