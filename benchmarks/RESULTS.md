@@ -501,3 +501,169 @@ single-group queries or other hosting conditions.
 node --import tsx benchmarks/scripts/opportunities.mjs 7 manygroup \
   benchmarks/measurements/index-coalescing-production.json production
 ```
+
+## Sampling profiler results — 2026-10-28
+
+The earlier opportunities came from source inspection followed by controlled
+baseline/prototype and production benchmarks. They were not discovered with a
+sampling profiler. This follow-up uses actual V8 CPU sampling through Node's
+Inspector and Chromium's DevTools Protocol, plus browser request timelines.
+
+### Capture method
+
+- Baseline: `eaf75569b5bfcc0a6673e3af211042c5ac9f071f`; current reader:
+  `187709e90622f516bd36dc06ffc059c0a4cf5fe8`.
+- Node 24.22.1 and Chromium 156.0.8078.4 on Apple M5, darwin/arm64.
+- Thirty CPU profiles: fourteen in Node and sixteen in Chromium. Each CPU-bound
+  phase runs for at least two seconds, after three untimed warm-up queries and
+  an explicit GC. Each delayed-network capture runs one cold query after
+  loading metadata. Node's profile also includes the localhost server running
+  in its process; Chromium's profile samples the renderer main thread only.
+- Requested sampling interval: 1,000 microseconds. Actual sample intervals vary;
+  summaries weight samples by `timeDeltas` and resolve bundle frames through
+  source maps. CPU phases generally contain about 1,600 samples. Inclusive time
+  includes callees and cannot be added across nested rows; self time excludes
+  callees. Percentages below exclude explicit `(idle)` samples unless stated.
+- Warm workloads retain decoded caches and issue zero reads. Cold workloads
+  clear parsed caches before each query. Baseline/current outputs are checked
+  element by element with `Object.is` outside capture. Startup, source loading,
+  warm-up, comparison and report generation are outside the capture windows.
+- Profiled wall times include instrumentation overhead and are not replacements
+  for the separate unprofiled benchmark medians. The short network captures have
+  few active samples, so their function-level CPU rankings are not reliable.
+
+The source-mapped summaries and provenance are retained in
+[`measurements/profiles-cpu.json`](measurements/profiles-cpu.json). Raw
+`.cpuprofile` files, browser request timelines, bundle sources and source maps
+are generated under `benchmarks/results/profiles/` (ignored by Git; about 5.6 MiB
+for this run). Raw CPU files use V8's `.cpuprofile` JSON format, with bundle
+source maps alongside them. No runtime sources changed during this investigation.
+
+### What the profiles show
+
+| Chromium workload | Observed CPU attribution | Implication |
+|---|---|---|
+| Baseline 600-name warm query | `select()` 93.7% inclusive | Confirms repeated selection scans dominated this sparse, short-window case. |
+| Current 600-name warm query | `select()` 19.7%; `visitDecoded()` 33.3%; output-building callback 24.8% inclusive | The remaining work is distributed among planning, selection bookkeeping and output creation. These are shares of a much faster query, not comparable absolute costs. |
+| Current eight-track dense warm bins | `aggregate()` 97.9% inclusive; `add()` 62.8% self | Per-base bin aggregation is the next CPU target for this workload. |
+| Current 24-track mixed warm bins | `aggregate()` / `add()` 96.7% inclusive | Aggregation is also the hotspot here, but the earlier dense-loop prototype regressed on this case. Profiling alone does not establish a safe general speedup. |
+| Current cold dense values | `inflateZlib()` 76.7% inclusive; `inflater.onData` 28.1%; CRC32 10.1% | Inflation and checksum processing dominate more than numeric decoding. The callback is inside the inflater, so its share is already included in 76.7%. |
+| Current cold sparse 96-track values | `inflateZlib()` 42.7% inclusive; output-array callback about 10.2% self | Costs are more distributed; applying dense-data conclusions unchanged would be misleading. |
+| Current cold track-order values | `inflateZlib()` 58.3% inclusive; callback 30.2% | The strict inflation/checksum path is also material for track-order data. |
+
+Node corroborates these shapes: baseline selection is 91.1% inclusive, current
+warm mixed aggregation is 93.8%, and current cold dense inflation is 69.5%, with
+its callback about 25.1%. Optimized/inlined frames can attribute cost to a caller
+rather than a helper, so exact percentages and anonymous-frame names differ
+between runtimes.
+
+The callback attribution is actionable beyond a broad “decompression is slow”
+observation. Its line-level ticks concentrate in the Adler32 accumulation loop
+at `src/utils/inflate.ts:43-45`, rather than the output-buffer copy. Investigate
+that loop or a strict backend with native checksum validation, preserving all
+existing RFC1950 checks and allocation bounds. No speedup is claimed for an
+unimplemented checksum change. Likewise, investigate aggregation across dense,
+sparse/run and NaN-heavy cases before adopting the prior dense-loop prototype.
+The already-fast warm named path is a lower priority despite its visible shares
+of planning/output work.
+
+### Browser cache scheduling changes the network result
+
+The delayed many-group captures are predominantly waiting: Chromium reports
+98.5% idle samples for the baseline and 98.1% for the current reader in its
+default cache configuration. The request timelines show several range requests
+created together, but sent sequentially: the first six baseline requests have
+`sendStart` delays of roughly 0, 84, 167, 252, 337 and 420 ms. None of these
+responses is a disk-cache hit, and the test server sends `Cache-Control: no-store`.
+
+Disabling Chromium's cache through DevTools removes most of that pre-send
+queueing in this setup: the first six sends occur within roughly 0.6 ms of each
+request's timing origin. This points to cache-related browser request
+serialization; the exact internal Chromium cache mechanism was not traced.
+The earlier 4.04 s → 2.12 s result therefore includes this browser scheduling
+behavior, rather than just the configured response latency and bandwidth.
+
+A separate **unprofiled seven-sample** comparison confirms the difference with
+cache disabled; raw samples are in
+[`measurements/index-coalescing-cache-disabled.json`](measurements/index-coalescing-cache-disabled.json):
+
+| Runtime / cache policy | Baseline median ms | Current median ms | Reads |
+|---|---:|---:|---:|
+| Node, same follow-up run | 702.47 | 445.59 | 48 → 25 |
+| Chromium, cache disabled | 698.50 | 446.60 | 48 → 25 |
+
+Index bytes remain 57,522, data bytes 17,412, and both decode 96 chunks. Coalescing
+still reduces this workload's elapsed time by about 36% with concurrent sends.
+These measurements qualify the previous browser timing, rather than establishing
+a universal cache policy or recommending that consumers disable browser caching.
+HTTP protocols, response headers, proxy/CDN caches and browser versions can
+produce different scheduling.
+
+### Reproduce
+
+Use the existing benchmark-generation instructions for dense8, mixed24,
+collection96 and sparse24/tile4096/group1, plus the pinned conformance fixtures.
+With Node 24 and the installed Chromium:
+
+```sh
+node --import tsx benchmarks/scripts/profile.mjs 2000
+node --import tsx benchmarks/scripts/opportunities.mjs 7 manygroup \
+  benchmarks/measurements/index-coalescing-cache-disabled.json production cache-disabled
+```
+
+The profiler writes CPU profiles and request timelines under the ignored results
+folder, plus the tracked-size summary JSON. The final optional argument to the
+opportunity runner disables Chromium's cache only; it is a measurement control,
+not a reader option or production behavior change.
+
+## Adler32 accumulation optimization — 2026-10-28
+
+The production inflater now combines eight sequential Adler32 updates using
+`b += 8*a + 8*x0 + 7*x1 + ... + x7`, then adds the eight bytes to `a`.
+It retains the 5,552-byte reduction window and scalar tails. All arithmetic
+remains exact integer arithmetic in JavaScript numbers; no signed bitwise
+operations are introduced in accumulation. Zlib framing, output/allocation
+bounds, final-block, trailing-input and checksum validation remain unchanged.
+Regression tests compare native zlib checksums for short tails, reduction/output
+chunk boundaries and all-255 data, including sums beyond signed int32.
+
+The controlled baseline is `187709e90622f516bd36dc06ffc059c0a4cf5fe8`, including the
+name-cache and index-coalescing changes. Eleven unprofiled samples per variant
+alternate execution order after three warm-up queries. Cold queries clear parsed
+caches but retain metadata, over localhost HTTP with no simulated latency and
+unlimited bandwidth. Chromium's cache is disabled. Each query's values match the
+baseline element by element with `Object.is`; reads and decoded chunks are
+unchanged. Raw samples and the runtime diff are in
+[`measurements/adler-production.json`](measurements/adler-production.json).
+
+| Cold values query | Node baseline → optimized ms | Chromium baseline → optimized ms |
+|---|---:|---:|
+| Eight dense tracks / 200 kb | 105.58 → 85.31 | 107.70 → 84.80 |
+| 24 mixed tracks / 200 kb | 179.77 → 137.01 | 175.20 → 130.40 |
+| 96 sparse tracks / 200 kb | 45.19 → 41.89 | 37.60 → 34.10 |
+| Track-order fixture / 200 kb | 10.29 → 8.13 | 11.60 → 8.90 |
+| Three selected toy tracks / 300 bp | 0.506 → 0.501 | 0.900 → 0.900 |
+
+This is a workload-specific complete-query improvement of about 9–26% in the
+four larger Chromium cases; the small case has no resolved Chromium difference.
+It is not a network-latency speedup or a claim for all compressed files.
+
+Eight follow-up CPU profiles are summarized in
+[`measurements/adler-cpu.json`](measurements/adler-cpu.json), with raw captures in
+ignored `benchmarks/results/adler-profiles/`. In cold dense reads, the inflater
+callback drops from 24.8% to 3.4% of sampled active time in Node and 27.3% to 4.5%
+in Chromium. These are profiled attribution shares, not the benchmark timings.
+
+With Node 24 and the existing generated datasets:
+
+```sh
+FIGWIG_BENCH_BASELINE=187709e90622f516bd36dc06ffc059c0a4cf5fe8 \
+  node --import tsx benchmarks/scripts/opportunities.mjs 11 \
+  dense-cold,mixed-cold,sparse-cold,track-cold,toy-cold \
+  benchmarks/measurements/adler-production.json production cache-disabled
+FIGWIG_PROFILE_BASELINE=187709e90622f516bd36dc06ffc059c0a4cf5fe8 \
+FIGWIG_PROFILE_CASES=dense-cold,track-cold \
+FIGWIG_PROFILE_OUTPUT=benchmarks/results/adler-profiles \
+FIGWIG_PROFILE_SUMMARY=benchmarks/measurements/adler-cpu.json \
+  node --import tsx benchmarks/scripts/profile.mjs 2000
+```

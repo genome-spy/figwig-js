@@ -65,6 +65,36 @@ describe('strict RFC1950 decompression', () => {
     ).toEqual(text)
   })
 
+  it('matches native zlib checksums at short tails, reduction windows and output-chunk boundaries', () => {
+    const lengths = [
+      ...Array.from({ length: 18 }, (_, i) => i),
+      5551,
+      5552,
+      5553,
+      65535,
+      65536,
+      65537,
+      131071,
+      131072,
+      131073,
+    ]
+    for (const length of lengths) {
+      for (const maximum of [false, true]) {
+        // All-255 windows exercise the largest Adler sums, including values
+        // above signed int32. The other pattern also changes across windows.
+        const data = Uint8Array.from({ length }, (_, i) =>
+          maximum ? 255 : (i * 37 + Math.floor(i / 5552)) & 255,
+        )
+        const compressed = deflateSync(data)
+        expect(inflateZlib(compressed, length, length)).toEqual(data)
+        compressed[compressed.length - 1] ^= 1
+        expect(() => inflateZlib(compressed, length, length)).toThrow(
+          /Adler-32 mismatch/,
+        )
+      }
+    }
+  })
+
   it('rejects header checksums, unsupported methods, windows, and preset dictionaries', () => {
     const compressed = Uint8Array.from(deflateSync(text))
     compressed[1] ^= 1

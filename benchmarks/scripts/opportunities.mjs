@@ -11,8 +11,11 @@ import { chromium } from '@playwright/test'
 import { startRangeServer } from '../server/range-server.ts'
 
 const root = resolve(import.meta.dirname, '../..')
-const baselineRevision = 'eaf75569b5bfcc0a6673e3af211042c5ac9f071f'
+const baselineRevision =
+  process.env.FIGWIG_BENCH_BASELINE ??
+  'eaf75569b5bfcc0a6673e3af211042c5ac9f071f'
 const production = process.argv[5] === 'production'
+const browserCacheDisabled = process.argv[6] === 'cache-disabled'
 const repetitions = Number(process.argv[2] ?? 7)
 if (!Number.isInteger(repetitions) || repetitions < 3)
   throw new Error('Provide at least three repetitions')
@@ -160,9 +163,15 @@ async function benchmarkCase(apis, urls, name, count) {
           ? urls.collection
           : name.startsWith('manygroup')
             ? urls.many
-            : name.startsWith('mixed')
-              ? urls.mixed
-              : urls.dense
+            : name.startsWith('track')
+              ? urls.track
+              : name.startsWith('sparse')
+                ? urls.collection
+                : name.startsWith('toy')
+                  ? urls.toy
+                  : name.startsWith('mixed')
+                    ? urls.mixed
+                    : urls.dense
       reader = new api.FigWig({ url })
       const header = await reader.getHeader()
       const names = name.startsWith('named4')
@@ -175,7 +184,14 @@ async function benchmarkCase(apis, urls, name, count) {
             : reader.getValues('chr1', 1000000, 1010000, { tracks: names })
       else if (name === 'manygroup-cold-values')
         run = () => reader.getValues('chr1', 166666, 176666)
-      else if (name === 'dense-cold-values')
+      else if (name === 'track-cold-values')
+        run = () => reader.getValues('chrA', 0, 200000)
+      else if (name === 'toy-cold-values')
+        run = () =>
+          reader.getValues('chr1', 0, 300, {
+            tracks: ['wide', 'signal', 'ones'],
+          })
+      else if (name.endsWith('cold-values'))
         run = () => reader.getValues('chr1', 1000000, 1200000)
       else
         run = () =>
@@ -291,10 +307,19 @@ const urls = {
   toy: `${local.url}/test/fixtures/zlib.fw`,
   collection: `${local.url}/benchmarks/fixtures/collection-n96-tile4096-g8-positions-l6-s1701.fw`,
   many: `${typical.url}/benchmarks/fixtures/sparse-n24-tile4096-g1-positions-l6-s1701.fw`,
+  track: `${local.url}/test/fixtures/blocks.fw`,
 }
 const cases = [
   ['crc-1MiB', 'crc'],
   ['dense-cold-values', 'crc'],
+  ...(production
+    ? [
+        ['mixed-cold-values', 'production'],
+        ['sparse-cold-values', 'production'],
+        ['track-cold-values', 'production'],
+        ['toy-cold-values', 'production'],
+      ]
+    : []),
   ['dense-warm-bins', 'dense-bins'],
   ['mixed-warm-bins', 'dense-bins'],
   ['named600-warm-values', 'name-map'],
@@ -325,6 +350,11 @@ try {
   browser = await chromium.launch({ headless: true })
   const page = await browser.newPage()
   await page.goto(appUrl)
+  if (browserCacheDisabled) {
+    const cdp = await page.context().newCDPSession(page)
+    await cdp.send('Network.enable')
+    await cdp.send('Network.setCacheDisabled', { cacheDisabled: true })
+  }
   for (const [name, candidate] of cases) {
     const result = await page.evaluate(
       async ({ appUrl, urls, name, candidate, repetitions }) => {
@@ -354,6 +384,7 @@ try {
     }).trim(),
     baselineRevision,
     mode: production ? 'production' : 'prototype',
+    browserCacheDisabled,
     productionDiff: production
       ? execFileSync('git', ['diff', baselineRevision, '--', 'src'], {
           cwd: root,

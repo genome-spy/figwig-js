@@ -1,5 +1,12 @@
 # Reproducible HTTP benchmarks
 
+For Node/Chromium sampling CPU profiles and request timelines, run
+`node --import tsx benchmarks/scripts/profile.mjs 2000` after generating the
+datasets below. See the [profiler results](RESULTS.md#sampling-profiler-results--2026-10-28)
+for workloads, interpretation and the browser-cache scheduling control. Raw CPU
+profiles, source maps and timelines go into the ignored `benchmarks/results/profiles/`
+folder; source-mapped summaries go into `benchmarks/measurements/profiles-cpu.json`.
+
 The benchmark server runs on localhost and sends actual byte-range bodies. It
 never loads a complete `.fw` merely to slice a requested response. The generator
 uses upstream Python FigWigWriter at commit

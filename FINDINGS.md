@@ -213,6 +213,42 @@ production code and v1. Raw samples and reproduction commands are in that report
   KiB of lookup tables. Validate small and unaligned inputs and startup/bundle
   cost before prioritizing it over the larger query-level opportunities.
 
+### Sampling profiler follow-up
+
+The [sampling profiles](benchmarks/RESULTS.md#sampling-profiler-results--2026-10-28)
+use Node Inspector and Chromium DevTools CPU sampling against the pinned
+baseline and `187709e`, with source maps and browser request timelines. They
+confirm the former named-selection bottleneck and identify aggregation as the
+dominant warm-bin CPU cost. Cold dense reads spend most sampled active time in
+strict inflation; its output callback's ticks concentrate in the Adler32 loop.
+This gives a concrete checksum-loop investigation target without weakening
+verification or claiming an unmeasured improvement. The earlier mixed-data
+aggregation regression still needs resolution before adopting its prototype.
+
+The timelines also qualify the earlier Chromium network result. Default browser
+cache behavior serialized these range sends despite zero disk-cache hits and
+the server's `no-store` header. Disabling browser caching removed most pre-send
+queueing here; a separate seven-sample unprofiled run measured 698.50 → 446.60 ms,
+still 48 → 25 reads with identical bytes. This is a measurement control and
+hosting/browser-specific finding, not a recommendation to disable user caching.
+See the report for profiled versus unprofiled boundaries and raw artifacts.
+
+### Adler32 accumulation (implemented)
+
+Following the sampled checksum-loop hotspot, the strict inflater combines eight
+Adler32 updates at a time while retaining the 5,552-byte reduction window,
+scalar tails and all integrity/allocation checks. Integer additions and weighted
+byte sums remain exact in binary64; signed bitwise accumulation would be unsafe
+for the largest windows. Tests cover native-zlib checksums at tails, reduction
+and output-chunk boundaries, maximum byte values and checksum failures.
+
+The [controlled measurements](benchmarks/RESULTS.md#adler32-accumulation-optimization--2026-10-28)
+against `187709e` show complete Chromium cold reads improving about 9–26% across
+the larger dense, mixed, sparse and track-order cases, with no resolved change in
+the small-file case. Follow-up profiles confirm the callback's reduced CPU share.
+These are reader implementation improvements within v1, rather than format or
+compression-backend changes; no allocation or extra lookup table is added.
+
 ### Compressed track-block size
 
 The v1 position-order compressed-size bound does not apply to track-order

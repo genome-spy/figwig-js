@@ -1,0 +1,564 @@
+{
+  "date": "2026-10-28",
+  "node": "v24.22.1",
+  "chromium": "156.0.8078.4",
+  "platform": "darwin/arm64",
+  "cpu": "Apple M5",
+  "source": "187709e90622f516bd36dc06ffc059c0a4cf5fe8",
+  "baselineRevision": "eaf75569b5bfcc0a6673e3af211042c5ac9f071f",
+  "mode": "production",
+  "browserCacheDisabled": true,
+  "productionDiff": "diff --git a/src/figwig.ts b/src/figwig.ts\nindex 2683ba7..3fcf10b 100644\n--- a/src/figwig.ts\n+++ b/src/figwig.ts\n@@ -28,7 +28,7 @@ import { decodeBlock, decodeChunk, validateKind } from './decoding/chunk.js'\n import type { DecodedChunk, DecodedTrack } from './decoding/chunk.js'\n import { aborted, check, crc, lowerBound } from './utils/binary.js'\n import { inflateZlib } from './utils/inflate.js'\n-import { ChunkReads, ReadQueue, readExact } from './utils/io.js'\n+import { RangeReads, ReadQueue, readExact } from './utils/io.js'\n \n const constructors = {\n   uint8: Uint8Array,\n@@ -97,9 +97,11 @@ export class FigWig {\n   private readonly groups: SharedReadCache<number, GroupIndex>\n   private readonly chunks: SharedReadCache<string, DecodedChunk>\n   private readonly summaries: SharedReadCache<string, Summary>\n-  private readonly reads: ChunkReads\n+  private readonly reads: RangeReads\n+  private readonly indexReads: RangeReads\n   private readonly lifetime = new AbortController()\n   private closePromise?: Promise<void>\n+  private trackNames?: Map<string, Track>\n   private metrics = diagnostic()\n \n   constructor(options: FigWigOptions) {\n@@ -177,7 +179,12 @@ export class FigWig {\n         return size <= this.options.summaryCacheBytes ? size : NaN\n       },\n     })\n-    this.reads = new ChunkReads(\n+    this.indexReads = new RangeReads(\n+      (offset, size, signal) => this.read(offset, size, 'indexBytes', signal),\n+      this.options.coalesceGap,\n+      Math.min(this.options.maxCoalescedBytes, this.options.maxReadBytes),\n+    )\n+    this.reads = new RangeReads(\n       (offset, size, signal) => this.read(offset, size, 'dataBytes', signal),\n       this.options.coalesceGap,\n       Math.min(this.options.maxCoalescedBytes, this.options.maxReadBytes),\n@@ -246,8 +253,14 @@ export class FigWig {\n       const started = performance.now(),\n         start = state.directory[id],\n         end = state.directory[id + 1] ?? state.fixed.length\n-      const bytes = await this.read(start, end - start, 'indexBytes', shared)\n+      const fetched = await this.indexReads.get(\n+        { offset: start, size: end - start },\n+        shared,\n+      )\n       aborted(shared)\n+      // Each cached group owns its bytes, so retaining one record cannot pin\n+      // an entire coalesced response outside the group's cache weight.\n+      const bytes = Uint8Array.from(fetched)\n       const group = parseGroup(bytes, id, state, this.options.maxInflatedBytes)\n       this.metrics.indexLoadMs += performance.now() - started\n       return group\n@@ -296,7 +309,9 @@ export class FigWig {\n           ? Number.isInteger(id)\n             ? header.tracks[id]\n             : undefined\n-          : header.tracks.find((t) => t.name === id)\n+          : (this.trackNames ??= new Map(\n+              header.tracks.map((t) => [t.name, t]),\n+            )).get(id)\n       if (!track) throw new RangeError(`Unknown track: ${String(id)}`)\n       if (seen.has(track.index))\n         throw new RangeError(`Duplicate track selection: ${track.name}`)\n@@ -988,6 +1003,7 @@ export class FigWig {\n       )\n       this.clearCache()\n       this.metadata.clear()\n+      this.trackNames = undefined\n     }\n     return this.closePromise\n   }\ndiff --git a/src/utils/io.ts b/src/utils/io.ts\nindex 9884d03..9db9eea 100644\n--- a/src/utils/io.ts\n+++ b/src/utils/io.ts\n@@ -1,6 +1,5 @@\n import type { GenericFilehandle } from 'generic-filehandle2'\n import { aborted, check } from './binary.js'\n-import type { ChunkRef } from '../format/group.js'\n \n /** One semaphore per reader bounds metadata, index, and chunk reads together. */\n export class ReadQueue {\n@@ -46,8 +45,12 @@ export class ReadQueue {\n     }\n   }\n }\n+interface ReadRange {\n+  offset: number\n+  size: number\n+}\n interface Job {\n-  ref: ChunkRef\n+  ref: ReadRange\n   signal: AbortSignal\n   resolve: (value: Uint8Array) => void\n   reject: (e: unknown) => void\n@@ -55,7 +58,7 @@ interface Job {\n \n /** Collect fills in a microtask so a whole batched query can coalesce ranges.\n  * Each fill has the cache's shared signal. A range aborts only if all fills do. */\n-export class ChunkReads {\n+export class RangeReads {\n   private jobs: Job[] = []\n   private scheduled = false\n   constructor(\n@@ -67,7 +70,7 @@ export class ChunkReads {\n     private gap: number,\n     private maxSize: number,\n   ) {}\n-  get(ref: ChunkRef, signal: AbortSignal): Promise<Uint8Array> {\n+  get(ref: ReadRange, signal: AbortSignal): Promise<Uint8Array> {\n     return new Promise((resolve, reject) => {\n       this.jobs.push({ ref, signal, resolve, reject })\n       if (!this.scheduled) {\n",
+  "repetitions": 7,
+  "bundleBytes": {
+    "baseline": 146030,
+    "production": 146458
+  },
+  "method": "Experimental source transforms; alternating variant order; three warm-ups; exact Object.is comparisons outside timing. Cold queries clear parsed caches and exclude header initialization. Local HTTP has no added delay. Many-group HTTP uses 80 ms per response and shared 50 Mbit/s. Warm cases retain decoded caches.",
+  "measurements": [
+    {
+      "engine": "node",
+      "name": "manygroup-cold-values",
+      "samples": [
+        {
+          "variant": "baseline",
+          "repetition": 0,
+          "ms": 715.331917,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5266.228501,
+            "decompressionMs": 0.6994179999987864,
+            "decodingMs": 0.9384179999997286,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "production",
+          "repetition": 0,
+          "ms": 445.04025,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2228.8897509999997,
+            "decompressionMs": 0.811249000000771,
+            "decodingMs": 1.2728730000008,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "production",
+          "repetition": 1,
+          "ms": 448.532917,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2254.2622509999997,
+            "decompressionMs": 0.7363769999992655,
+            "decodingMs": 1.020535000000109,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 1,
+          "ms": 702.4673750000002,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5222.9767489999995,
+            "decompressionMs": 0.7220010000010006,
+            "decodingMs": 1.0367119999900751,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 2,
+          "ms": 703.2896250000003,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5241.355375000004,
+            "decompressionMs": 0.7593340000021271,
+            "decodingMs": 1.0863289999961125,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "production",
+          "repetition": 2,
+          "ms": 445.59041700000034,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2273.127502000001,
+            "decompressionMs": 0.681127000001652,
+            "decodingMs": 1.1338370000030409,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "production",
+          "repetition": 3,
+          "ms": 450.50395799999933,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2292.099874999997,
+            "decompressionMs": 0.6845820000025924,
+            "decodingMs": 1.0929220000016358,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 3,
+          "ms": 690.4912919999997,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5111.423127,
+            "decompressionMs": 0.7353319999992891,
+            "decodingMs": 1.1447960000023158,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 4,
+          "ms": 705.5128340000001,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5229.218334000001,
+            "decompressionMs": 0.843166999999994,
+            "decodingMs": 1.3055770000000848,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "production",
+          "repetition": 4,
+          "ms": 446.43462499999987,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2283.8891260000037,
+            "decompressionMs": 0.6680419999993319,
+            "decodingMs": 1.0435779999970691,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "production",
+          "repetition": 5,
+          "ms": 444.05012500000066,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2230.017002999998,
+            "decompressionMs": 0.7377509999978429,
+            "decodingMs": 0.8870400000068912,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 5,
+          "ms": 698.2591670000002,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5232.380459,
+            "decompressionMs": 0.5919179999964399,
+            "decodingMs": 0.8702479999737989,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 6,
+          "ms": 701.4056249999994,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5216.427995999997,
+            "decompressionMs": 0.612834000001385,
+            "decodingMs": 0.7863329999854614,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "production",
+          "repetition": 6,
+          "ms": 443.3754169999993,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2248.0268770000002,
+            "decompressionMs": 0.7527499999996508,
+            "decodingMs": 1.0945410000058473,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        }
+      ]
+    },
+    {
+      "engine": "chromium",
+      "name": "manygroup-cold-values",
+      "samples": [
+        {
+          "variant": "baseline",
+          "repetition": 0,
+          "ms": 702.1000003814697,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5255.500003814697,
+            "decompressionMs": 1.0999984741210938,
+            "decodingMs": 0.5000009536743164,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "production",
+          "repetition": 0,
+          "ms": 454.70000076293945,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2229.0999937057495,
+            "decompressionMs": 0.5999984741210938,
+            "decodingMs": 1.200002670288086,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "production",
+          "repetition": 1,
+          "ms": 446.5,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2241.600009918213,
+            "decompressionMs": 0.9000005722045898,
+            "decodingMs": 0.5000009536743164,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 1,
+          "ms": 693.6000003814697,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5187.400000572205,
+            "decompressionMs": 0.6000003814697266,
+            "decodingMs": 0.7000007629394531,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 2,
+          "ms": 698.1999998092651,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5170.9000034332275,
+            "decompressionMs": 0.9000015258789062,
+            "decodingMs": 0.3000001907348633,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "production",
+          "repetition": 2,
+          "ms": 445,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2252.89999294281,
+            "decompressionMs": 0.6000003814697266,
+            "decodingMs": 1.100001335144043,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "production",
+          "repetition": 3,
+          "ms": 448.19999980926514,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2240.899998664856,
+            "decompressionMs": 0.9999980926513672,
+            "decodingMs": 0.9999990463256836,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 3,
+          "ms": 698.4000005722046,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5233.899996757507,
+            "decompressionMs": 0.600001335144043,
+            "decodingMs": 1.2000007629394531,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 4,
+          "ms": 701.6999998092651,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5255.100004196167,
+            "decompressionMs": 1.0000028610229492,
+            "decodingMs": 0.9000005722045898,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "production",
+          "repetition": 4,
+          "ms": 446.6000003814697,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2263.5,
+            "decompressionMs": 0.8000011444091797,
+            "decodingMs": 1.2000007629394531,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "production",
+          "repetition": 5,
+          "ms": 449.80000019073486,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2222.1000022888184,
+            "decompressionMs": 0.6000003814697266,
+            "decodingMs": 0.9999971389770508,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 5,
+          "ms": 698.5,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5241.699995994568,
+            "decompressionMs": 0.8000011444091797,
+            "decodingMs": 0.5999994277954102,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 6,
+          "ms": 700.8999996185303,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5315.8000020980835,
+            "decompressionMs": 0.8000001907348633,
+            "decodingMs": 0.9000005722045898,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "production",
+          "repetition": 6,
+          "ms": 444.1000003814697,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2210.200002670288,
+            "decompressionMs": 0.8000020980834961,
+            "decodingMs": 1.0999994277954102,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        }
+      ]
+    }
+  ]
+}

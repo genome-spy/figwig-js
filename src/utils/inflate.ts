@@ -40,7 +40,31 @@ export function inflateZlib(
     count += part.length
     for (let at = 0; at < part.length; at += 5552) {
       const end = Math.min(part.length, at + 5552)
-      for (let j = at; j < end; j++) {
+      let j = at
+      // Eight byte updates combined algebraically, without signed bitwise
+      // arithmetic. The unchanged 5552-byte window keeps both sums exact.
+      for (; j + 8 <= end; j += 8) {
+        const x0 = part[j],
+          x1 = part[j + 1],
+          x2 = part[j + 2],
+          x3 = part[j + 3],
+          x4 = part[j + 4],
+          x5 = part[j + 5],
+          x6 = part[j + 6],
+          x7 = part[j + 7]
+        b +=
+          8 * a +
+          8 * x0 +
+          7 * x1 +
+          6 * x2 +
+          5 * x3 +
+          4 * x4 +
+          3 * x5 +
+          2 * x6 +
+          x7
+        a += x0 + x1 + x2 + x3 + x4 + x5 + x6 + x7
+      }
+      for (; j < end; j++) {
         a += part[j]
         b += a
       }
