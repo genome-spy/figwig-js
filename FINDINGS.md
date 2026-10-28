@@ -185,6 +185,22 @@ fetching, aggregation and memory representation differently.
   tests, real HTTP accounting and browser checks. Test summaries against the
   summary oracle, not assumed exact raw sums.
 
+### Compressed track-block size
+
+The v1 position-order compressed-size bound does not apply to track-order
+blocks. The specification bounds a block's raw bytes by `12 * n + 64`, but blocks
+always use zlib in codec 1, even when compression expands them. A 65,536-entry
+float64 block has 786,432 raw bytes. Node zlib with `{ level: 0, memLevel: 1 }`
+produced a valid 786,918-byte stream. Both the pinned specification reader and
+Python `FigWigReader(verify=True)` accepted the complete file; figwig-js formerly
+rejected it against a 786,560-byte compressed-size cap.
+
+The reader now applies that compressed-size bound only to position order,
+preserving raw-size, data-region and configured read limits for both orders.
+`test/group.test.ts` covers expanded float64 blocks, exact decoding and the
+retained raw-size, extent and position-order compressed-size checks. These are
+reader compatibility and validation policies, rather than format extensions.
+
 ### Inflate-only entry point and bundle size
 
 The choice of decompressor is specific to this JS implementation. Its strict

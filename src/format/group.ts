@@ -40,7 +40,7 @@ function extent(ref: ChunkRef, state: MetadataState, maxRaw: number) {
     ref.raw > 0 &&
       ref.raw % 8 === 0 &&
       ref.raw <= maxRaw &&
-      ref.size <= maxRaw + 64,
+      (f.flags === 1 || ref.size <= maxRaw + 64),
     'invalid chunk raw size',
   )
   const info = validateKind(ref.kind, f.flags === 1, f.codec)
