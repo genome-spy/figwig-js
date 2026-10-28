@@ -115,6 +115,10 @@ export function parseGroup(
       )
   } else {
     c.need(n * 32 + 8)
+    check(
+      bytes.length + n * 64 <= maxInflated,
+      'parsed group index allocation exceeds maxInflatedBytes',
+    )
     const runs: {
       first: number
       last: number

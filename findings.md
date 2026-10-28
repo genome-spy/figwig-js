@@ -226,3 +226,6 @@ further evaluation.
   estimate before allocation, independently of the existing numeric-buffer
   checks. This preserves the numeric-budget boundary and does not claim to
   bound total JavaScript heap usage.
+- Position-order index parsing previously allocated run objects before checking
+  their known budget. The run-count preflight now happens before reading or
+  allocating those records; live-entry costs are still checked once available.
