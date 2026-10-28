@@ -100,6 +100,7 @@ export class FigWig {
   private readonly reads: ChunkReads
   private readonly lifetime = new AbortController()
   private closePromise?: Promise<void>
+  private trackNames?: Map<string, Track>
   private metrics = diagnostic()
 
   constructor(options: FigWigOptions) {
@@ -296,7 +297,9 @@ export class FigWig {
           ? Number.isInteger(id)
             ? header.tracks[id]
             : undefined
-          : header.tracks.find((t) => t.name === id)
+          : (this.trackNames ??= new Map(
+              header.tracks.map((t) => [t.name, t]),
+            )).get(id)
       if (!track) throw new RangeError(`Unknown track: ${String(id)}`)
       if (seen.has(track.index))
         throw new RangeError(`Duplicate track selection: ${track.name}`)
@@ -988,6 +991,7 @@ export class FigWig {
       )
       this.clearCache()
       this.metadata.clear()
+      this.trackNames = undefined
     }
     return this.closePromise
   }

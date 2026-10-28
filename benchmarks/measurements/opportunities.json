@@ -1,0 +1,4007 @@
+{
+  "date": "2026-10-28",
+  "node": "v24.22.1",
+  "chromium": "156.0.8078.4",
+  "platform": "darwin/arm64",
+  "cpu": "Apple M5",
+  "source": "eaf75569b5bfcc0a6673e3af211042c5ac9f071f",
+  "repetitions": 7,
+  "bundleBytes": {
+    "baseline": 146030,
+    "crc": 146524,
+    "dense-bins": 146402,
+    "name-map": 146080,
+    "coalesce-indexes": 146288
+  },
+  "method": "Experimental source transforms; alternating variant order; three warm-ups; exact Object.is comparisons outside timing. Cold queries clear parsed caches and exclude header initialization. Local HTTP has no added delay. Many-group HTTP uses 80 ms per response and shared 50 Mbit/s. Warm cases retain decoded caches.",
+  "measurements": [
+    {
+      "engine": "node",
+      "name": "crc-1MiB",
+      "samples": [
+        {
+          "variant": "baseline",
+          "repetition": 0,
+          "ms": 4.484796874999994,
+          "queries": 8
+        },
+        {
+          "variant": "crc",
+          "repetition": 0,
+          "ms": 0.740442625,
+          "queries": 8
+        },
+        {
+          "variant": "crc",
+          "repetition": 1,
+          "ms": 0.7147031249999998,
+          "queries": 8
+        },
+        {
+          "variant": "baseline",
+          "repetition": 1,
+          "ms": 4.469520750000001,
+          "queries": 8
+        },
+        {
+          "variant": "baseline",
+          "repetition": 2,
+          "ms": 4.476348874999999,
+          "queries": 8
+        },
+        {
+          "variant": "crc",
+          "repetition": 2,
+          "ms": 0.7156667499999969,
+          "queries": 8
+        },
+        {
+          "variant": "crc",
+          "repetition": 3,
+          "ms": 0.7453072499999962,
+          "queries": 8
+        },
+        {
+          "variant": "baseline",
+          "repetition": 3,
+          "ms": 4.470854250000002,
+          "queries": 8
+        },
+        {
+          "variant": "baseline",
+          "repetition": 4,
+          "ms": 4.466786499999998,
+          "queries": 8
+        },
+        {
+          "variant": "crc",
+          "repetition": 4,
+          "ms": 0.7213490000000036,
+          "queries": 8
+        },
+        {
+          "variant": "crc",
+          "repetition": 5,
+          "ms": 0.7139792500000084,
+          "queries": 8
+        },
+        {
+          "variant": "baseline",
+          "repetition": 5,
+          "ms": 4.515395874999996,
+          "queries": 8
+        },
+        {
+          "variant": "baseline",
+          "repetition": 6,
+          "ms": 4.674104249999999,
+          "queries": 8
+        },
+        {
+          "variant": "crc",
+          "repetition": 6,
+          "ms": 0.7214896249999896,
+          "queries": 8
+        }
+      ]
+    },
+    {
+      "engine": "node",
+      "name": "dense-cold-values",
+      "samples": [
+        {
+          "variant": "baseline",
+          "repetition": 0,
+          "ms": 107.03287499999999,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 2.533957999999984,
+            "decompressionMs": 71.32545699999991,
+            "decodingMs": 4.043212000000267,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "crc",
+          "repetition": 0,
+          "ms": 92.72791600000005,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 2.437708000000157,
+            "decompressionMs": 71.14600300000075,
+            "decodingMs": 3.959583999996994,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "crc",
+          "repetition": 1,
+          "ms": 94.35837500000002,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 4.796334000000115,
+            "decompressionMs": 71.62412200000085,
+            "decodingMs": 3.899502999999868,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 1,
+          "ms": 102.534042,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 3.0087919999998576,
+            "decompressionMs": 68.33195999999975,
+            "decodingMs": 3.582717000000457,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 2,
+          "ms": 99.96054099999992,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 3.8512499999999363,
+            "decompressionMs": 67.92212199999926,
+            "decodingMs": 3.4022919999999885,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "crc",
+          "repetition": 2,
+          "ms": 90.09966699999995,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 2.8188339999999243,
+            "decompressionMs": 68.28033400000209,
+            "decodingMs": 3.5207090000001244,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "crc",
+          "repetition": 3,
+          "ms": 88.92137500000013,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 2.781624999999849,
+            "decompressionMs": 68.06482800000026,
+            "decodingMs": 3.450709000000188,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 3,
+          "ms": 99.30591600000002,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 2.7027499999999236,
+            "decompressionMs": 67.87916400000063,
+            "decodingMs": 3.414830000000393,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 4,
+          "ms": 99.13629200000014,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 2.855374999999867,
+            "decompressionMs": 67.85908600000016,
+            "decodingMs": 3.465707000000748,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "crc",
+          "repetition": 4,
+          "ms": 91.0764999999999,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 2.6910420000001523,
+            "decompressionMs": 68.70875099999944,
+            "decodingMs": 3.50891900000056,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "crc",
+          "repetition": 5,
+          "ms": 91.67237499999987,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 2.7418330000002697,
+            "decompressionMs": 69.61129100000039,
+            "decodingMs": 3.7920030000011593,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 5,
+          "ms": 101.59420799999975,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 2.69079099999999,
+            "decompressionMs": 70.02824799999757,
+            "decodingMs": 3.770750999999109,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 6,
+          "ms": 102.10474999999997,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 4.301707999999508,
+            "decompressionMs": 68.60429000000022,
+            "decodingMs": 3.6021280000018123,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "crc",
+          "repetition": 6,
+          "ms": 89.06550000000016,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 4.6931259999996655,
+            "decompressionMs": 69.02695900000072,
+            "decodingMs": 3.554173000000901,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        }
+      ]
+    },
+    {
+      "engine": "node",
+      "name": "dense-warm-bins",
+      "samples": [
+        {
+          "variant": "baseline",
+          "repetition": 0,
+          "ms": 5.770971999999953,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 0,
+          "ms": 5.05033333333328,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 1,
+          "ms": 4.931166666666741,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 1,
+          "ms": 5.805652666666599,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 2,
+          "ms": 5.89670833333336,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 2,
+          "ms": 4.9040970000000925,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 3,
+          "ms": 4.860680666666667,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 3,
+          "ms": 5.891958333333302,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 4,
+          "ms": 5.838833333333241,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 4,
+          "ms": 4.865180666666674,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 5,
+          "ms": 4.9290139999999765,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 5,
+          "ms": 5.734416666666675,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 6,
+          "ms": 5.990541666666559,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 6,
+          "ms": 4.890763666666771,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        }
+      ]
+    },
+    {
+      "engine": "node",
+      "name": "mixed-warm-bins",
+      "samples": [
+        {
+          "variant": "baseline",
+          "repetition": 0,
+          "ms": 11.288222333333275,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 0,
+          "ms": 11.257236000000072,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 1,
+          "ms": 11.396333333333283,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 1,
+          "ms": 11.419666666666672,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 2,
+          "ms": 11.922916666666575,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 2,
+          "ms": 11.938985999999963,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 3,
+          "ms": 11.629097333333297,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 3,
+          "ms": 11.34787499999993,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 4,
+          "ms": 11.248666666666699,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 4,
+          "ms": 11.264402666666683,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 5,
+          "ms": 11.34341666666675,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 5,
+          "ms": 11.357833333333323,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 6,
+          "ms": 13.304166666666788,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 6,
+          "ms": 13.18961100000009,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        }
+      ]
+    },
+    {
+      "engine": "node",
+      "name": "named600-warm-values",
+      "samples": [
+        {
+          "variant": "baseline",
+          "repetition": 0,
+          "ms": 7.962831249999999,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 0,
+          "ms": 0.08623750000001565,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 1,
+          "ms": 0.06666040000000066,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 1,
+          "ms": 7.9379166499999885,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 2,
+          "ms": 7.912187499999982,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 2,
+          "ms": 0.05910835000004226,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 3,
+          "ms": 0.061368750000019644,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 3,
+          "ms": 8.563272899999992,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 4,
+          "ms": 12.12731249999997,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 4,
+          "ms": 0.06101250000001528,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 5,
+          "ms": 0.05481669999999213,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 5,
+          "ms": 8.068085450000035,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 6,
+          "ms": 8.021733349999977,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 6,
+          "ms": 0.07756250000002182,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        }
+      ]
+    },
+    {
+      "engine": "node",
+      "name": "named96-warm-values",
+      "samples": [
+        {
+          "variant": "baseline",
+          "repetition": 0,
+          "ms": 1.2935542000000169,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 0,
+          "ms": 1.252208299999984,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 1,
+          "ms": 0.8129541499999959,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 1,
+          "ms": 0.8207541499999934,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 2,
+          "ms": 0.7244603999999981,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 2,
+          "ms": 0.5707562499999768,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 3,
+          "ms": 0.5254041500000313,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 3,
+          "ms": 0.6020395999999891,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 4,
+          "ms": 0.8005020499999773,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 4,
+          "ms": 0.5236562499999764,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 5,
+          "ms": 0.49000209999999245,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 5,
+          "ms": 0.5860666999999922,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 6,
+          "ms": 0.6058332999999948,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 6,
+          "ms": 0.5125895500000297,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        }
+      ]
+    },
+    {
+      "engine": "node",
+      "name": "named4-warm-values",
+      "samples": [
+        {
+          "variant": "baseline",
+          "repetition": 0,
+          "ms": 0.04369795000002341,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 0,
+          "ms": 0.02941249999998945,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 1,
+          "ms": 0.02864790000003268,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 1,
+          "ms": 0.030960400000003573,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 2,
+          "ms": 0.028062499999987268,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 2,
+          "ms": 0.027635400000008303,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 3,
+          "ms": 0.02504789999998138,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 3,
+          "ms": 0.04474579999996422,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 4,
+          "ms": 0.03879375000001346,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 4,
+          "ms": 0.03179374999999709,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 5,
+          "ms": 0.07160829999997986,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 5,
+          "ms": 0.03663959999998952,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 6,
+          "ms": 0.025983300000007148,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 6,
+          "ms": 0.027516700000023774,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        }
+      ]
+    },
+    {
+      "engine": "node",
+      "name": "manygroup-cold-values",
+      "samples": [
+        {
+          "variant": "baseline",
+          "repetition": 0,
+          "ms": 696.4358329999995,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5161.983502,
+            "decompressionMs": 0.7726239999983591,
+            "decodingMs": 1.0862109999970926,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "coalesce-indexes",
+          "repetition": 0,
+          "ms": 440.2569169999997,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2227.2490840000037,
+            "decompressionMs": 0.6770000000014988,
+            "decodingMs": 0.9871650000077352,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "coalesce-indexes",
+          "repetition": 1,
+          "ms": 440.74574999999913,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2236.0757500000027,
+            "decompressionMs": 0.5763740000002144,
+            "decodingMs": 0.686706000000413,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 1,
+          "ms": 696.8261670000011,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5204.322583000003,
+            "decompressionMs": 0.5087469999962195,
+            "decodingMs": 0.8702919999959704,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 2,
+          "ms": 700.4672919999994,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5263.721086000003,
+            "decompressionMs": 0.7594600000011269,
+            "decodingMs": 1.267582999982551,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "coalesce-indexes",
+          "repetition": 2,
+          "ms": 447.317708999999,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2229.333458999994,
+            "decompressionMs": 0.6742059999978665,
+            "decodingMs": 0.91299299999082,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "coalesce-indexes",
+          "repetition": 3,
+          "ms": 441.7484170000007,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2250.1208330000045,
+            "decompressionMs": 0.7786230000037904,
+            "decodingMs": 1.1722129999998288,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 3,
+          "ms": 699.5529999999999,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5201.2327060000025,
+            "decompressionMs": 0.8491649999959918,
+            "decodingMs": 1.436043999994581,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 4,
+          "ms": 691.2680419999997,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5183.385454000001,
+            "decompressionMs": 0.6647090000042226,
+            "decodingMs": 1.2636250000014115,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "coalesce-indexes",
+          "repetition": 4,
+          "ms": 443.06708399999843,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2251.3121230000015,
+            "decompressionMs": 0.7245829999974376,
+            "decodingMs": 1.0589169999948354,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "coalesce-indexes",
+          "repetition": 5,
+          "ms": 443.02329199999986,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2268.5109570000004,
+            "decompressionMs": 0.7773760000000038,
+            "decodingMs": 1.2777949999981502,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 5,
+          "ms": 700.701583,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5218.730501000004,
+            "decompressionMs": 0.9100000000016735,
+            "decodingMs": 1.5650359999999637,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 6,
+          "ms": 697.1946669999998,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 5216.594542000001,
+            "decompressionMs": 0.7948310000010679,
+            "decodingMs": 1.32692000001407,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "coalesce-indexes",
+          "repetition": 6,
+          "ms": 448.5251669999998,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2277.8262069999946,
+            "decompressionMs": 0.9459980000046926,
+            "decodingMs": 1.4421200000069803,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        }
+      ]
+    },
+    {
+      "engine": "chromium",
+      "name": "crc-1MiB",
+      "samples": [
+        {
+          "variant": "baseline",
+          "repetition": 0,
+          "ms": 4.8125,
+          "queries": 8
+        },
+        {
+          "variant": "crc",
+          "repetition": 0,
+          "ms": 1.3000000715255737,
+          "queries": 8
+        },
+        {
+          "variant": "crc",
+          "repetition": 1,
+          "ms": 1.3249999284744263,
+          "queries": 8
+        },
+        {
+          "variant": "baseline",
+          "repetition": 1,
+          "ms": 4.800000071525574,
+          "queries": 8
+        },
+        {
+          "variant": "baseline",
+          "repetition": 2,
+          "ms": 4.824999928474426,
+          "queries": 8
+        },
+        {
+          "variant": "crc",
+          "repetition": 2,
+          "ms": 1.3000000715255737,
+          "queries": 8
+        },
+        {
+          "variant": "crc",
+          "repetition": 3,
+          "ms": 1.287500023841858,
+          "queries": 8
+        },
+        {
+          "variant": "baseline",
+          "repetition": 3,
+          "ms": 4.037499904632568,
+          "queries": 8
+        },
+        {
+          "variant": "baseline",
+          "repetition": 4,
+          "ms": 1.7000000476837158,
+          "queries": 8
+        },
+        {
+          "variant": "crc",
+          "repetition": 4,
+          "ms": 1.287500023841858,
+          "queries": 8
+        },
+        {
+          "variant": "crc",
+          "repetition": 5,
+          "ms": 1.25,
+          "queries": 8
+        },
+        {
+          "variant": "baseline",
+          "repetition": 5,
+          "ms": 1.6749999523162842,
+          "queries": 8
+        },
+        {
+          "variant": "baseline",
+          "repetition": 6,
+          "ms": 1.6750000715255737,
+          "queries": 8
+        },
+        {
+          "variant": "crc",
+          "repetition": 6,
+          "ms": 1.2624999284744263,
+          "queries": 8
+        }
+      ]
+    },
+    {
+      "engine": "chromium",
+      "name": "dense-cold-values",
+      "samples": [
+        {
+          "variant": "baseline",
+          "repetition": 0,
+          "ms": 98.59999942779541,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 2.6999998092651367,
+            "decompressionMs": 70.80000114440918,
+            "decodingMs": 6.499997138977051,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "crc",
+          "repetition": 0,
+          "ms": 92,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 2.8000001907348633,
+            "decompressionMs": 72.30000877380371,
+            "decodingMs": 4.5999956130981445,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "crc",
+          "repetition": 1,
+          "ms": 87.69999980926514,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 2.5000009536743164,
+            "decompressionMs": 69.09999561309814,
+            "decodingMs": 3.8000001907348633,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 1,
+          "ms": 94.29999923706055,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 2.600001335144043,
+            "decompressionMs": 70.89999294281006,
+            "decodingMs": 3.800002098083496,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 2,
+          "ms": 95.69999980926514,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 3.1000003814697266,
+            "decompressionMs": 69.80000305175781,
+            "decodingMs": 4.899999618530273,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "crc",
+          "repetition": 2,
+          "ms": 89.70000076293945,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 2.6999998092651367,
+            "decompressionMs": 70.39999771118164,
+            "decodingMs": 3.5999984741210938,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "crc",
+          "repetition": 3,
+          "ms": 99.19999980926514,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 2.8000001907348633,
+            "decompressionMs": 79.79999256134033,
+            "decodingMs": 4.199999809265137,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 3,
+          "ms": 94,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 5,
+            "decompressionMs": 70.39999580383301,
+            "decodingMs": 3.7000036239624023,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 4,
+          "ms": 95,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 2.40000057220459,
+            "decompressionMs": 70.10000228881836,
+            "decodingMs": 4.5,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "crc",
+          "repetition": 4,
+          "ms": 89.20000076293945,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 2.3999996185302734,
+            "decompressionMs": 69.1999979019165,
+            "decodingMs": 4.799999237060547,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "crc",
+          "repetition": 5,
+          "ms": 89.69999980926514,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 2.6999998092651367,
+            "decompressionMs": 69.10000419616699,
+            "decodingMs": 4.90000057220459,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 5,
+          "ms": 108.30000019073486,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 3.3999996185302734,
+            "decompressionMs": 80.69999313354492,
+            "decodingMs": 3.5000057220458984,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 6,
+          "ms": 91.60000038146973,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 2.899998664855957,
+            "decompressionMs": 68.80000114440918,
+            "decodingMs": 4.399999618530273,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "crc",
+          "repetition": 6,
+          "ms": 89,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 5,
+            "indexBytes": 37918,
+            "dataBytes": 5503598,
+            "chunksFetched": 98,
+            "chunksDecompressed": 98,
+            "indexLoadMs": 2.3999996185302734,
+            "decompressionMs": 70.89999675750732,
+            "decodingMs": 2.8000011444091797,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 98,
+            "cacheBytes": 13081406
+          }
+        }
+      ]
+    },
+    {
+      "engine": "chromium",
+      "name": "dense-warm-bins",
+      "samples": [
+        {
+          "variant": "baseline",
+          "repetition": 0,
+          "ms": 5.700000127156575,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 0,
+          "ms": 1.8666664759318035,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 1,
+          "ms": 1.8000001907348633,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 1,
+          "ms": 5.53333314259847,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 2,
+          "ms": 5.5,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 2,
+          "ms": 3.7666667302449546,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 3,
+          "ms": 2.6999998092651367,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 3,
+          "ms": 5.366666793823242,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 4,
+          "ms": 5.5,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 4,
+          "ms": 3.7000001271565757,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 5,
+          "ms": 4.566666603088379,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 5,
+          "ms": 5.233333269755046,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 6,
+          "ms": 5.366666793823242,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 6,
+          "ms": 4.433333079020183,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 294,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 13081406
+          }
+        }
+      ]
+    },
+    {
+      "engine": "chromium",
+      "name": "mixed-warm-bins",
+      "samples": [
+        {
+          "variant": "baseline",
+          "repetition": 0,
+          "ms": 8.53333314259847,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 0,
+          "ms": 8.899999936421713,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 1,
+          "ms": 8.933333396911621,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 1,
+          "ms": 8.233333269755045,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 2,
+          "ms": 8.200000127156576,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 2,
+          "ms": 8.933333079020182,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 3,
+          "ms": 9,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 3,
+          "ms": 8.166666666666666,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 4,
+          "ms": 8.199999809265137,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 4,
+          "ms": 9.100000063578287,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 5,
+          "ms": 8.966666539510092,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 5,
+          "ms": 8.266666730244955,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 6,
+          "ms": 8.199999809265137,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        },
+        {
+          "variant": "dense-bins",
+          "repetition": 6,
+          "ms": 9.033333460489908,
+          "queries": 3,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 882,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 31759137
+          }
+        }
+      ]
+    },
+    {
+      "engine": "chromium",
+      "name": "named600-warm-values",
+      "samples": [
+        {
+          "variant": "baseline",
+          "repetition": 0,
+          "ms": 7.1099999904632565,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 0,
+          "ms": 0.06500000953674316,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 1,
+          "ms": 0.05999999046325684,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 1,
+          "ms": 7.105000019073486,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 2,
+          "ms": 7.0950000286102295,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 2,
+          "ms": 0.06999998092651367,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 3,
+          "ms": 0.06999998092651367,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 3,
+          "ms": 7.0699999809265135,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 4,
+          "ms": 7.064999961853028,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 4,
+          "ms": 0.05,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 5,
+          "ms": 0.04499998092651367,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 5,
+          "ms": 7.0699999809265135,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 6,
+          "ms": 7.05,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 6,
+          "ms": 0.06499996185302734,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 20,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 77792
+          }
+        }
+      ]
+    },
+    {
+      "engine": "chromium",
+      "name": "named96-warm-values",
+      "samples": [
+        {
+          "variant": "baseline",
+          "repetition": 0,
+          "ms": 0.4700000286102295,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 0,
+          "ms": 0.4050000190734863,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 1,
+          "ms": 0.225,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 1,
+          "ms": 0.2950000286102295,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 2,
+          "ms": 0.28499999046325686,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 2,
+          "ms": 0.22999997138977052,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 3,
+          "ms": 0.21000003814697266,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 3,
+          "ms": 0.28999996185302734,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 4,
+          "ms": 0.2800000190734863,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 4,
+          "ms": 0.23000001907348633,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 5,
+          "ms": 0.225,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 5,
+          "ms": 0.2950000286102295,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 6,
+          "ms": 0.39499998092651367,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 6,
+          "ms": 0.25999999046325684,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 720,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 1414817
+          }
+        }
+      ]
+    },
+    {
+      "engine": "chromium",
+      "name": "named4-warm-values",
+      "samples": [
+        {
+          "variant": "baseline",
+          "repetition": 0,
+          "ms": 0.02000002861022949,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 0,
+          "ms": 0.019999980926513672,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 1,
+          "ms": 0.029999971389770508,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 1,
+          "ms": 0.025,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 2,
+          "ms": 0.04499998092651367,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 2,
+          "ms": 0.02000002861022949,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 3,
+          "ms": 0.02000002861022949,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 3,
+          "ms": 0.02000002861022949,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 4,
+          "ms": 0.019999980926513672,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 4,
+          "ms": 0.015000009536743164,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 5,
+          "ms": 0.025,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 5,
+          "ms": 0.025,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 6,
+          "ms": 0.019999980926513672,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        },
+        {
+          "variant": "name-map",
+          "repetition": 6,
+          "ms": 0.019999980926513672,
+          "queries": 20,
+          "diagnostics": {
+            "readRequests": 0,
+            "indexBytes": 0,
+            "dataBytes": 0,
+            "chunksFetched": 0,
+            "chunksDecompressed": 0,
+            "indexLoadMs": 0,
+            "decompressionMs": 0,
+            "decodingMs": 0,
+            "chunkCacheHits": 240,
+            "chunkCacheMisses": 0,
+            "cacheBytes": 471078
+          }
+        }
+      ]
+    },
+    {
+      "engine": "chromium",
+      "name": "manygroup-cold-values",
+      "samples": [
+        {
+          "variant": "baseline",
+          "repetition": 0,
+          "ms": 4031.5,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 25281.200004577637,
+            "decompressionMs": 0.9000015258789062,
+            "decodingMs": 1.2000007629394531,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "coalesce-indexes",
+          "repetition": 0,
+          "ms": 2125.5,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2254.499997138977,
+            "decompressionMs": 0.8000001907348633,
+            "decodingMs": 1.4999990463256836,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "coalesce-indexes",
+          "repetition": 1,
+          "ms": 2110.5,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2252.3999977111816,
+            "decompressionMs": 1,
+            "decodingMs": 0.8999996185302734,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 1,
+          "ms": 4037.8999996185303,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 25016.199999809265,
+            "decompressionMs": 1.300002098083496,
+            "decodingMs": 1.1999988555908203,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 2,
+          "ms": 4000.5999994277954,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 25030.300004005432,
+            "decompressionMs": 0.4999990463256836,
+            "decodingMs": 1,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "coalesce-indexes",
+          "repetition": 2,
+          "ms": 2094.5,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2235.0999898910522,
+            "decompressionMs": 0.8000011444091797,
+            "decodingMs": 1.2000007629394531,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "coalesce-indexes",
+          "repetition": 3,
+          "ms": 2094.199999809265,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2236.900001525879,
+            "decompressionMs": 1.3000001907348633,
+            "decodingMs": 1,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 3,
+          "ms": 4007.7999992370605,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 25061.200002670288,
+            "decompressionMs": 1.199997901916504,
+            "decodingMs": 0.9999990463256836,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 4,
+          "ms": 3996.5,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 24946.699995040894,
+            "decompressionMs": 0.6999998092651367,
+            "decodingMs": 0.7999992370605469,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "coalesce-indexes",
+          "repetition": 4,
+          "ms": 2094.300000190735,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2281.1000032424927,
+            "decompressionMs": 0.7000007629394531,
+            "decodingMs": 0.5000009536743164,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "coalesce-indexes",
+          "repetition": 5,
+          "ms": 2095.300000190735,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2213.900002479553,
+            "decompressionMs": 1.0999994277954102,
+            "decodingMs": 0.40000057220458984,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 5,
+          "ms": 3994.699999809265,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 24997.10000228882,
+            "decompressionMs": 0.6000003814697266,
+            "decodingMs": 1,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "baseline",
+          "repetition": 6,
+          "ms": 3997.300000190735,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 48,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 24969.499994277954,
+            "decompressionMs": 0.39999961853027344,
+            "decodingMs": 1.4000005722045898,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        },
+        {
+          "variant": "coalesce-indexes",
+          "repetition": 6,
+          "ms": 2089.800000190735,
+          "queries": 1,
+          "diagnostics": {
+            "readRequests": 25,
+            "indexBytes": 57522,
+            "dataBytes": 17412,
+            "chunksFetched": 96,
+            "chunksDecompressed": 16,
+            "indexLoadMs": 2236.8000020980835,
+            "decompressionMs": 0.6999998092651367,
+            "decodingMs": 0.39999961853027344,
+            "chunkCacheHits": 0,
+            "chunkCacheMisses": 96,
+            "cacheBytes": 598314
+          }
+        }
+      ]
+    }
+  ]
+}

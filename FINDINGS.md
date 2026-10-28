@@ -185,6 +185,32 @@ fetching, aggregation and memory representation differently.
   tests, real HTTP accounting and browser checks. Test summaries against the
   summary oracle, not assumed exact raw sums.
 
+### Measured optimization candidates
+
+The [2026-10-28 probes](benchmarks/RESULTS.md#optimization-opportunity-probes--2026-10-28)
+compare temporary prototypes against `eaf7556` in Node 24 and Chromium, retaining
+production code and v1. Raw samples and reproduction commands are in that report.
+
+- **Named selection (implemented):** a lazy name-to-track map avoids repeated linear scans.
+  The large sparse selection benefits most; four selected tracks showed no
+  resolved Chromium benefit. Preserve ordering, identifier errors and metadata
+  lifetime. The reader releases the map at close; clearing data caches keeps it
+  with metadata. Numeric IDs continue to avoid the map and its allocation.
+- **Group-index I/O:** coalesce adjacent group records with the existing range
+  policy. The ownership-preserving prototype reduced reads from 48 to 25 with
+  identical transferred bytes in the measured 24-group query. Copy group slices
+  into independent buffers or explicitly account for shared backing buffers;
+  otherwise a small cached group can retain an entire coalesced response.
+  Retain per-group CRCs, cancellation and configured limits.
+- **Dense aggregation:** calculate dense bin boundaries once per bin/chunk
+  intersection while retaining the accumulation order. Pure dense cases improved,
+  but the tested mixed-data case regressed in Chromium. Resolve that tradeoff
+  before treating the prototype as a general binning improvement.
+- **CRC loops:** slicing by eight retained checks and improved the measured cold
+  dense query less than the isolated CRC microbenchmark suggested. It adds seven
+  KiB of lookup tables. Validate small and unaligned inputs and startup/bundle
+  cost before prioritizing it over the larger query-level opportunities.
+
 ### Compressed track-block size
 
 The v1 position-order compressed-size bound does not apply to track-order

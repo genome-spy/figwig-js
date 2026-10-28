@@ -121,3 +121,69 @@ test('summary bins use the same group slots for interleaved and original metadat
     await Promise.all([original.close(), interleaved.close()])
   }
 })
+
+test.each(['zlib', 'tracks_zlib'])(
+  '%s named lookups preserve identity, ordering and identifier errors across cache clears',
+  async (name) => {
+    const bytes = new Uint8Array(readFileSync(fixturePath(name))),
+      fixed = parseFixed(bytes),
+      metadata = JSON.parse(
+        new TextDecoder().decode(
+          bytes.subarray(fixed.metadata, fixed.metadata + fixed.metadataLength),
+        ),
+      ) as { tracks: { name: string }[] }
+    const names = ['__proto__', 'constructor', 'toString']
+    names.forEach((value, i) => {
+      metadata.tracks[i].name = value
+    })
+    const text = new TextEncoder().encode(JSON.stringify(metadata))
+    expect(text.length).toBeLessThanOrEqual(fixed.metadataLength)
+    bytes.fill(32, fixed.metadata, fixed.metadata + fixed.metadataLength)
+    bytes.set(text, fixed.metadata)
+    const view = new DataView(bytes.buffer)
+    view.setUint32(
+      28,
+      crc32(bytes.subarray(fixed.chroms, fixed.index + 8 * fixed.nGroups)),
+      true,
+    )
+    view.setUint32(104, 0, true)
+    view.setUint32(104, crc32(bytes.subarray(0, 128)), true)
+    const reader = new FigWig({ filehandle: new BlobFile(new Blob([bytes])) })
+    try {
+      const { tracks } = await reader.getHeader()
+      for (let i = 0; i < 2; i++) {
+        const selection = await reader.selectTracks([
+          'toString',
+          0,
+          'constructor',
+        ])
+        for (const [slot, index] of [2, 0, 1].entries())
+          expect(selection[slot]).toBe(tracks[index])
+        await expect(reader.selectTracks(['__proto__', 0])).rejects.toThrow(
+          /Duplicate track/,
+        )
+        await expect(reader.selectTracks(['hasOwnProperty'])).rejects.toThrow(
+          /Unknown track/,
+        )
+        const result = await reader.getValues('chr1', 0, 64, { tracks: names })
+        for (const [slot, original] of [
+          'ones',
+          'random',
+          'random2',
+        ].entries()) {
+          expect(result.tracks[slot].track).toBe(tracks[slot])
+          expect([...result.tracks[slot].values]).toEqual([
+            ...expectedValues('toy', 'chr1', original, 0, 64),
+          ])
+        }
+        reader.clearCache()
+      }
+    } finally {
+      await reader.close()
+    }
+    await expect(reader.selectTracks(names)).rejects.toHaveProperty(
+      'name',
+      'AbortError',
+    )
+  },
+)

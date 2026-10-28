@@ -314,3 +314,158 @@ The matrix shell glob selects only the 17 level-six sparse files. The large spar
 because it intentionally shares a configuration filename with the compact file.
 The separate [`DECOMPRESSION.md`](DECOMPRESSION.md) report evaluates decompressor
 alternatives with independently retained raw timing samples.
+
+## Optimization opportunity probes — 2026-10-28
+
+These experiments compare the production reader at
+`eaf75569b5bfcc0a6673e3af211042c5ac9f071f` with temporary source transformations.
+They do not change production code. The portable bundles run in Node 24.22.1
+and Chromium 156.0.8078.4 on Apple M5, darwin/arm64. Existing deterministic
+benchmark files above and the pinned `zlib.fw` conformance fixture supply inputs.
+
+Each case has three warm-up queries per variant and seven measured samples,
+rotating variant order between samples. Reported times are medians of per-query
+sample means. Warm bins repeat three queries per sample; named selections repeat
+20; cold queries run once. A warm query retains parsed/decoded caches and has
+zero file reads in these measurements. A cold query clears parsed caches before
+each repetition, excludes header initialization, and uses actual localhost HTTP
+ranges. CPU cases have no simulated latency or bandwidth limit. The many-group
+case adds 80 ms per response and a shared 50 Mbit/s bandwidth limit, with reader
+concurrency six and server concurrency eight.
+
+Every prototype's measured output is compared element by element with the
+baseline outside timing using `Object.is`, including NaNs and signed zero. This
+is equivalence evidence for these workloads, not a substitute for corruption,
+allocation, cancellation and browser regression tests before shipping a change.
+Initial name-map construction is in warm-up, so its first-use cost is excluded.
+Small timings are subject to browser timer resolution, JIT tiering and GC; these
+are shared-workstation exploratory measurements, not general speed guarantees.
+
+### CPU and warm-query candidates
+
+Values are milliseconds per query, baseline → prototype. Raw samples are in
+[`measurements/opportunities.json`](measurements/opportunities.json). An earlier
+run without the four- and 96-track cases is retained in
+[`measurements/opportunities-initial.json`](measurements/opportunities-initial.json)
+to expose run-to-run variability.
+
+| Prototype / workload | Node | Chromium |
+|---|---:|---:|
+| Cached name map: 600 names of 1,215 tracks, 64 bp | 8.022 → 0.061 | 7.070 → 0.065 |
+| Cached name map: all 96 collection tracks, 10 kb | 0.724 → 0.525 | 0.295 → 0.230 |
+| Cached name map: four scattered collection tracks, 10 kb | 0.037 → 0.029 | 0.020 → 0.020 |
+| Dense bin loop: all eight dense tracks, 200 kb | 5.839 → 4.904 | 5.500 → 3.700 |
+| Dense bin loop: all 24 mixed tracks, 200 kb | 11.358 → 11.396 | 8.200 → 8.967 |
+| CRC slicing by eight: all eight dense tracks, cold 200 kb | 101.594 → 91.076 | 95.000 → 89.700 |
+
+**Name lookup is the clearest small CPU change.** Explicit names currently call
+`header.tracks.find()` once per selection entry. A lazy map removes the repeated
+scans of the frozen track array. The 600-track case uses a deliberately sparse
+conformance fixture, so copying values is cheap and selection dominates; it
+should not be generalized to longer dense windows. The collection cases show a
+smaller practical benefit, and no resolved Chromium benefit for four tracks.
+Keep order, duplicate/unknown-name validation, immutable track identity, and
+reader-lifetime cleanup. Numeric selections already bypass name scans.
+
+**Dense binning is promising but needs more profiling.** The prototype iterates
+over a bin's portion of a dense chunk, calculating the bin boundary once, while
+retaining the original value-addition order and NaN handling. Production invokes
+an interval helper with min/max/division for each base. Dense Chromium time fell
+33% in the later run and 68% in the initial run, showing substantial variability.
+The mixed workload consistently regressed about 9% in Chromium; this prototype
+should not be shipped as a general aggregation optimization without resolving
+that tradeoff. Dense bins use width 1,000; mixed bins use 997, both omission-aware
+means over `chr1:1000000-1200000`.
+
+**CRC optimization has a smaller complete-query effect than its microbenchmark.**
+A table-driven loop processing eight bytes at once retains CRC verification and
+adds seven KiB of lookup tables. A synthetic one-MiB CRC operation improved from
+4.476 to 0.721 ms in Node and 4.037 to 1.288 ms in the later Chromium run. The
+initial Chromium scalar baseline was 1.738 ms, showing why that isolated ratio
+is not a stable whole-reader prediction. The complete cold dense query improved
+about 10% in Node and 6% in Chromium, with unchanged five reads and 5,503,598 data
+bytes. Prioritize the larger measured opportunities, and check short/unaligned
+inputs, all CRC vectors, startup and bundle cost before adopting this change.
+
+### Coalesced group-index reads
+
+The many-group case selects all 24 sparse tracks in one-track position groups,
+over `chr1:166666-176666`. Adjacent group records currently require one read per
+group, even though chunk payload reads already have a coalescer. A prototype
+uses the same coalescing policy for group records. It copies each returned group
+into its own backing buffer before parsing: otherwise an individually cached
+group could retain a whole coalesced response without accounting for it.
+
+Results of the ownership-preserving prototype are recorded separately in
+[`measurements/opportunities-index-owned.json`](measurements/opportunities-index-owned.json).
+The coalescing rows in the two earlier runs predate this ownership copy and are
+historical comparisons, not the recommended implementation.
+
+| Engine | Baseline ms | Coalesced ms | Filehandle reads | Index bytes | Data bytes |
+|---|---:|---:|---:|---:|---:|
+| Node | 705.17 | 450.85 | 48 → 25 | 57,522 → 57,522 | 17,412 → 17,412 |
+| Chromium | 4031.40 | 2111.00 | 48 → 25 | 57,522 → 57,522 | 17,412 → 17,412 |
+
+This is about 36% less query time in Node and 48% in Chromium for this network
+model and layout, without extra transferred group/data bytes. All 96 required
+chunks are still fetched and decoded. Absolute Node/Chromium times include their
+respective HTTP scheduling behavior; neither is a prediction for remote hosting.
+The benefit will be smaller when a query touches only one group, or when groups
+are nonadjacent and coalescing would fetch substantial gaps. Preserve per-group
+integrity checks, per-caller cancellation, cache sharing, request/read limits and
+cache ownership when integrating. This is a reader I/O change within v1.
+
+### Priority and reproduction
+
+Start with the name map and coalesced group-index reads. Profile dense binning
+further before integrating its mixed-data regression. CRC slicing is a lower
+priority; existing stored-summary and decompressor opportunities remain as
+described in `FINDINGS.md` and `DECOMPRESSION.md`, without new measurements here.
+No production optimization, dependency change or format change is made by these
+probes. The source transformations deliberately fail when their matching source
+changes, rather than silently benchmarking the unmodified implementation.
+
+Use Node 24, the installed Chromium used by the browser suite, and the existing
+dataset-generation instructions above. Generate dense8, mixed24, collection96,
+and the sparse position-order tile4096/group1 matrix entry. Then run:
+
+```sh
+node --import tsx benchmarks/scripts/opportunities.mjs 7
+node --import tsx benchmarks/scripts/opportunities.mjs 7 manygroup \
+  benchmarks/measurements/opportunities-index-owned.json
+```
+
+The optional third argument filters case-name prefixes, separated by commas;
+the fourth chooses the output JSON. For example, `7 named` measures only named
+selections. The script builds temporary browser-compatible bundles, tests them
+in Node and Chromium against actual HTTP ranges, writes samples/diagnostics,
+prints medians, and removes its temporary bundles. No runtime sources are edited.
+
+### Implemented name lookup cache
+
+The production reader now lazily builds a name-to-track map on its first named
+selection. It preserves numeric/filter selection behavior and releases the map
+at close. `test/track-selection.test.ts` exercises identity, mixed identifiers,
+ordering, duplicate and unknown-name errors, object-prototype-like names, cache
+clears and close in both storage orders; the independent oracle remains unchanged.
+
+The benchmark script now reads baseline runtime sources from pinned Git revision
+`eaf7556`, so experiments remain reproducible after runtime changes. Pass
+`production` as the fifth argument to compare the working tree with that baseline;
+production reports include the runtime diff for provenance. The name-cache run
+is retained in [`measurements/name-map-production.json`](measurements/name-map-production.json),
+using the same method and seven samples described above:
+
+| Named warm query | Node baseline → implementation ms | Chromium baseline → implementation ms |
+|---|---:|---:|
+| 600 tracks / 64 bp | 8.489 → 0.085 | 7.315 → 0.060 |
+| 96 tracks / 10 kb | 0.816 → 0.660 | 0.290 → 0.225 |
+| Four tracks / 10 kb | 0.040 → 0.035 | 0.020 → 0.020 |
+
+```sh
+node --import tsx benchmarks/scripts/opportunities.mjs 7 named \
+  benchmarks/measurements/name-map-production.json production
+```
+
+These are warm-query measurements; they exclude map construction and do not
+claim a measurable benefit for every selection size.
