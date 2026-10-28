@@ -1,5 +1,11 @@
 # @genome-spy/figwig
 
+## 0.2.1
+
+### Patch Changes
+
+- 4659039: Keep fully missing dense tiles compact so queries over NaN gaps avoid repeated decoding and per-base aggregation.
+
 ## 0.2.0
 
 ### Minor Changes
