@@ -23,6 +23,7 @@ export interface MetadataState {
   fixed: FixedHeader
   directory: number[]
   members: Track[][]
+  trackSlots: Uint32Array
   nTiles: number
 }
 export const dtypeWidths: Record<DType, number> = {
@@ -178,6 +179,7 @@ export function parseTables(f: FixedHeader, bytes: Uint8Array): MetadataState {
     'invalid genome identifier',
   )
   const members: Track[][] = Array.from({ length: f.nGroups }, () => [])
+  const trackSlots = new Uint32Array(f.nTracks)
   const trackNames = new Set<string>()
   const tracks: Track[] = metadata.tracks.map(
     (record: unknown, index: number) => {
@@ -209,6 +211,7 @@ export function parseTables(f: FixedHeader, bytes: Uint8Array): MetadataState {
         metadata: record,
         statistics: statistics[index],
       }
+      trackSlots[index] = members[track.group].length
       members[track.group].push(track)
       return track
     },
@@ -253,5 +256,5 @@ export function parseTables(f: FixedHeader, bytes: Uint8Array): MetadataState {
     groupCount: f.nGroups,
     length: f.length,
   })
-  return { header, fixed: f, directory, members, nTiles }
+  return { header, fixed: f, directory, members, trackSlots, nTiles }
 }

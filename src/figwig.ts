@@ -404,20 +404,15 @@ export class FigWig {
       // Keep the map key used so invalid future group lookup cannot be hidden.
       check(state.members[id].length > 0, 'empty selected group')
     }
-    const selectedByGroup = new Map(
-      groupIds.map((id) => [
-        id,
-        tracks
-          .map((t, outputIndex) => ({
-            t,
-            outputIndex,
-            slot: state.members[id].findIndex(
-              (member) => member.index === t.index,
-            ),
-          }))
-          .filter((t) => t.slot >= 0),
-      ]),
-    )
+    const selectedByGroup = new Map<
+      number,
+      { outputIndex: number; slot: number }[]
+    >()
+    tracks.forEach((track, outputIndex) => {
+      const selected = selectedByGroup.get(track.group) ?? []
+      selected.push({ outputIndex, slot: state.trackSlots[track.index] })
+      selectedByGroup.set(track.group, selected)
+    })
     const regionsByChunk = new Map<string, number[]>()
     for (const { ref, regionIndex } of plans) {
       const list = regionsByChunk.get(ref.key) ?? []
@@ -805,9 +800,7 @@ export class FigWig {
     if ([...summaries.values()].some((s) => !s.available)) return false
     for (const { track, values } of result.tracks) {
       const s = summaries.get(track.group)!,
-        slot = state.members[track.group].findIndex(
-          (t) => t.index === track.index,
-        )
+        slot = state.trackSlots[track.index]
       const offset = state.header.chromosomes
         .slice(0, chr.id)
         .reduce((n, c) => n + Math.ceil(c.tileCount / s.factor), 0)

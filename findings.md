@@ -229,3 +229,8 @@ further evaluation.
 - Position-order index parsing previously allocated run objects before checking
   their known budget. The run-count preflight now happens before reading or
   allocating those records; live-entry costs are still checked once available.
+- Group-slot resolution scanned group members for every selected track on each
+  query, including summaries. Metadata now stores each track's slot once in a
+  `Uint32Array` (four bytes per track), and queries group selections in one pass.
+  Regressions reorder metadata so group members are nonadjacent while retaining
+  their encoded slot order; both raw reads and summaries must still agree.
