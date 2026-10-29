@@ -6,9 +6,8 @@ playwright-report/
 .venv/
 *.tgz
 
-# Preserve upstream sources and the original implementation brief.
+# Preserve upstream sources.
 scripts/vendor/
-PROMPT.md
 
 # Generated binary fixtures, correctness oracles, and benchmark evidence.
 test/fixtures/*.fw
@@ -16,4 +15,3 @@ test/fixtures/expected.json
 benchmarks/fixtures/
 benchmarks/measurements/
 benchmarks/results/
-benchmarks/RESULTS.md

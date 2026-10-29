@@ -1,21 +1,24 @@
-/** Sampling CPU profiles for the pinned baseline and current reader. */
+/** Sampling CPU profiles for a Git baseline and current reader. */
 import { createServer } from 'node:http'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import { cpus } from 'node:os'
 import { basename, dirname, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { SourceMap } from 'node:module'
 import { Session } from 'node:inspector'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import process from 'node:process'
 import { build } from 'esbuild'
 import { chromium } from '@playwright/test'
 import { startRangeServer } from '../server/range-server.ts'
 
 const root = resolve(import.meta.dirname, '../..'),
-  baseline =
-    process.env.FIGWIG_PROFILE_BASELINE ??
-    'eaf75569b5bfcc0a6673e3af211042c5ac9f071f',
+  baseline = execFileSync(
+    'git',
+    ['rev-parse', `${process.env.FIGWIG_PROFILE_BASELINE ?? 'HEAD'}^{commit}`],
+    { cwd: root, encoding: 'utf8' },
+  ).trim(),
   durationMs = Number(process.argv[2] ?? 2000),
   output = resolve(
     root,
@@ -24,7 +27,7 @@ const root = resolve(import.meta.dirname, '../..'),
   summaryPath = resolve(
     root,
     process.env.FIGWIG_PROFILE_SUMMARY ??
-      'benchmarks/measurements/profiles-cpu.json',
+      'benchmarks/results/profiles-cpu.json',
   )
 if (!Number.isFinite(durationMs) || durationMs < 500)
   throw new Error('Profile for at least 500 ms')
@@ -33,10 +36,36 @@ const revision = execFileSync('git', ['rev-parse', 'HEAD'], {
   cwd: root,
   encoding: 'utf8',
 }).trim()
-const runtimeDiff = execFileSync('git', ['diff', '--', 'src'], {
-  cwd: root,
-  encoding: 'utf8',
-})
+let runtimeDiff = execFileSync(
+  'git',
+  ['diff', '--binary', 'HEAD', '--', 'src'],
+  {
+    cwd: root,
+    encoding: 'utf8',
+  },
+)
+const untracked = execFileSync(
+  'git',
+  ['ls-files', '--others', '--exclude-standard', '-z', '--', 'src'],
+  { cwd: root, encoding: 'utf8' },
+)
+for (const path of untracked.split('\0').filter(Boolean)) {
+  const diff = spawnSync(
+    'git',
+    ['diff', '--no-index', '--binary', '--', '/dev/null', path],
+    { cwd: root, encoding: 'utf8' },
+  )
+  if (diff.error) throw diff.error
+  if (diff.status !== 1) throw new Error(`Cannot record source patch: ${path}`)
+  runtimeDiff += diff.stdout
+}
+const runtimePatch = runtimeDiff
+  ? {
+      path: relative(root, resolve(output, 'runtime.patch')),
+      sha256: createHash('sha256').update(runtimeDiff).digest('hex'),
+    }
+  : undefined
+if (runtimePatch) await writeFile(resolve(root, runtimePatch.path), runtimeDiff)
 const gapQuery = JSON.parse(
   process.env.FIGWIG_GAP_QUERY ??
     '{"chromosome":"chr10","start":10000000,"end":12000000,"binSize":2000}',
@@ -457,11 +486,11 @@ try {
     }
   }
   const report = {
-    date: '2026-10-28',
+    date: new Date().toISOString(),
     revision,
     baseline,
     gapQuery: gapFile ? gapQuery : undefined,
-    runtimeDiff,
+    runtimePatch,
     node: process.version,
     chromium: browser.version(),
     cpu: cpus()[0].model,
@@ -472,6 +501,7 @@ try {
       'V8 sampling CPU profiles. Three warm-ups outside capture except many-group HTTP (metadata only). CPU phases run at least durationMs; many-group phases run one cold query. Source-mapped self and inclusive times weighted by timeDeltas. Node includes localhost-server CPU; Chromium is renderer-main-thread only. Output equality checked outside capture. Profiled times are not uninstrumented benchmark results.',
     summaries,
   }
+  await mkdir(dirname(summaryPath), { recursive: true })
   await writeFile(summaryPath, JSON.stringify(report, null, 2) + '\n')
 } finally {
   session.disconnect()

@@ -8,5 +8,6 @@ __pycache__/
 benchmarks/fixtures/*
 !benchmarks/fixtures/.gitkeep
 benchmarks/results/
+benchmarks/measurements/
 .DS_Store
 *.tgz

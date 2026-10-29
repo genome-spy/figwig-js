@@ -341,7 +341,7 @@ and memory use remain unmeasured.
 ## Built with AI agents
 
 The initial implementation was developed with Codex AI agents from the
-[implementation brief](PROMPT.md), with human direction on scope and design
+[implementation brief](https://github.com/genome-spy/figwig-js/blob/b0bac083052deaf0a5a3f6d61e200967909c3c79/PROMPT.md), with human direction on scope and design
 choices. A coordinating agent integrated parallel work on binary decoding,
 Python conformance fixtures, HTTP benchmarks and browser tests. The brief
 prioritized frozen-spec fidelity, numeric precision and NaN semantics,

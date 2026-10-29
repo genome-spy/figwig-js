@@ -1,7 +1,7 @@
 /** Summarize Chrome's incremental CPU profile and Figwig range requests. */
-import { readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
-import { basename } from 'node:path'
+import { basename, dirname } from 'node:path'
 import { URL } from 'node:url'
 import process from 'node:process'
 
@@ -70,7 +70,8 @@ const ranges = trace.traceEvents
   .filter(
     (e) =>
       e.name === 'ResourceReceiveResponse' &&
-      requests.get(e.args.data.requestId)?.url.includes('h3k27ac.fw'),
+      requests.get(e.args.data.requestId)?.url &&
+      new URL(requests.get(e.args.data.requestId).url).pathname.endsWith('.fw'),
   )
   .map((event) => {
     const data = event.args.data,
@@ -118,7 +119,9 @@ const report = {
   figwigBytes: ranges.reduce((sum, r) => sum + r.bytes, 0),
   ranges,
 }
-await writeFile(process.argv[3], JSON.stringify(report, null, 2) + '\n')
+const output = process.argv[3] ?? 'benchmarks/results/navigation-trace.json'
+await mkdir(dirname(output), { recursive: true })
+await writeFile(output, JSON.stringify(report, null, 2) + '\n')
 process.stdout.write(
   JSON.stringify(
     {

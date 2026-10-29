@@ -9,8 +9,8 @@ package contents. See [RELEASING.md](RELEASING.md) for changelogs and publishing
 
 Run `npm run format` to format maintained TypeScript, JavaScript, JSON, Markdown,
 and workflow files with Prettier. Generated fixtures, oracle data, benchmark
-measurements/reports, vendored upstream files, and the original `PROMPT.md` are
-excluded in `.prettierignore` so regeneration and source attribution stay intact.
+output and vendored upstream files are excluded in `.prettierignore` so
+regeneration and source attribution stay intact.
 
 The authoritative source and fixture oracle are pinned in
 [`test/fixtures/README.md`](test/fixtures/README.md). Change expected results
@@ -25,20 +25,16 @@ Architecture:
 - `src/utils/`: binary primitives, strict bounded zlib, and abortable coalesced I/O.
 - `src/figwig.ts`: public API, shared query planning, caching, and aggregation.
 - `test/`: Python-backed conformance, malformed inputs, HTTP, and Chromium tests.
-- `benchmarks/`: deterministic writer, local network simulation, runner, evidence.
+- `benchmarks/`: deterministic writer, local network simulation and measurement tools.
 
 Keep runtime independent of Node built-ins and GenomeSpy packages. Preserve
 declared track dtypes and distinguish NaNs from implicit zeros. Do not infer
 valid-base counts or exact sums from rounded Figwig summaries.
 
-Record actionable observations and design constraints in `FINDINGS.md`,
-distinguishing reader/writer improvements from proposed format extensions.
-Performance claims need measured evidence and reproducible commands in
-`benchmarks/RESULTS.md`; keep large generated files out of Git. Source layout is
-standalone, so the task's former `packages/figwig/benchmarks/RESULTS.md` path maps
-to `benchmarks/RESULTS.md` here.
+See [AGENTS.md](AGENTS.md) for documentation, performance-evidence and changeset
+policies. Benchmark commands and measurement boundaries are in
+[benchmarks/README.md](benchmarks/README.md); routine output stays in ignored
+`benchmarks/results/`.
 
-Every non-trivial commit must include its own new `.changeset/*.md` file in the
-same commit; use `npm run changeset` to create it. Keep entries concise and
-end-user oriented, describing changed behavior or practical benefits. See
-[AGENTS.md](AGENTS.md) for the policy and limited exceptions.
+Run `npm run changeset` for release notes and follow [RELEASING.md](RELEASING.md)
+when preparing a release.

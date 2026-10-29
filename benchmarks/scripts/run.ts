@@ -68,7 +68,7 @@ function argumentsOf(argv: string[]) {
     maxCoalescedBytes: 4 * 1024 ** 2,
     chunkCacheBytes: 64 * 1024 ** 2,
     indexCacheBytes: 32 * 1024 ** 2,
-    output: 'benchmarks/measurements/latest.json',
+    output: 'benchmarks/results/latest.json',
     files: [] as string[],
   }
   for (let index = 0; index < argv.length; index++) {
