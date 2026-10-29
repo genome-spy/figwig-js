@@ -24,11 +24,21 @@ export interface SummaryRef {
   bytes: Uint8Array
   binCount: number
 }
-export interface GroupIndex {
+export interface RawIndex {
   chunks: ChunkRef[]
   tiles: Uint32Array
-  summaries: SummaryRef[]
   byteLength: number
+}
+export interface GroupIndex extends RawIndex {
+  summaries: SummaryRef[]
+}
+export interface SummaryDescriptor {
+  factor: number
+  n: number
+  binCount: number
+  offset: number
+  size: number
+  checksum: number
 }
 function extent(ref: ChunkRef, state: MetadataState, maxRaw: number) {
   const f = state.fixed
@@ -49,14 +59,14 @@ function extent(ref: ChunkRef, state: MetadataState, maxRaw: number) {
     'stored chunk size differs from raw size',
   )
 }
-export function parseGroup(
+function parseIndex(
+  c: Cursor,
   bytes: Uint8Array,
   group: number,
   state: MetadataState,
   maxInflated: number,
-): GroupIndex {
-  const c = new Cursor(bytes),
-    f = state.fixed,
+): RawIndex {
+  const f = state.fixed,
     chunks: ChunkRef[] = [],
     tracks = state.members[group].length
   const n = c.u32(),
@@ -201,7 +211,33 @@ export function parseGroup(
     }
     check(covered === live, 'live tile has no run')
   }
-  const summaries: SummaryRef[] = []
+  return {
+    chunks,
+    tiles: Uint32Array.from(tiles),
+    byteLength: bytes.length + chunks.length * 112 + tiles.length * 4,
+  }
+}
+export function parseRawIndex(
+  bytes: Uint8Array,
+  group: number,
+  state: MetadataState,
+  maxInflated: number,
+): RawIndex {
+  const c = new Cursor(bytes),
+    index = parseIndex(c, bytes, group, state, maxInflated)
+  check(c.at === bytes.length, 'raw index extent mismatch')
+  return index
+}
+export function parseGroup(
+  bytes: Uint8Array,
+  group: number,
+  state: MetadataState,
+  maxInflated: number,
+): GroupIndex {
+  const c = new Cursor(bytes),
+    f = state.fixed,
+    index = parseIndex(c, bytes, group, state, maxInflated),
+    summaries: SummaryRef[] = []
   const readSummary = (
     factor: number,
     n: number,
@@ -230,13 +266,119 @@ export function parseGroup(
     }
   }
   check(c.at === bytes.length, 'group record extent mismatch')
-  return {
-    chunks,
-    tiles: Uint32Array.from(tiles),
-    summaries,
-    byteLength: bytes.length + chunks.length * 112 + tiles.length * 4,
-  }
+  return { ...index, summaries }
 }
+
+function groupRange(start: number, end: number, offset: number, size: number) {
+  check(
+    Number.isSafeInteger(start) &&
+      Number.isSafeInteger(end) &&
+      Number.isSafeInteger(offset) &&
+      Number.isSafeInteger(size) &&
+      start >= 0 &&
+      end >= start &&
+      offset >= start &&
+      size >= 0 &&
+      offset <= end - size,
+    'group section outside record bounds',
+  )
+}
+async function readGroupHeader(
+  start: number,
+  end: number,
+  offset: number,
+  size: number,
+  read: (offset: number, size: number) => Promise<Uint8Array>,
+) {
+  groupRange(start, end, offset, size)
+  const bytes = await read(offset, size)
+  check(bytes.length === size, 'truncated group section header')
+  return new Cursor(bytes)
+}
+
+/** Find the raw-index extent without loading compressed indexes or summaries. */
+export async function readGroupIndexSize(
+  start: number,
+  end: number,
+  state: MetadataState,
+  read: (offset: number, size: number) => Promise<Uint8Array>,
+): Promise<number> {
+  const header = await readGroupHeader(start, end, start, 8, read),
+    n = header.u32()
+  let size: number
+  if (state.fixed.flags & 1) size = 8 + n * 40
+  else {
+    const countersAt = start + 8 + n * 32,
+      counters = await readGroupHeader(start, end, countersAt, 8, read),
+      live = counters.u32(),
+      length = counters.u32()
+    check(live <= state.nTiles, 'too many live tiles')
+    size = countersAt - start + 8 + length
+  }
+  groupRange(start, end, start, size)
+  groupRange(start, end, start + size, 12 + (state.fixed.optional & 1 ? 4 : 0))
+  return size
+}
+
+/** Discover section locations, deferring payload validation until each is read. */
+export async function readSummaryCatalog(
+  start: number,
+  end: number,
+  indexSize: number,
+  state: MetadataState,
+  read: (offset: number, size: number) => Promise<Uint8Array>,
+): Promise<SummaryDescriptor[]> {
+  groupRange(start, end, start, indexSize)
+  let at = start + indexSize
+  const summaries: SummaryDescriptor[] = []
+  const descriptor = (
+    factor: number,
+    n: number,
+    size: number,
+    checksum: number,
+  ) => {
+    const binCount = state.header.chromosomes.reduce(
+      (sum, chromosome) => sum + Math.ceil(chromosome.tileCount / factor),
+      0,
+    )
+    check(n <= binCount && (size > 0 || n === 0), 'invalid summary count')
+    check(factor === 1 || size > 0, 'empty zoom stream')
+    groupRange(start, end, at, size)
+    if (size === 0) crc(new Uint8Array(), checksum, 'summary')
+    summaries.push({ factor, n, binCount, offset: at, size, checksum })
+    at += size
+  }
+  const base = await readGroupHeader(start, end, at, 12, read)
+  at += 12
+  descriptor(1, base.u32(), base.u32(), base.u32())
+  if (state.fixed.optional & 1) {
+    // The count and first zoom header are adjacent. Discover them in one probe
+    // without fetching any payload; a zero-level record has only four bytes.
+    groupRange(start, end, at, 4)
+    const zooms = await readGroupHeader(
+        start,
+        end,
+        at,
+        Math.min(20, end - at),
+        read,
+      ),
+      levels = zooms.u32()
+    at += 4
+    check(levels <= 12, 'too many zoom levels')
+    check(!levels || summaries[0].size > 0, 'zoom without summary')
+    for (let level = 1; level <= levels; level++) {
+      const zoom =
+          level === 1 ? zooms : await readGroupHeader(start, end, at, 16, read),
+        factor = zoom.u32()
+      at += 16
+      check(factor === 4 ** level, 'invalid zoom factor')
+      descriptor(factor, zoom.u32(), zoom.u32(), zoom.u32())
+    }
+  }
+  check(at === end, 'group record extent mismatch')
+  return summaries
+}
+
 export function parseSummary(
   ref: SummaryRef,
   group: number,

@@ -100,9 +100,13 @@ test.each(['header', 'stat', 'index', 'data'] as const)(
   'closing during %s loading promptly cancels the query and prevents late cache fills',
   async (stage) => {
     const { filehandle, state } = controlledHandle()
-    const reader = new FigWig({ filehandle })
+    const reader = new FigWig({
+      filehandle,
+      chunkCacheBytes: stage === 'data' ? 0 : undefined,
+    })
     if (stage === 'index') await reader.getHeader()
-    if (stage === 'data') await reader.getZoomLevels({ tracks: ['signal'] })
+    if (stage === 'data')
+      await reader.getValues('chr1', 0, 1, { tracks: ['signal'] })
     const paused = gate()
     if (stage === 'stat') state.nextStat = paused
     else state.nextRead = paused
@@ -438,8 +442,19 @@ test.each([false, true])(
         }
       }
       await setImmediate()
-      expect(state.reads - before).toBe(1)
-      if (all) expect(reader.getDiagnostics().cacheBytes).toBe(0)
+      if (all) {
+        expect(state.reads - before).toBe(1)
+        expect(reader.getDiagnostics().cacheBytes).toBe(0)
+      } else {
+        // The surviving caller must finish its section-header probe chain.
+        // Repeating the discovery then needs no additional reads.
+        expect(state.reads - before).toBeGreaterThan(1)
+        const reads = state.reads
+        expect(await reader.getZoomLevels({ tracks: ['random'] })).toEqual(
+          surviving,
+        )
+        expect(state.reads).toBe(reads)
+      }
     } finally {
       paused.release.resolve()
       await Promise.all([a, b])

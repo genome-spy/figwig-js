@@ -127,14 +127,15 @@ cohort-wide and small-subset panning; no one configuration suits every workload.
   the current missing-policy restriction is stricter than v1 requires for that
   operation. General omission-aware **means** and NaN propagation still need
   information absent from v1 summaries.
-- The reader loads selected groups' live/block indexes with all compressed
-  summary/zoom sections, then inflates summaries lazily. Deferring unneeded
-  summary downloads needs no format change, but cannot create spatial access
-  inside a whole-level stream.
-- Index cache weights include retained compressed group records and parsed
-  chunk descriptors, not just compressed index bytes. A query's group working
-  set can exceed the cache budget and cause repeated downloads and parsing.
-  Compact resolution metadata is cached with decoded summaries under
+- Raw indexes, section headers and selected summary levels are loaded
+  independently. Bounds and integrity checks apply to requested sections;
+  validation of unused payloads is deferred. Selective loading reduces unrelated
+  section reads without creating spatial access inside a whole-level stream.
+  Header probes and range coalescing still trade request latency against bytes.
+- Index cache weights account for parsed chunk descriptors and tile arrays,
+  conservatively including raw-index bytes. A query's group working set can
+  exceed the cache budget and cause repeated downloads and parsing. Compact
+  section metadata is cached with decoded summaries under
   `summaryCacheBytes`, independently of raw-index eviction. Size each cache for
   its working set while preserving allocation limits, cancellation and cache
   ownership. Larger caches help warm navigation but do not reduce the initial

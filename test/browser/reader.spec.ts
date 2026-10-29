@@ -131,6 +131,7 @@ test('reads metadata, selected native dtypes, and overlapping regions through re
   const result = await page.evaluate(async (url) => {
     const reader = new window.FigWig({
       filehandle: new window.RemoteFile(`${url}/zlib.fw`),
+      coalesceGap: 0,
     })
     window.figwigReader = reader
     const header = await reader.getHeader()
@@ -541,31 +542,104 @@ test('closing a reader cancels pending browser reads and prevents late cache ref
   expect(result.closes).toBe(1)
 })
 
-test('coalesces adjacent group-index ranges in both storage orders', async ({
+test('coalesces group metadata probes in both storage orders', async ({
   page,
 }) => {
   const results = await page.evaluate(async (url) => {
     const results = []
     for (const file of ['zlib', 'tracks_zlib']) {
-      const reader = new window.FigWig({ url: `${url}/${file}.fw` })
+      const reader = new window.FigWig({ url: `${url}/${file}.fw` }),
+        separate = new window.FigWig({
+          url: `${url}/${file}.fw`,
+          maxCoalescedBytes: 1,
+        })
       try {
-        const header = await reader.getHeader(),
-          tracks = [
-            ...new Map(
-              header.tracks.map((track) => [track.group, track.name]),
-            ).values(),
-          ].slice(0, 3)
+        const header = await reader.getHeader()
+        await separate.getHeader()
+        const tracks = [
+          ...new Map(
+            header.tracks.map((track) => [track.group, track.name]),
+          ).values(),
+        ].slice(0, 3)
         reader.resetDiagnostics()
+        separate.resetDiagnostics()
         const levels = await reader.getZoomLevels({ tracks })
         const first = reader.getDiagnostics()
+        const individual = await separate.getZoomLevels({ tracks })
         const repeated = await reader.getZoomLevels({
           tracks: [...tracks].reverse(),
         })
         results.push({
           levels,
+          individual,
+          separate: separate.getDiagnostics(),
           repeated,
           first,
           after: reader.getDiagnostics(),
+        })
+      } finally {
+        await Promise.all([reader.close(), separate.close()])
+      }
+    }
+    return results
+  }, rangeServer.url)
+  for (const result of results) {
+    expect(result.first.readRequests).toBeGreaterThan(0)
+    expect(result.first.readRequests).toBeLessThan(result.separate.readRequests)
+    expect(result.first.dataBytes).toBe(0)
+    expect(result.individual).toEqual(result.levels)
+    expect(result.repeated).toEqual(result.levels)
+    expect(result.after.readRequests).toBe(result.first.readRequests)
+    expect(result.after.indexBytes).toBe(result.first.indexBytes)
+    expect(result.levels.length).toBeGreaterThan(0)
+    for (const level of result.levels) expect(level.groups).toEqual([0, 1, 2])
+  }
+})
+
+test('warm summaries need no HTTP reads when raw-index retention is disabled', async ({
+  page,
+}) => {
+  const results = await page.evaluate(async (url) => {
+    const results = []
+    for (const file of ['zlib', 'tracks_zlib']) {
+      const reader = new window.FigWig({
+        url: `${url}/${file}.fw`,
+        indexCacheBytes: 0,
+        chunkCacheBytes: 0,
+        coalesceGap: 0,
+      })
+      try {
+        const header = await reader.getHeader(),
+          track = header.tracks.find((track) => track.name === 'wide')!
+        await reader.getSummary(track.group)
+        await reader.getSummary(track.group, 1)
+        const levels = await reader.getZoomLevels({ tracks: [track.name] }),
+          regions = [
+            { chromosome: 'chr1', start: 0, end: 128 },
+            { chromosome: 'chr1', start: 128, end: 256 },
+          ],
+          options = {
+            tracks: [track.name],
+            binSize: header.tileSize,
+            aggregation: 'sum' as const,
+            missing: 'zero' as const,
+            requireSummaries: true,
+          }
+        const first = await reader.getBinsMulti(regions, options)
+        reader.resetDiagnostics()
+        const repeated = await reader.getBinsMulti(regions, options),
+          coarse = await reader.getBins('chr1', 0, 256, {
+            ...options,
+            binSize: 256,
+          }),
+          repeatedLevels = await reader.getZoomLevels({ tracks: [track.name] })
+        results.push({
+          first,
+          repeated,
+          coarseSource: coarse.source,
+          levels,
+          repeatedLevels,
+          diagnostics: reader.getDiagnostics(),
         })
       } finally {
         await reader.close()
@@ -574,10 +648,18 @@ test('coalesces adjacent group-index ranges in both storage orders', async ({
     return results
   }, rangeServer.url)
   for (const result of results) {
-    expect(result.first).toMatchObject({ readRequests: 1, dataBytes: 0 })
-    expect(result.repeated).toEqual(result.levels)
-    expect(result.after.readRequests).toBe(1)
-    expect(result.levels.length).toBeGreaterThan(0)
-    for (const level of result.levels) expect(level.groups).toEqual([0, 1, 2])
+    expect(result.repeated).toEqual(result.first)
+    expect(result.repeated.every((batch) => batch.source === 'summary')).toBe(
+      true,
+    )
+    expect(result.coarseSource).toBe('summary')
+    expect(result.repeatedLevels).toEqual(result.levels)
+    expect(result.diagnostics).toMatchObject({
+      readRequests: 0,
+      indexBytes: 0,
+      dataBytes: 0,
+      chunksFetched: 0,
+    })
+    expect(result.diagnostics.cacheBytes).toBeGreaterThan(0)
   }
 })

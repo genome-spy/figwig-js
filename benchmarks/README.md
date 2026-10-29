@@ -56,7 +56,8 @@ and proxy caches.
 Patterns: **A/B** compare one versus all tracks over 10/100 kb; **C** compares
 within-group and across-group selection; **D** uses stored summaries; **E** pans;
 **F** changes resolution; **G** changes track selections; **H** compares batched
-and sequential windows; **I** compares all versus four collection tracks.
+and sequential windows; **I** compares all versus four collection tracks; **J**
+compares all file tracks using raw bins, base summaries and the first zoom level.
 Windows clip to dataset lengths. C cases may select different track counts when
 groups contain fewer than four tracks; compare equal-count cases.
 

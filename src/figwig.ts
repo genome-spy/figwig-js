@@ -22,8 +22,13 @@ import type {
 } from './types.js'
 import { dtypeWidths, parseFixed, parseTables } from './format/header.js'
 import type { MetadataState } from './format/header.js'
-import { parseGroup, parseSummary } from './format/group.js'
-import type { ChunkRef, GroupIndex } from './format/group.js'
+import {
+  parseRawIndex,
+  parseSummary,
+  readGroupIndexSize,
+  readSummaryCatalog,
+} from './format/group.js'
+import type { ChunkRef, RawIndex, SummaryDescriptor } from './format/group.js'
 import { decodeBlock, decodeChunk, validateKind } from './decoding/chunk.js'
 import type { DecodedChunk, DecodedTrack } from './decoding/chunk.js'
 import { aborted, check, crc, lowerBound } from './utils/binary.js'
@@ -96,7 +101,11 @@ interface MissingTile {
 }
 
 interface SummaryCatalog {
-  factors: number[]
+  levels: SummaryDescriptor[]
+}
+
+interface GroupHeader {
+  indexSize: number
 }
 
 function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
@@ -111,9 +120,12 @@ export class FigWig {
   private readonly options: Required<Omit<FigWigOptions, 'filehandle' | 'url'>>
   private readonly queue: ReadQueue
   private readonly metadata: SharedReadCache<string, MetadataState>
-  private readonly groups: SharedReadCache<number, GroupIndex>
+  private readonly groups: SharedReadCache<number, RawIndex>
   private readonly chunks: SharedReadCache<string, DecodedChunk>
-  private readonly summaries: SharedReadCache<string, Summary | SummaryCatalog>
+  private readonly summaries: SharedReadCache<
+    string,
+    Summary | SummaryCatalog | GroupHeader
+  >
   private readonly reads: RangeReads
   private readonly indexReads: RangeReads
   private readonly lifetime = new AbortController()
@@ -193,9 +205,11 @@ export class FigWig {
       maxSize: this.options.summaryCacheBytes,
       sizeOf: (s) => {
         const size =
-          'factors' in s
-            ? s.factors.length * 8 + 64
-            : s.bins.byteLength + s.sums.byteLength + 128
+          'indexSize' in s
+            ? 64
+            : 'levels' in s
+              ? s.levels.length * 64 + 64
+              : s.bins.byteLength + s.sums.byteLength + 128
         return size <= this.options.summaryCacheBytes ? size : NaN
       },
     })
@@ -272,34 +286,71 @@ export class FigWig {
     return this.groups.get(id, signal, async (shared) => {
       const started = performance.now(),
         start = state.directory[id],
-        end = state.directory[id + 1] ?? state.fixed.length
+        { indexSize } = await this.groupHeader(id, state, shared)
+      aborted(shared)
       const fetched = await this.indexReads.get(
-        { offset: start, size: end - start },
+        { offset: start, size: indexSize },
         shared,
       )
       aborted(shared)
-      // Each cached group owns its bytes, so retaining one record cannot pin
-      // an entire coalesced response outside the group's cache weight.
-      const bytes = Uint8Array.from(fetched)
-      const group = parseGroup(bytes, id, state, this.options.maxInflatedBytes)
+      // Parsed indexes retain only scalar descriptors and their own tile array,
+      // not views into this possibly coalesced filehandle response.
+      const group = parseRawIndex(
+        fetched,
+        id,
+        state,
+        this.options.maxInflatedBytes,
+      )
       this.metrics.indexLoadMs += performance.now() - started
       return group
     })
+  }
+  private groupHeader(
+    id: number,
+    state: MetadataState,
+    signal?: AbortSignal,
+  ): Promise<GroupHeader> {
+    return this.summaries.get(
+      `index:${id}`,
+      this.signal(signal),
+      async (shared) => {
+        const start = state.directory[id],
+          end = state.directory[id + 1] ?? state.fixed.length,
+          indexSize = await readGroupIndexSize(
+            start,
+            end,
+            state,
+            (offset, size) => this.indexReads.get({ offset, size }, shared),
+          )
+        aborted(shared)
+        return { indexSize }
+      },
+    ) as Promise<GroupHeader>
   }
   private summaryCatalog(
     id: number,
     state: MetadataState,
     signal?: AbortSignal,
-    loaded?: GroupIndex,
   ): Promise<SummaryCatalog> {
     return this.summaries.get(
       `group:${id}`,
       this.signal(signal),
       async (shared) => {
-        const index = loaded ?? (await this.group(id, state, shared))
-        // Copy only scalar metadata. A catalog must not retain compressed group
-        // buffers or raw chunk descriptors after the index cache evicts them.
-        return { factors: index.summaries.map((summary) => summary.factor) }
+        const started = performance.now(),
+          start = state.directory[id],
+          end = state.directory[id + 1] ?? state.fixed.length,
+          { indexSize } = await this.groupHeader(id, state, shared)
+        aborted(shared)
+        const levels = await readSummaryCatalog(
+          start,
+          end,
+          indexSize,
+          state,
+          (offset, size) => this.indexReads.get({ offset, size }, shared),
+        )
+        aborted(shared)
+        this.metrics.indexLoadMs += performance.now() - started
+        return { levels }
       },
     ) as Promise<SummaryCatalog>
   }
@@ -817,16 +868,29 @@ export class FigWig {
       `${group}:${level}`,
       signal,
       async (shared) => {
-        const index = await this.group(group, state, shared)
+        const catalog = await this.summaryCatalog(group, state, shared)
         aborted(shared)
-        await this.summaryCatalog(group, state, shared, index)
-        aborted(shared)
-        const ref = index.summaries[level]
+        const ref = catalog.levels[level]
         if (!ref)
           throw new RangeError(
             `Zoom level ${level} is unavailable for group ${group}`,
           )
-        return parseSummary(ref, group, state, this.options.maxInflatedBytes)
+        const started = performance.now(),
+          bytes = ref.size
+            ? await this.indexReads.get(
+                { offset: ref.offset, size: ref.size },
+                shared,
+              )
+            : new Uint8Array()
+        aborted(shared)
+        crc(bytes, ref.checksum, level === 0 ? 'summary' : 'zoom')
+        this.metrics.indexLoadMs += performance.now() - started
+        return parseSummary(
+          { ...ref, bytes },
+          group,
+          state,
+          this.options.maxInflatedBytes,
+        )
       },
     )) as Summary
     return this.completed(summary, signal)
@@ -841,7 +905,7 @@ export class FigWig {
       [...new Set(tracks.map((t) => t.group))].map(async (group) => {
         const catalog = await this.summaryCatalog(group, state, options.signal)
         aborted(options.signal)
-        catalog.factors.slice(1).forEach((factor, i) => {
+        catalog.levels.slice(1).forEach(({ factor }, i) => {
           const level = i + 1,
             item = levels.get(level) ?? {
               level,
@@ -993,8 +1057,8 @@ export class FigWig {
         const catalog = await this.summaryCatalog(id, state, options.signal)
         aborted(options.signal)
         let level = 0
-        for (let k = 1; k < catalog.factors.length; k++) {
-          const size = tile * catalog.factors[k]
+        for (let k = 1; k < catalog.levels.length; k++) {
+          const size = tile * catalog.levels[k].factor
           if (
             result.start % size === 0 &&
             result.binSize % size === 0 &&

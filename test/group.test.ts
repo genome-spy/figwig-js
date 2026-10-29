@@ -2,7 +2,12 @@ import { readFileSync } from 'node:fs'
 import { deflateSync } from 'node:zlib'
 import { expect, test } from 'vitest'
 import { decodeBlock } from '../src/decoding/chunk.js'
-import { parseGroup, parseSummary } from '../src/format/group.js'
+import {
+  parseGroup,
+  parseSummary,
+  readGroupIndexSize,
+  readSummaryCatalog,
+} from '../src/format/group.js'
 import { parseFixed, parseTables } from '../src/format/header.js'
 import { crc32, FigWigError } from '../src/utils/binary.js'
 import { inflateZlib } from '../src/utils/inflate.js'
@@ -127,6 +132,157 @@ function emptyGroupIndex(
     zoom ?? new Uint8Array(),
   ])
 }
+
+function catalogReader(
+  bytes: Uint8Array,
+  state: ReturnType<typeof fixtureState>,
+) {
+  const start = 4096,
+    end = start + bytes.length,
+    reads: { offset: number; size: number }[] = [],
+    read = async (offset: number, size: number) => {
+      expect(Number.isSafeInteger(offset)).toBe(true)
+      expect(Number.isSafeInteger(size)).toBe(true)
+      expect(size).toBeGreaterThanOrEqual(0)
+      expect(offset).toBeGreaterThanOrEqual(start)
+      expect(offset + size).toBeLessThanOrEqual(end)
+      reads.push({ offset, size })
+      return bytes.subarray(offset - start, offset - start + size)
+    }
+  return {
+    start,
+    reads,
+    catalog: async () =>
+      readSummaryCatalog(
+        start,
+        end,
+        await readGroupIndexSize(start, end, state, read),
+        state,
+        read,
+      ),
+  }
+}
+
+test.each(['zlib', 'tracks_zlib'])(
+  '%s catalog distinguishes absent summaries and verifies their empty CRC',
+  async (name) => {
+    const state = fixtureState(name),
+      bytes = emptyGroupIndex(state.header.order, new Uint8Array()),
+      captured = catalogReader(bytes, state),
+      descriptors = await captured.catalog()
+    expect(descriptors).toEqual([
+      {
+        factor: 1,
+        n: 0,
+        binCount: state.nTiles,
+        offset: captured.start + bytes.length - 4,
+        size: 0,
+        checksum: 0,
+      },
+    ])
+    expect(captured.reads.every(({ size }) => size <= 20)).toBe(true)
+
+    // An absent payload has no read to trigger checksum validation later.
+    bytes.writeUInt32LE(1, bytes.length - 8)
+    await expect(catalogReader(bytes, state).catalog()).rejects.toThrow(
+      /summary CRC-32 mismatch/,
+    )
+  },
+)
+
+test.each(['zlib', 'tracks_zlib'])(
+  '%s catalog preserves compressed empty summary and zoom availability without reading payloads',
+  async (name) => {
+    const state = fixtureState(name),
+      empty = deflateSync(new Uint8Array()),
+      bytes = emptyGroupIndex(state.header.order, empty, empty),
+      captured = catalogReader(bytes, state),
+      descriptors = await captured.catalog()
+    expect(descriptors).toHaveLength(2)
+    for (const [level, descriptor] of descriptors.entries()) {
+      expect(descriptor).toMatchObject({
+        factor: 4 ** level,
+        n: 0,
+        size: empty.length,
+        checksum: crc32(empty),
+      })
+      expect(descriptor.offset).toBeGreaterThan(captured.start)
+      const payload = bytes.subarray(
+        descriptor.offset - captured.start,
+        descriptor.offset - captured.start + descriptor.size,
+      )
+      expect(payload).toEqual(empty)
+      expect(
+        captured.reads.every(
+          ({ offset, size }) =>
+            offset + size <= descriptor.offset ||
+            offset >= descriptor.offset + descriptor.size,
+        ),
+      ).toBe(true)
+      const summary = parseSummary(
+        { ...descriptor, bytes: payload },
+        0,
+        state,
+        1024,
+      )
+      expect(summary).toMatchObject({
+        available: true,
+        bins: new Uint32Array(),
+        sums: level ? new Float64Array() : new Float32Array(),
+      })
+    }
+    expect(captured.reads.every(({ size }) => size <= 20)).toBe(true)
+  },
+)
+
+test.each(['zlib', 'tracks_zlib'])(
+  '%s catalog rejects invalid empty zooms and record extents before unsafe reads',
+  async (name) => {
+    const state = fixtureState(name),
+      empty = deflateSync(new Uint8Array()),
+      valid = emptyGroupIndex(state.header.order, empty, empty)
+    for (const [bytes, error] of [
+      [
+        emptyGroupIndex(state.header.order, empty, new Uint8Array()),
+        /empty zoom stream/,
+      ],
+      [
+        emptyGroupIndex(state.header.order, new Uint8Array(), empty),
+        /zoom without summary/,
+      ],
+      [
+        Buffer.concat([valid, new Uint8Array(1)]),
+        /group record extent mismatch/,
+      ],
+      [
+        valid.subarray(0, valid.length - 1),
+        /group section outside record bounds/,
+      ],
+    ] as const)
+      await expect(catalogReader(bytes, state).catalog()).rejects.toThrow(error)
+  },
+)
+
+test.each(['zlib', 'tracks_zlib'])(
+  '%s rejects a truncated zoom count without a short or zero-length probe',
+  async (name) => {
+    const state = fixtureState(name),
+      complete = emptyGroupIndex(
+        state.header.order,
+        deflateSync(new Uint8Array()),
+      )
+    for (let remaining = 0; remaining < 4; remaining++) {
+      const bytes = complete.subarray(0, complete.length - 4 + remaining),
+        captured = catalogReader(bytes, state),
+        zoomCountAt = captured.start + complete.length - 4
+      await expect(captured.catalog()).rejects.toThrow(/record bounds/)
+      expect(captured.reads.every(({ offset }) => offset < zoomCountAt)).toBe(
+        true,
+      )
+      expect(captured.reads.every(({ size }) => size > 0)).toBe(true)
+    }
+  },
+)
 
 test.each(['zlib', 'tracks_zlib'])(
   '%s rejects a listed zoom without a zlib stream',

@@ -302,6 +302,23 @@ function patterns(parameters: Parameters): Pattern[] {
           ],
         }),
     },
+    ...([tile, tile * 4] as const).map((binSize) => ({
+      name: `J-all-file-tracks-summary-${binSize === tile ? 'base' : 'zoom'}`,
+      run: (fw: Reader) =>
+        fw.getBins(chrom, 0, coarseEnd, {
+          binSize,
+          missing: 'zero',
+          requireSummaries: true,
+        }),
+    })),
+    {
+      name: 'J-all-file-tracks-raw-bins',
+      run: (fw) =>
+        fw.getBins(chrom, start, start + medium, {
+          binSize: Math.max(1, Math.ceil(medium / 1200)),
+          missing: 'omit',
+        }),
+    },
     {
       name: 'H-batch',
       run: (fw) => fw.getValuesMulti(regions, { tracks: subset }),

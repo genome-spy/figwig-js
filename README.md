@@ -204,10 +204,12 @@ genome in chromosome-table order. For factor `f`, a chromosome starts after the
 sum of `ceil(previousChromosome.tileCount / f)` bins. No bin crosses chromosomes.
 
 Summary arrays are cached and **read-only by convention**; copy before editing.
-Absent zoom levels raise `RangeError`. Zoom availability is queried separately
-from the fixed header so metadata reads do not load every group index.
-Compact resolution metadata shares the summary cache budget with decoded
-summaries, independently of parsed raw-index retention.
+Absent zoom levels raise `RangeError`. Zoom discovery reads compact section
+headers without loading raw indexes or summary payloads. Raw queries load only
+the selected groups' raw indexes; summary queries load only the selected levels.
+Compact section metadata shares the summary cache budget with decoded summaries,
+independently of parsed raw-index retention. Header probes can add requests;
+range coalescing may fetch intervening bytes within its configured bounds.
 
 ## Precision, integrity, cancellation, and caching
 
@@ -215,7 +217,10 @@ Per-base arrays preserve declared dtypes (`uint8/16/32`, `int8/16/32`,
 `float32/64`), including uint32 values above 2²⁴. V1 has no uint64 signal dtype;
 uint64 file offsets above `Number.MAX_SAFE_INTEGER` are rejected before I/O.
 
-Header/table/index/summary CRCs and zlib integrity checks are always enforced.
+Header/table CRCs are checked during initialization. Requested index/summary
+sections always receive CRC and zlib integrity checks where applicable. Unused
+sections are validated when requested; bytes fetched only as coalescing gaps
+are not interpreted or validated as sections.
 `verify: false` disables optional chunk CRC checks; stored chunks in codec 1
 remain CRC-checked. Zlib checks include declared size, Adler32 and trailing input.
 
@@ -250,18 +255,18 @@ open a new reader/filehandle after appending or replacing a file.
 
 Important constructor defaults (bytes unless otherwise stated):
 
-| Option                  |   Default | Purpose                                                                                             |
-| ----------------------- | --------: | --------------------------------------------------------------------------------------------------- |
-| `maxOutputBytes`        |   256 MiB | Total numeric output allocation per batch                                                           |
-| `maxReadBytes`          |    64 MiB | One filehandle read, including metadata/group records                                               |
-| `maxInflatedBytes`      |   128 MiB | One inflated payload / decoded chunk / parsed index                                                 |
-| `indexCacheBytes`       |    32 MiB | Retained parsed group records                                                                       |
-| `chunkCacheBytes`       |    64 MiB | Retained decoded chunks                                                                             |
-| `summaryCacheBytes`     |    32 MiB | Retained summary-resolution metadata and decoded summaries                                          |
-| `maxConcurrentRequests` |         6 | Reader-wide filehandle read concurrency                                                             |
-| `coalesceGap`           |      4096 | Maximum gap fetched between nearby chunks or group indexes                                          |
-| `maxCoalescedBytes`     |     4 MiB | Target maximum coalesced range; a larger single chunk or group record is allowed within read limits |
-| `maxFeatures`           | 1,000,000 | Maximum potential interval objects per batch                                                        |
+| Option                  |   Default | Purpose                                                                                                      |
+| ----------------------- | --------: | ------------------------------------------------------------------------------------------------------------ |
+| `maxOutputBytes`        |   256 MiB | Total numeric output allocation per batch                                                                    |
+| `maxReadBytes`          |    64 MiB | One filehandle read, including metadata/index/summary sections                                               |
+| `maxInflatedBytes`      |   128 MiB | One inflated payload / decoded chunk / parsed index                                                          |
+| `indexCacheBytes`       |    32 MiB | Retained parsed raw indexes                                                                                  |
+| `chunkCacheBytes`       |    64 MiB | Retained decoded chunks                                                                                      |
+| `summaryCacheBytes`     |    32 MiB | Retained group-section metadata and decoded summaries                                                        |
+| `maxConcurrentRequests` |         6 | Reader-wide filehandle read concurrency                                                                      |
+| `coalesceGap`           |      4096 | Maximum gap fetched between nearby chunks or group indexes                                                   |
+| `maxCoalescedBytes`     |     4 MiB | Target maximum coalesced range; a larger single chunk or index/summary section is allowed within read limits |
+| `maxFeatures`           | 1,000,000 | Maximum potential interval objects per batch                                                                 |
 
 Limits are configurable and can reject otherwise valid very large v1 files.
 They bound individual allocations and retained caches, not total process memory

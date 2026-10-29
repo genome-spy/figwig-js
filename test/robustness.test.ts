@@ -294,7 +294,7 @@ describe('malformed files fail before unsafe reads or allocations', () => {
     view(badCount).setUint32(firstGroup(badCount), 0xffffffff, true)
     await expect(
       reader(badCount).getValues('chr1', 0, 10, { tracks: [0] }),
-    ).rejects.toThrow(/truncated|invalid/)
+    ).rejects.toThrow(/truncated|invalid|record bounds/)
     const badRun = fixture()
     view(badRun).setBigUint64(firstGroup(badRun) + 8 + 16, 1n, true)
     await expect(

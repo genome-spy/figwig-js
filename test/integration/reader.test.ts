@@ -39,6 +39,7 @@ test.each(['zlib', 'tracks_zlib', 'appended', 'blocks'])(
     const remote = new FigWig({
       filehandle: new RemoteFile(`${server.url}/${file}`),
       maxConcurrentRequests: 2,
+      coalesceGap: 0,
     })
     const local = new FigWig({ filehandle: new LocalFile(resolve(root, file)) })
     const blob = new FigWig({ filehandle: new BlobFile(new Blob([bytes])) })
@@ -135,7 +136,7 @@ test('batch deduplication fetches each chunk once and coalescing is configurable
 })
 
 test.each(['zlib', 'tracks_zlib'])(
-  '%s coalesces HTTP index ranges without transferring extra bytes',
+  '%s coalesces HTTP metadata probes and reuses their discoveries',
   async (name) => {
     const coalesced = new FigWig({ url: `${server.url}/${name}.fw` }),
       separate = new FigWig({
@@ -155,21 +156,34 @@ test.each(['zlib', 'tracks_zlib'])(
       coalesced.resetDiagnostics()
       const together = await coalesced.getZoomLevels({ tracks })
       await settled()
-      const togetherMetrics = server.metrics
-      expect(togetherMetrics.requests).toBe(1)
+      const togetherMetrics = { ...server.metrics }
       expect(coalesced.getDiagnostics()).toMatchObject({
-        readRequests: 1,
+        readRequests: togetherMetrics.requests,
+        indexBytes: togetherMetrics.bodyBytes,
         dataBytes: 0,
       })
       server.resetMetrics()
       separate.resetDiagnostics()
       expect(await separate.getZoomLevels({ tracks })).toEqual(together)
       await settled()
-      expect(server.metrics.requests).toBe(3)
-      expect(server.metrics.bodyBytes).toBe(togetherMetrics.bodyBytes)
-      expect(separate.getDiagnostics().indexBytes).toBe(
-        coalesced.getDiagnostics().indexBytes,
+      expect(togetherMetrics.requests).toBeLessThan(server.metrics.requests)
+      // Coalescing nearby probes saves requests by fetching bounded gaps. It
+      // can transfer more bytes than individual header reads on small fixtures.
+      expect(server.metrics.bodyBytes).toBeLessThanOrEqual(
+        togetherMetrics.bodyBytes,
       )
+      expect(separate.getDiagnostics().indexBytes).toBe(
+        server.metrics.bodyBytes,
+      )
+      const requests = server.metrics.requests
+      expect(
+        await coalesced.getZoomLevels({ tracks: [...tracks].reverse() }),
+      ).toEqual(together)
+      expect(
+        await separate.getZoomLevels({ tracks: [...tracks].reverse() }),
+      ).toEqual(together)
+      await settled()
+      expect(server.metrics.requests).toBe(requests)
     } finally {
       await Promise.all([coalesced.close(), separate.close()])
     }
