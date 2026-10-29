@@ -1,4 +1,4 @@
-# Format and writer findings
+# Figwig format, writer and reader findings
 
 The format findings arose during integration work in GenomeSpy. These notes
 retain format improvement proposals and unresolved writer/reader opportunities.
@@ -6,8 +6,10 @@ Format and writer observations refer to Figwig 0.2.0 at
 [`c0e5d6522c677b9f03cd6831e2dbcea759866628`](https://github.com/jmschrei/figwig/tree/c0e5d6522c677b9f03cd6831e2dbcea759866628),
 using its [frozen v1 specification](https://github.com/jmschrei/figwig/blob/c0e5d6522c677b9f03cd6831e2dbcea759866628/docs/format.rst)
 and the pinned independent [conformance oracle](test/fixtures/README.md).
-Proposed extensions are not implemented v1 features. Writer heuristics and
-figwig-js policies are distinguished below from format constraints.
+Format extensions below are proposals for upstream Figwig, not implemented v1
+features. Python writer configuration, opportunities in this repository's
+figwig-js reader, and GenomeSpy adapter policies have separate sections; they do
+not all require format changes.
 
 ## Figwig format: existing limits
 
@@ -35,6 +37,13 @@ zero-filling the other 90 bases gives **1**. A wholly unobserved bin similarly
 becomes zero instead of missing. For known fully observed data, means can use
 actual genomic width.
 
+### Summary resolution
+
+In both storage orders, the finest stored summary bin spans one header tile;
+additional zoom levels use tile-size multiples of `4^k`. Adding zoom levels only
+provides coarser summaries. Finer summaries require a smaller header tile size
+under v1, coupling summary resolution to raw tiling in position order.
+
 ### Spatial access and track coupling
 
 - Position order has one compressed live-index stream per group, without
@@ -48,7 +57,7 @@ actual genomic width.
 The format determines which bytes are compressed together. Immediate versus
 lazy summary fetching, range coalescing and caching are reader policies.
 
-## Proposed format extensions
+## Figwig format: proposed upstream extensions
 
 1. **Sum and valid-base count per track/bin at every resolution.** Count measured
    zeros, exclude NaNs and chromosome padding, and add counts at coarser levels.
@@ -57,11 +66,15 @@ lazy summary fetching, range coalescing and caching are reader policies.
    raw tiles.
 2. **Float64 base sums.** Remove mandatory float32 tile-sum rounding before zoom
    accumulation. This does not eliminate all floating-point rounding.
-3. **Spatial summary blocks.** Add independently indexed fetch units by
-   chromosome/region and resolution so overview queries need only visible data.
-4. **Seekable position-order live indexes.** Use independent pages or blocks and
+3. **Summary resolution independent of raw tile size.** Allow finer summaries
+   without fragmenting position-order raw chunks. Pair this with spatial summary
+   blocks: finer genome-wide streams alone can increase download and memory costs.
+4. **Spatial summary blocks.** Add independently indexed fetch units by
+   chromosome/region and resolution so regional queries at any stored summary
+   resolution need only nearby blocks.
+5. **Seekable position-order live indexes.** Use independent pages or blocks and
    directories for bounded spatial access within a group.
-5. **Optional min/max summaries.** Define them over valid values, including
+6. **Optional min/max summaries.** Define them over valid values, including
    zeros, to support peak envelopes. They serve a different purpose from means
    or integrated signal.
 
@@ -96,9 +109,12 @@ replace multiresolution summaries for general overviews.
 ### Layout selection
 
 Tile size, storage order and track grouping are existing writer configuration,
-not format extensions. Evaluate both cohort-wide and small-subset panning:
-larger tiles can reduce index overhead while increasing data overfetch. No one
-configuration suits every workload.
+not format extensions. Smaller tiles permit finer summaries, but in position
+order they can also increase raw chunk and live-index entry counts for the same
+covered regions. Track-order raw blocks have independent entry counts and
+extents. Finer summaries increase potential summary-bin counts in either order.
+Evaluate summary resolution, index working sets and data overfetch for both
+cohort-wide and small-subset panning; no one configuration suits every workload.
 
 ## figwig-js: current policies and opportunities
 
@@ -115,7 +131,29 @@ configuration suits every workload.
   summary/zoom sections, then inflates summaries lazily. Deferring unneeded
   summary downloads needs no format change, but cannot create spatial access
   inside a whole-level stream.
-- Count sidecars or validity-mask tracks could prototype missing-aware pyramids
-  within v1. Known retained regions do not establish per-track coverage within
-  those regions. A BigWig overview with Figwig detail is another integration
-  option; none of these conventions is built into this reader.
+- Index cache weights include retained compressed group records and parsed
+  chunk descriptors, not just compressed index bytes. A query's group working
+  set can exceed the cache budget and cause repeated downloads and parsing.
+  Summary query planning can revisit group records even when decoded summaries
+  remain cached. Improve reuse and avoid redundant group loads while preserving
+  allocation limits, cancellation and cache ownership. Larger caches help warm
+  navigation but do not reduce the initial whole-stream read.
+- Evaluate raw-query CPU optimizations by separating inflation, integrity
+  checking, decoding and aggregation costs. Faster execution does not reduce
+  required transfer volume. Any worker-backed reader would also need to preserve
+  validation, allocation limits, cancellation and cache ownership while moving
+  work off the UI thread.
+
+## GenomeSpy integration: caller policies and prototypes
+
+Choosing acceptable screen pixels per bin and using stored summaries at closer
+zoom levels are adapter policies. Existing summaries can avoid raw reads when
+the caller accepts coarser output bins. figwig-js must honor the requested
+resolution and missing-value semantics; it cannot silently make that tradeoff or
+create finer stored summaries. The genomic span at which an adapter switches to
+raw data depends on its policy and viewport width, not a fixed format limit.
+
+Count sidecars or validity-mask tracks could prototype missing-aware pyramids
+within v1. Known retained regions do not establish per-track coverage within
+those regions. A BigWig overview with Figwig detail is another integration
+option; none of these conventions is built into this reader.
