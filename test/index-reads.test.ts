@@ -110,7 +110,10 @@ test('one cached group cannot retain or alias the entire coalesced index respons
         ).byteLength,
     ),
     budget = Math.max(...weights),
-    { reader, reads } = capturedReader(bytes, { indexCacheBytes: budget })
+    { reader, reads } = capturedReader(bytes, {
+      indexCacheBytes: budget,
+      summaryCacheBytes: 0,
+    })
   try {
     await reader.getHeader()
     reads.length = 0

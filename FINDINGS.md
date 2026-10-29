@@ -134,10 +134,11 @@ cohort-wide and small-subset panning; no one configuration suits every workload.
 - Index cache weights include retained compressed group records and parsed
   chunk descriptors, not just compressed index bytes. A query's group working
   set can exceed the cache budget and cause repeated downloads and parsing.
-  Summary query planning can revisit group records even when decoded summaries
-  remain cached. Improve reuse and avoid redundant group loads while preserving
-  allocation limits, cancellation and cache ownership. Larger caches help warm
-  navigation but do not reduce the initial whole-stream read.
+  Compact resolution metadata is cached with decoded summaries under
+  `summaryCacheBytes`, independently of raw-index eviction. Size each cache for
+  its working set while preserving allocation limits, cancellation and cache
+  ownership. Larger caches help warm navigation but do not reduce the initial
+  whole-stream read.
 - Evaluate raw-query CPU optimizations by separating inflation, integrity
   checking, decoding and aggregation costs. Faster execution does not reduce
   required transfer volume. Any worker-backed reader would also need to preserve

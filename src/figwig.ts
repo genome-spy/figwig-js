@@ -95,6 +95,10 @@ interface MissingTile {
   decoded: DecodedChunk
 }
 
+interface SummaryCatalog {
+  factors: number[]
+}
+
 function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false
@@ -109,7 +113,7 @@ export class FigWig {
   private readonly metadata: SharedReadCache<string, MetadataState>
   private readonly groups: SharedReadCache<number, GroupIndex>
   private readonly chunks: SharedReadCache<string, DecodedChunk>
-  private readonly summaries: SharedReadCache<string, Summary>
+  private readonly summaries: SharedReadCache<string, Summary | SummaryCatalog>
   private readonly reads: RangeReads
   private readonly indexReads: RangeReads
   private readonly lifetime = new AbortController()
@@ -188,7 +192,10 @@ export class FigWig {
     this.summaries = new SharedReadCache({
       maxSize: this.options.summaryCacheBytes,
       sizeOf: (s) => {
-        const size = s.bins.byteLength + s.sums.byteLength + 128
+        const size =
+          'factors' in s
+            ? s.factors.length * 8 + 64
+            : s.bins.byteLength + s.sums.byteLength + 128
         return size <= this.options.summaryCacheBytes ? size : NaN
       },
     })
@@ -278,6 +285,23 @@ export class FigWig {
       this.metrics.indexLoadMs += performance.now() - started
       return group
     })
+  }
+  private summaryCatalog(
+    id: number,
+    state: MetadataState,
+    signal?: AbortSignal,
+    loaded?: GroupIndex,
+  ): Promise<SummaryCatalog> {
+    return this.summaries.get(
+      `group:${id}`,
+      this.signal(signal),
+      async (shared) => {
+        const index = loaded ?? (await this.group(id, state, shared))
+        // Copy only scalar metadata. A catalog must not retain compressed group
+        // buffers or raw chunk descriptors after the index cache evicts them.
+        return { factors: index.summaries.map((summary) => summary.factor) }
+      },
+    ) as Promise<SummaryCatalog>
   }
   async getHeader(options: { signal?: AbortSignal } = {}): Promise<Header> {
     return this.completed(
@@ -789,11 +813,13 @@ export class FigWig {
       level < 0
     )
       throw new RangeError('Invalid group or summary level')
-    const summary = await this.summaries.get(
+    const summary = (await this.summaries.get(
       `${group}:${level}`,
       signal,
       async (shared) => {
         const index = await this.group(group, state, shared)
+        aborted(shared)
+        await this.summaryCatalog(group, state, shared, index)
         aborted(shared)
         const ref = index.summaries[level]
         if (!ref)
@@ -802,7 +828,7 @@ export class FigWig {
           )
         return parseSummary(ref, group, state, this.options.maxInflatedBytes)
       },
-    )
+    )) as Summary
     return this.completed(summary, signal)
   }
   async getZoomLevels(options: ReadOptions = {}): Promise<ZoomLevel[]> {
@@ -813,14 +839,14 @@ export class FigWig {
     const levels = new Map<number, ZoomLevel>()
     await Promise.all(
       [...new Set(tracks.map((t) => t.group))].map(async (group) => {
-        const index = await this.group(group, state, options.signal)
+        const catalog = await this.summaryCatalog(group, state, options.signal)
         aborted(options.signal)
-        index.summaries.slice(1).forEach((s, i) => {
+        catalog.factors.slice(1).forEach((factor, i) => {
           const level = i + 1,
             item = levels.get(level) ?? {
               level,
-              factor: s.factor,
-              binSize: s.factor * state.fixed.tile,
+              factor,
+              binSize: factor * state.fixed.tile,
               groups: [],
             }
           item.groups.push(group)
@@ -964,11 +990,11 @@ export class FigWig {
     const summaries = new Map<number, Summary>()
     await Promise.all(
       ids.map(async (id) => {
-        const index = await this.group(id, state, options.signal)
+        const catalog = await this.summaryCatalog(id, state, options.signal)
         aborted(options.signal)
         let level = 0
-        for (let k = 1; k < index.summaries.length; k++) {
-          const size = tile * index.summaries[k].factor
+        for (let k = 1; k < catalog.factors.length; k++) {
+          const size = tile * catalog.factors[k]
           if (
             result.start % size === 0 &&
             result.binSize % size === 0 &&

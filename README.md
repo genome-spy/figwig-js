@@ -206,6 +206,8 @@ sum of `ceil(previousChromosome.tileCount / f)` bins. No bin crosses chromosomes
 Summary arrays are cached and **read-only by convention**; copy before editing.
 Absent zoom levels raise `RangeError`. Zoom availability is queried separately
 from the fixed header so metadata reads do not load every group index.
+Compact resolution metadata shares the summary cache budget with decoded
+summaries, independently of parsed raw-index retention.
 
 ## Precision, integrity, cancellation, and caching
 
@@ -255,7 +257,7 @@ Important constructor defaults (bytes unless otherwise stated):
 | `maxInflatedBytes`      |   128 MiB | One inflated payload / decoded chunk / parsed index                                                 |
 | `indexCacheBytes`       |    32 MiB | Retained parsed group records                                                                       |
 | `chunkCacheBytes`       |    64 MiB | Retained decoded chunks                                                                             |
-| `summaryCacheBytes`     |    32 MiB | Retained decoded summaries                                                                          |
+| `summaryCacheBytes`     |    32 MiB | Retained summary-resolution metadata and decoded summaries                                          |
 | `maxConcurrentRequests` |         6 | Reader-wide filehandle read concurrency                                                             |
 | `coalesceGap`           |      4096 | Maximum gap fetched between nearby chunks or group indexes                                          |
 | `maxCoalescedBytes`     |     4 MiB | Target maximum coalesced range; a larger single chunk or group record is allowed within read limits |
