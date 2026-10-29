@@ -1,6 +1,6 @@
 {
   "name": "@genome-spy/figwig",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Random-access, browser-compatible Figwig v1 multitrack genomic signal reader",
   "type": "module",
   "license": "MIT",

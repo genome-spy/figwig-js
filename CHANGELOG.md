@@ -1,5 +1,12 @@
 # @genome-spy/figwig
 
+## 0.2.3
+
+### Patch Changes
+
+- d85cc76: Fetch raw indexes and selected summary levels independently, reducing unnecessary transfers. Integrity checks for unused sections are deferred until requested.
+- b296834: Reuse cached summary metadata when raw indexes are evicted, reducing repeated index reads during summary queries.
+
 ## 0.2.2
 
 ### Patch Changes
