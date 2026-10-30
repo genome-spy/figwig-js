@@ -267,8 +267,10 @@ export class FigWig {
       const fixed = parseFixed(header)
       const stat = await this.filehandle.stat()
       aborted(shared)
+      // RemoteFile reports zero when CORS hides the physical file size.
       check(
-        Number.isSafeInteger(stat.size) && fixed.length <= stat.size,
+        Number.isSafeInteger(stat.size) &&
+          (stat.size === 0 || fixed.length <= stat.size),
         'file length exceeds physical file size',
       )
       const bytes = await this.read(

@@ -1,6 +1,11 @@
 import { test, expect } from '@playwright/test'
 import { build } from 'esbuild'
-import { createServer, type Server } from 'node:http'
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from 'node:http'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { builtinModules } from 'node:module'
@@ -195,6 +200,47 @@ test('reads metadata, selected native dtypes, and overlapping regions through re
   ).toBe(true)
   expect(metrics.bodyBytes).toBeLessThan(oracle.files.zlib.size)
   expect(errors).toEqual([])
+})
+
+test('reads cross-origin files when Content-Range is not exposed', async ({
+  page,
+}) => {
+  // Alter real server responses so Chromium applies its normal CORS filtering.
+  const hideHeaders = (_request: IncomingMessage, response: ServerResponse) => {
+    response.removeHeader('Access-Control-Expose-Headers')
+  }
+  rangeServer.server.on('request', hideHeaders)
+  try {
+    const results = await page.evaluate(async (url) => {
+      const results = []
+      for (const file of ['zlib', 'tracks_zlib']) {
+        const filehandle = new window.RemoteFile(`${url}/${file}.fw`)
+        const size = (await filehandle.stat()).size
+        const reader = new window.FigWig({ filehandle })
+        try {
+          const header = await reader.getHeader()
+          const values = await reader.getValues('chr1', 50, 150, {
+            tracks: ['signal'],
+          })
+          results.push({
+            size,
+            version: header.version,
+            values: Array.from(values.tracks[0].values),
+          })
+        } finally {
+          await reader.close()
+        }
+      }
+      return results
+    }, rangeServer.url)
+    for (const result of results) {
+      expect(result.size).toBe(0)
+      expect(result.version).toBe(1)
+      expect(result.values).toEqual(expectedValues('signal', 50, 150))
+    }
+  } finally {
+    rangeServer.server.off('request', hideHeaders)
+  }
 })
 
 test('reads compressed track-order blocks and a browser Blob against the independent oracle', async ({

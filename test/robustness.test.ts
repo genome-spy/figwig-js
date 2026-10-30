@@ -145,6 +145,16 @@ describe('malformed files fail before unsafe reads or allocations', () => {
       /statistics/,
     )
   })
+  test('unknown physical size still rejects truncated metadata reads', async () => {
+    const filehandle = handle(fixture().slice(0, 128))
+    filehandle.stat = async () => ({ size: 0 })
+    const fw = new FigWig({ filehandle })
+    try {
+      await expect(fw.getHeader()).rejects.toThrow(/truncated/)
+    } finally {
+      await fw.close()
+    }
+  })
   test('corrupt metadata is checked before use', async () => {
     const data = fixture(),
       f = parseFixed(data)

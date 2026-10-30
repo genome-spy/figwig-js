@@ -59,9 +59,12 @@ import { BlobFile } from 'generic-filehandle2' // browser or Node.js Blob
 const fromBlob = new FigWig({ filehandle: new BlobFile(fileInput.files[0]) })
 ```
 
-A remote server must honor byte ranges and, for browser cross-origin requests,
-expose `Content-Range` through CORS. HTTP validation is the filehandle's
-responsibility; plain `RemoteFile` may accept an ignored initial range request.
+A remote server must honor byte ranges and allow browser cross-origin requests
+through CORS. Exposing `Content-Range` is optional; when the physical file size is
+known, the reader also checks it against the length declared in the Figwig header.
+Truncated reads are rejected even when the physical size is unknown. HTTP
+validation is the filehandle's responsibility; plain `RemoteFile` may accept an
+ignored initial range request.
 
 ## Metadata and track selection
 
