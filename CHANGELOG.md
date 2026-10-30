@@ -1,5 +1,13 @@
 # @genome-spy/figwig
 
+## 0.2.4
+
+### Patch Changes
+
+- d32c351: Read remote Figwig files when CORS does not expose `Content-Range`. Physical-size
+  validation remains enabled when the size is known, and truncated reads are still
+  rejected.
+
 ## 0.2.3
 
 ### Patch Changes
