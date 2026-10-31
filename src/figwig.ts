@@ -29,6 +29,24 @@ import {
   readSummaryCatalog,
 } from './format/group.js'
 import type { ChunkRef, RawIndex, SummaryDescriptor } from './format/group.js'
+import {
+  parseRestartGroup,
+  parseRestartLocator,
+  parseRestartPage,
+  parseRestartRoot,
+  parseRestartSummary,
+  restartBounds,
+  restartLocatorOffset,
+  restartPageEntries,
+  restartPageBytes,
+  validateRestartSource,
+} from './format/summary-index.js'
+import type {
+  RestartGroup,
+  RestartLevel,
+  RestartPage,
+  RestartRoot,
+} from './format/summary-index.js'
 import { decodeBlock, decodeChunk, validateKind } from './decoding/chunk.js'
 import type { DecodedChunk, DecodedTrack } from './decoding/chunk.js'
 import { aborted, check, crc, lowerBound } from './utils/binary.js'
@@ -50,6 +68,9 @@ function diagnostic(): Diagnostics {
     readRequests: 0,
     indexBytes: 0,
     dataBytes: 0,
+    summaryBytes: 0,
+    summaryIndexBytes: 0,
+    summaryInflatedBytes: 0,
     chunksFetched: 0,
     chunksDecompressed: 0,
     indexLoadMs: 0,
@@ -107,6 +128,12 @@ interface SummaryCatalog {
 interface GroupHeader {
   indexSize: number
 }
+interface RestartCached {
+  cacheBytes: number
+}
+interface RestartRootCached extends RestartCached {
+  root?: RestartRoot
+}
 
 function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false
@@ -124,7 +151,7 @@ export class FigWig {
   private readonly chunks: SharedReadCache<string, DecodedChunk>
   private readonly summaries: SharedReadCache<
     string,
-    Summary | SummaryCatalog | GroupHeader
+    Summary | SummaryCatalog | GroupHeader | RestartCached
   >
   private readonly reads: RangeReads
   private readonly indexReads: RangeReads
@@ -205,11 +232,13 @@ export class FigWig {
       maxSize: this.options.summaryCacheBytes,
       sizeOf: (s) => {
         const size =
-          'indexSize' in s
-            ? 64
-            : 'levels' in s
-              ? s.levels.length * 64 + 64
-              : s.bins.byteLength + s.sums.byteLength + 128
+          'cacheBytes' in s
+            ? s.cacheBytes
+            : 'indexSize' in s
+              ? 64
+              : 'levels' in s
+                ? s.levels.length * 64 + 64
+                : s.bins.byteLength + s.sums.byteLength + 128
         return size <= this.options.summaryCacheBytes ? size : NaN
       },
     })
@@ -885,17 +914,29 @@ export class FigWig {
               )
             : new Uint8Array()
         aborted(shared)
-        crc(bytes, ref.checksum, level === 0 ? 'summary' : 'zoom')
         this.metrics.indexLoadMs += performance.now() - started
-        return parseSummary(
-          { ...ref, bytes },
-          group,
-          state,
-          this.options.maxInflatedBytes,
-        )
+        return this.decodeSummary(ref, bytes, group, state)
       },
     )) as Summary
     return this.completed(summary, signal)
+  }
+  private decodeSummary(
+    ref: SummaryDescriptor,
+    bytes: Uint8Array,
+    group: number,
+    state: MetadataState,
+  ) {
+    this.metrics.summaryBytes += ref.size
+    crc(bytes, ref.checksum, ref.factor === 1 ? 'summary' : 'zoom')
+    const result = parseSummary(
+      { ...ref, bytes },
+      group,
+      state,
+      this.options.maxInflatedBytes,
+    )
+    this.metrics.summaryInflatedBytes +=
+      result.bins.byteLength + result.sums.byteLength
+    return result
   }
   async getZoomLevels(options: ReadOptions = {}): Promise<ZoomLevel[]> {
     options = { ...options, signal: this.signal(options.signal) }
@@ -1052,6 +1093,8 @@ export class FigWig {
       (result.end % tile && result.end !== chr.length)
     )
       return false
+    const root = await this.restartRoot(state, options.signal)
+    if (root) return this.restartBins(result, state, root, options)
     const ids = [...new Set(result.tracks.map((t) => t.track.group))]
     const summaries = new Map<number, Summary>()
     await Promise.all(
@@ -1094,6 +1137,366 @@ export class FigWig {
       }
     }
     return true
+  }
+  private async readRestartBytes(
+    offset: number,
+    size: number,
+    signal: AbortSignal,
+  ) {
+    const started = performance.now()
+    const bytes = await this.indexReads.get({ offset, size }, signal)
+    this.metrics.summaryIndexBytes += size
+    this.metrics.indexLoadMs += performance.now() - started
+    return bytes
+  }
+  private async restartRoot(state: MetadataState, signal?: AbortSignal) {
+    const offset = restartLocatorOffset(state)
+    if (offset === undefined) return
+    const cached = (await this.summaries.get(
+      'restart:root',
+      this.signal(signal),
+      async (shared) => ({
+        root: parseRestartRoot(
+          await this.readRestartBytes(offset, 256, shared),
+          offset,
+          state,
+        ),
+        cacheBytes: 256,
+      }),
+    )) as RestartRootCached
+    return cached.root
+  }
+  private restartGroup(
+    group: number,
+    state: MetadataState,
+    root: RestartRoot,
+    signal?: AbortSignal,
+  ): Promise<RestartGroup> {
+    return this.summaries.get(
+      `restart:group:${group}`,
+      this.signal(signal),
+      async (shared) => {
+        const locator = parseRestartLocator(
+          await this.readRestartBytes(root.directory + group * 32, 32, shared),
+          group,
+          root,
+          state,
+        )
+        return parseRestartGroup(
+          await this.readRestartBytes(
+            locator.offset,
+            locator.count * 32,
+            shared,
+          ),
+          locator,
+          root,
+          group,
+          state,
+        )
+      },
+    ) as Promise<RestartGroup>
+  }
+  private async restartSource(
+    group: number,
+    level: number,
+    ref: RestartLevel,
+    signal?: AbortSignal,
+  ) {
+    await this.summaries.get(
+      `restart:source:${group}:${level}`,
+      this.signal(signal),
+      async (shared) => {
+        const headerBytes = level ? 16 : 12,
+          bytes = await this.readRestartBytes(
+            ref.offset - headerBytes,
+            headerBytes + Math.min(2, ref.size),
+            shared,
+          )
+        validateRestartSource(bytes, ref)
+        return { cacheBytes: 32 }
+      },
+    )
+  }
+  private restartPage(
+    group: number,
+    level: number,
+    page: number,
+    ref: RestartLevel,
+    state: MetadataState,
+    root: RestartRoot,
+    signal?: AbortSignal,
+  ): Promise<RestartPage> {
+    return this.summaries.get(
+      `restart:page:${group}:${level}:${page}`,
+      this.signal(signal),
+      async (shared) => {
+        const count = Math.min(
+            restartPageEntries,
+            Math.ceil(ref.binCount / ref.windowBins) -
+              page * restartPageEntries,
+          ),
+          offset = ref.index + page * restartPageBytes,
+          size = 16 + count * 40
+        restartBounds(root, offset, size)
+        check(
+          count > 0 && size + count * 160 <= this.options.maxInflatedBytes,
+          'summary restart page allocation exceeds maxInflatedBytes',
+        )
+        return parseRestartPage(
+          await this.readRestartBytes(offset, size, shared),
+          page,
+          ref,
+          state.members[group].length,
+          this.options.maxInflatedBytes,
+        )
+      },
+    ) as Promise<RestartPage>
+  }
+  private restartWindow(
+    group: number,
+    level: number,
+    windowId: number,
+    ref: RestartLevel,
+    state: MetadataState,
+    root: RestartRoot,
+    signal?: AbortSignal,
+  ): Promise<Summary> {
+    return this.summaries.get(
+      `restart:data:${group}:${level}:${windowId}`,
+      this.signal(signal),
+      async (shared) => {
+        const page = await this.restartPage(
+            group,
+            level,
+            Math.floor(windowId / restartPageEntries),
+            ref,
+            state,
+            root,
+            shared,
+          ),
+          window = page.windows[windowId % restartPageEntries]
+        aborted(shared)
+        if (!window.n)
+          return {
+            factor: ref.factor,
+            binSize: ref.factor * state.fixed.tile,
+            bins: new Uint32Array(),
+            sums: ref.factor === 1 ? new Float32Array() : new Float64Array(),
+            tracks: state.members[group],
+            available: true,
+          }
+        check(
+          2 * window.n * (4 + (level ? 8 : 4) * state.members[group].length) <=
+            this.options.maxInflatedBytes,
+          'parsed summary restart allocation exceeds maxInflatedBytes',
+        )
+        const [ids, sums] = await Promise.all(
+          [window.ids, window.sums].map((fragment) =>
+            this.indexReads.get(
+              { offset: ref.offset + fragment.offset, size: fragment.size },
+              shared,
+            ),
+          ),
+        )
+        aborted(shared)
+        this.metrics.summaryBytes += ids.length + sums.length
+        const summary = parseRestartSummary(
+          ids,
+          sums,
+          window,
+          windowId,
+          ref,
+          group,
+          state,
+          this.options.maxInflatedBytes,
+        )
+        this.metrics.summaryInflatedBytes +=
+          summary.bins.byteLength + summary.sums.byteLength
+        return summary
+      },
+    ) as Promise<Summary>
+  }
+  private completeRestartSummary(
+    group: number,
+    level: number,
+    ref: RestartLevel,
+    state: MetadataState,
+    signal?: AbortSignal,
+  ): Promise<Summary> {
+    // Share whole-level results with the public API, but reuse this catalog
+    // instead of rediscovering every legacy level header for a tiny overview.
+    return this.summaries.get(
+      `${group}:${level}`,
+      this.signal(signal),
+      async (shared) => {
+        const headerBytes = level ? 16 : 12
+        let bytes: Uint8Array
+        if (headerBytes + ref.size <= this.options.maxReadBytes) {
+          const complete = await this.indexReads.get(
+            { offset: ref.offset - headerBytes, size: headerBytes + ref.size },
+            shared,
+          )
+          aborted(shared)
+          this.metrics.summaryIndexBytes += headerBytes
+          validateRestartSource(
+            complete.subarray(0, headerBytes + Math.min(2, ref.size)),
+            ref,
+          )
+          bytes = complete.subarray(headerBytes)
+        } else {
+          await this.restartSource(group, level, ref, shared)
+          bytes = await this.indexReads.get(
+            { offset: ref.offset, size: ref.size },
+            shared,
+          )
+          aborted(shared)
+        }
+        return this.decodeSummary(ref, bytes, group, state)
+      },
+    ) as Promise<Summary>
+  }
+  private async restartBins(
+    result: BinsResult,
+    state: MetadataState,
+    root: RestartRoot,
+    options: BinOptions,
+  ): Promise<boolean> {
+    const controller = new AbortController()
+    options = {
+      ...options,
+      signal: AbortSignal.any([this.signal(options.signal), controller.signal]),
+    }
+    try {
+      const chr = this.region(state.header, result),
+        tile = state.fixed.tile,
+        ids = [...new Set(result.tracks.map((t) => t.track.group))]
+      check(
+        ids.length * 256 <= this.options.maxInflatedBytes,
+        'summary restart query planning exceeds maxInflatedBytes',
+      )
+      const plans = await Promise.all(
+        ids.map(async (group) => {
+          const catalog = await this.restartGroup(
+            group,
+            state,
+            root,
+            options.signal,
+          )
+          let level = 0
+          for (let k = 1; k < catalog.levels.length; k++) {
+            const size = tile * catalog.levels[k].factor
+            if (
+              result.start % size === 0 &&
+              result.binSize % size === 0 &&
+              (result.end % size === 0 || result.end === chr.length)
+            )
+              level = k
+          }
+          const ref = catalog.levels[level],
+            offset = state.header.chromosomes
+              .slice(0, chr.id)
+              .reduce(
+                (sum, chromosome) =>
+                  sum + Math.ceil(chromosome.tileCount / ref.factor),
+                0,
+              )
+          return { group, level, ref, offset }
+        }),
+      )
+      aborted(options.signal)
+      if (plans.some((plan) => plan.ref.size === 0)) return false
+      let next = 0
+      // Groups own disjoint outputs. Windows are consumed in genomic order to keep
+      // floating-point addition identical to the whole-level summary path.
+      await Promise.all(
+        Array.from(
+          {
+            length: Math.min(
+              6,
+              plans.length,
+              this.options.maxConcurrentRequests,
+            ),
+          },
+          async () => {
+            while (next < plans.length) {
+              const { group, level, ref, offset } = plans[next++],
+                selected = result.tracks.filter((t) => t.track.group === group),
+                lo = offset + result.start / (tile * ref.factor),
+                hi = offset + Math.ceil(result.end / (tile * ref.factor)),
+                consume = (summary: Summary) => {
+                  for (const { track, values } of selected) {
+                    const slot = state.trackSlots[track.index]
+                    for (
+                      let j = lowerBound(summary.bins, lo);
+                      j < summary.bins.length && summary.bins[j] < hi;
+                      j++
+                    ) {
+                      const bin = Math.floor(
+                        ((summary.bins[j] - offset) * summary.binSize -
+                          result.start) /
+                          result.binSize,
+                      )
+                      if (bin >= 0 && bin < values.length)
+                        values[bin] +=
+                          summary.sums[j * summary.tracks.length + slot]
+                    }
+                  }
+                }
+              aborted(options.signal)
+              const rawBytes =
+                ref.n * (4 + (level ? 8 : 4) * state.members[group].length)
+              if (
+                this.summaries.has(`${group}:${level}`) ||
+                !ref.windowBins ||
+                ((hi - lo) * 2 >= ref.binCount &&
+                  ref.size <= this.options.maxReadBytes &&
+                  rawBytes <= this.options.maxInflatedBytes)
+              ) {
+                const summary = await this.completeRestartSummary(
+                  group,
+                  level,
+                  ref,
+                  state,
+                  options.signal,
+                )
+                aborted(options.signal)
+                check(
+                  summary.available && summary.bins.length === ref.n,
+                  'summary restart catalog disagrees with complete summary',
+                )
+                consume(summary)
+                continue
+              }
+              await this.restartSource(group, level, ref, options.signal)
+              const first = Math.floor(lo / ref.windowBins),
+                end = Math.ceil(hi / ref.windowBins)
+              for (let window = first; window < end; window += 4) {
+                const summaries = await Promise.all(
+                  Array.from({ length: Math.min(4, end - window) }, (_, i) =>
+                    this.restartWindow(
+                      group,
+                      level,
+                      window + i,
+                      ref,
+                      state,
+                      root,
+                      options.signal,
+                    ),
+                  ),
+                )
+                aborted(options.signal)
+                for (const summary of summaries) consume(summary)
+              }
+            }
+          },
+        ),
+      )
+      aborted(options.signal)
+      return true
+    } catch (error) {
+      controller.abort(error)
+      throw error
+    }
   }
   async getFeatures(
     chromosome: string,

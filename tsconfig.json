@@ -11,5 +11,11 @@
     "noUncheckedIndexedAccess": false,
     "verbatimModuleSyntax": true
   },
-  "include": ["src", "test", "benchmarks", "*.ts"]
+  "include": ["src", "test", "benchmarks", "*.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "benchmarks/results",
+    "benchmarks/fixtures"
+  ]
 }
