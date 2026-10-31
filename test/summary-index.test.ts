@@ -462,10 +462,10 @@ test.each([1, 9])(
     }
   },
 )
-test('a current locator with an older root profile rejects as malformed', async () => {
+test('a locator and root with mismatched versions reject as malformed', async () => {
   const bytes = new Uint8Array(readFileSync(path('summary_positions'))),
     l = layout(bytes)
-  l.view.setUint16(l.root + 8, 1, true)
+  l.view.setUint16(l.root + 8, 9, true)
   updateCrc(bytes, l.root, 256, 12)
   const reader = new FigWig({ filehandle: new BlobFile(new Blob([bytes])) })
   try {

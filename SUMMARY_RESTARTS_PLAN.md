@@ -11,9 +11,9 @@ owns the binary contract in `docs/summary_restarts.rst` and its writer plan in
   the default is `False`. Files without an eligible level remain ordinary v1.
 - figwig-js detects the index for aligned `getBins` and feature
   summary queries. Ordinary v1 fallback and explicit whole-level APIs remain.
-- The 32 KiB target and 2,048-bin cap use profile 2 in the locator
-  and root. Unsupported profiles, including the earlier 16 KiB profile 1, use
-  ordinary v1 summaries. The core file format stays version 1.
+- Windows use a 32 KiB decoded target and a 2,048-bin cap. Unrecognized
+  extension versions use ordinary v1 summaries. The core file format stays
+  version 1.
 - Python also uses the index in its existing selected-chromosome `tile_sums`
   and guarded exact integer `sums` paths. It keeps local file access and the
   existing public API; package e2e tests and local benchmarks cover those reads.
@@ -222,7 +222,7 @@ cheaper than regional fetching when that entire level already fits in memory.
 
 ## Evidence and verification gates
 
-The earlier disposable 16 KiB/profile-1 probes and
+The disposable feasibility probes and
 [evidence bundle](benchmarks/results/summary-index-feasibility.tgz) remain local
 under ignored benchmark results. On macOS 26.5.1 arm64, Python 3.12.13,
 NumPy 2.5.4, zlib 1.2.12, Node 26.8.1 and Chromium 156:

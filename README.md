@@ -215,15 +215,14 @@ independently of parsed raw-index retention. Header probes can add requests;
 range coalescing may fetch intervening bytes within its configured bounds.
 
 Files written with Python's `summary_index=True` flag also support
-regional summary reads using profile 2 (32 KiB decoded target, at most 2,048 bins
-per window).
-Unsupported profiles, including the earlier 16 KiB profile 1, use ordinary v1
-summaries. Aligned bin/feature queries automatically fetch only
+regional summary reads with a 32 KiB decoded window target and at most 2,048 bins
+per window. Aligned bin/feature queries automatically fetch only
 the required fixed windows and small directory pages, retaining the existing
 summary values and track-group coupling. Small levels and broad views use a
 complete stream; `getSummary()` remains a whole-level API. Ordinary v1 files
-keep the existing path. The writer flag defaults to off. The reader/design plan
-is in [SUMMARY_RESTARTS_PLAN.md](SUMMARY_RESTARTS_PLAN.md).
+keep the existing path, as do unrecognized extension versions. The writer flag
+defaults to off. The reader/design plan is in
+[SUMMARY_RESTARTS_PLAN.md](SUMMARY_RESTARTS_PLAN.md).
 
 ## Precision, integrity, cancellation, and caching
 

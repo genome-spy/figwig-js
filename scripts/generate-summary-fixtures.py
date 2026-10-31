@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Generate opt-in summary fixtures through Python and independent v1 readers.
 
-The original nine pinned v1 fixtures are untouched. Until the writer branch is
-committed, the manifest pins its base revision and every relevant source hash.
+The original nine pinned v1 fixtures are untouched. The manifest pins the
+writer revision and every relevant source hash.
 An existing snapshot is refreshed only with --update-source-snapshot.
 Use the canonical entry point: scripts/generate-fixtures.py --summary-upstream
 /absolute/path/to/figwig [--update-source-snapshot].
