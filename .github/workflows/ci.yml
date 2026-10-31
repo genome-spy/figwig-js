@@ -2,16 +2,21 @@ name: Verify package
 on:
   push:
   pull_request:
+  pull_request_review:
+    types: [submitted]
 permissions:
   contents: read
 jobs:
   verify:
+    if: github.event_name != 'pull_request_review' || github.event.review.state == 'approved'
     runs-on: ubuntu-latest
     strategy:
       matrix:
         node: [22, 24]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request_review' && github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
@@ -30,3 +35,75 @@ jobs:
         with:
           name: browser-failure-node-${{ matrix.node }}
           path: test-results/
+  publish-preview:
+    needs: verify
+    if: >-
+      github.repository == 'genome-spy/figwig-js' &&
+      ((github.event_name == 'push' && startsWith(github.ref, 'refs/heads/') && !github.event.deleted) ||
+      (github.event_name == 'pull_request_review' && github.event.review.state == 'approved' &&
+      github.event.pull_request.head.repo.full_name == github.repository))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check pull request approval
+        id: approval
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const { owner, repo } = context.repo
+            const branch = context.payload.pull_request?.head.ref ?? context.ref.slice('refs/heads/'.length)
+            const pulls = await github.paginate(github.rest.pulls.list, {
+              owner, repo, state: 'open', head: `${owner}:${branch}`, per_page: 100,
+            })
+            for (const pull of pulls) {
+              if (pull.head.repo?.full_name !== `${owner}/${repo}`) continue
+              const reviews = await github.paginate(github.rest.pulls.listReviews, {
+                owner, repo, pull_number: pull.number, per_page: 100,
+              })
+              const latest = new Map()
+              for (const review of reviews) {
+                if (review.user && ['APPROVED', 'CHANGES_REQUESTED', 'DISMISSED'].includes(review.state)) {
+                  latest.set(review.user.login, review.state)
+                }
+              }
+              let approved = false
+              let changesRequested = false
+              for (const [username, state] of latest) {
+                if (state === 'DISMISSED') continue
+                let permission
+                try {
+                  const { data } = await github.rest.repos.getCollaboratorPermissionLevel({ owner, repo, username })
+                  permission = data.permission
+                } catch (error) {
+                  if (error.status === 404) continue
+                  throw error
+                }
+                if (!['write', 'admin'].includes(permission)) continue
+                approved ||= state === 'APPROVED'
+                changesRequested ||= state === 'CHANGES_REQUESTED'
+              }
+              if (approved && !changesRequested) {
+                core.info(`Preview approved by pull request #${pull.number}.`)
+                core.setOutput('approved', 'true')
+                return
+              }
+            }
+            core.info('No open pull request has an active maintainer approval without requested changes.')
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.approval.outputs.approved == 'true'
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.approval.outputs.approved == 'true'
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+        if: steps.approval.outputs.approved == 'true'
+      - name: Publish preview package
+        if: steps.approval.outputs.approved == 'true'
+        run: npm exec -- pkg-pr-new publish --previewVersion --comment=off --no-template --no-compact .
