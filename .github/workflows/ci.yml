@@ -2,13 +2,12 @@ name: Verify package
 on:
   push:
   pull_request:
-  pull_request_review:
-    types: [submitted]
+    types: [opened, synchronize, reopened, labeled]
 permissions:
   contents: read
 jobs:
   verify:
-    if: github.event_name != 'pull_request_review' || github.event.review.state == 'approved'
+    if: github.event.action != 'labeled' || github.event.label.name == 'publish-preview'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -16,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'pull_request_review' && github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.action == 'labeled' && github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
@@ -40,7 +39,8 @@ jobs:
     if: >-
       github.repository == 'genome-spy/figwig-js' &&
       ((github.event_name == 'push' && startsWith(github.ref, 'refs/heads/') && !github.event.deleted) ||
-      (github.event_name == 'pull_request_review' && github.event.review.state == 'approved' &&
+      (github.event_name == 'pull_request' && github.event.action == 'labeled' &&
+      github.event.label.name == 'publish-preview' &&
       github.event.pull_request.head.repo.full_name == github.repository))
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -48,7 +48,7 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - name: Check pull request approval
+      - name: Check preview label
         id: approval
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         with:
@@ -58,40 +58,16 @@ jobs:
             const pulls = await github.paginate(github.rest.pulls.list, {
               owner, repo, state: 'open', head: `${owner}:${branch}`, per_page: 100,
             })
-            for (const pull of pulls) {
-              if (pull.head.repo?.full_name !== `${owner}/${repo}`) continue
-              const reviews = await github.paginate(github.rest.pulls.listReviews, {
-                owner, repo, pull_number: pull.number, per_page: 100,
-              })
-              const latest = new Map()
-              for (const review of reviews) {
-                if (review.user && ['APPROVED', 'CHANGES_REQUESTED', 'DISMISSED'].includes(review.state)) {
-                  latest.set(review.user.login, review.state)
-                }
-              }
-              let approved = false
-              let changesRequested = false
-              for (const [username, state] of latest) {
-                if (state === 'DISMISSED') continue
-                let permission
-                try {
-                  const { data } = await github.rest.repos.getCollaboratorPermissionLevel({ owner, repo, username })
-                  permission = data.permission
-                } catch (error) {
-                  if (error.status === 404) continue
-                  throw error
-                }
-                if (!['write', 'admin'].includes(permission)) continue
-                approved ||= state === 'APPROVED'
-                changesRequested ||= state === 'CHANGES_REQUESTED'
-              }
-              if (approved && !changesRequested) {
-                core.info(`Preview approved by pull request #${pull.number}.`)
-                core.setOutput('approved', 'true')
-                return
-              }
+            const approved = pulls.find(pull =>
+              pull.head.repo?.full_name === `${owner}/${repo}` &&
+              pull.labels.some(label => label.name === 'publish-preview')
+            )
+            if (approved) {
+              core.info(`Preview enabled by the publish-preview label on pull request #${approved.number}.`)
+              core.setOutput('approved', 'true')
+            } else {
+              core.info('No open pull request has the publish-preview label.')
             }
-            core.info('No open pull request has an active maintainer approval without requested changes.')
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: steps.approval.outputs.approved == 'true'
         with:
