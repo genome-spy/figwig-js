@@ -106,3 +106,54 @@ times are diagnostic evidence, separate from uninstrumented query timings.
 Follow [AGENTS.md](../AGENTS.md) for performance evidence: keep concise measurements
 in the commit message body, PR description or changeset. Retain raw artifacts
 locally or attach them when needed; do not commit each run or append a diary.
+
+## Summary restart comparison
+
+The dedicated paired benchmark uses the experimental Python writer checkout.
+It writes the same Gaussian float32 signal with `summary_index` off/on in both
+storage orders: eight tracks, a 65,536-tile main chromosome, a short chromosome,
+an empty chromosome and a 2,048-tile gap. Raw signal has one value per occupied
+tile. These performance inputs are separate from conformance fixtures.
+
+```sh
+python benchmarks/scripts/generate-summary-benchmark.py --upstream /absolute/path/to/figwig
+node --import tsx benchmarks/scripts/summary-restarts.ts --repetitions 5
+```
+
+Use Node 24 LTS and the Python dependencies in the fixture guide. The generator
+defaults to ignored `benchmarks/fixtures/summary-restarts/`; `--output` changes
+that directory. It records the writer revision/source hashes, preserves a source
+snapshot and verifies identical raw-data and decoded-summary bytes in each pair.
+Each file is constructed in a fresh process after a small untimed warmup.
+`generationSeconds` excludes signal creation; `processPeakRssBytes` includes
+imports, warmup, input arrays and writer allocations in that process.
+
+The runner defaults to **50,000,000 shared bits/s and 10 ms response latency**,
+using the existing real byte-range server. Ten milliseconds is the pre-response
+round-trip/ping model, rather than ten milliseconds per direction. Concurrency
+is six and response-body chunks are 16 KiB. `--directory`, `--output` and
+`--repetitions` configure paths/repetitions; raw output defaults to ignored
+`benchmarks/results/summary-restarts.json`.
+
+Each repetition creates a new reader and separately records initialization,
+cold reads, repeats, pans inside/new windows, resolution changes, empty regions
+and coarse overviews for one/all tracks. Paired results must match exactly.
+The JSON retains every response range, bytes/requests, payload/index/inflation
+diagnostics, cache weight, observed Node memory, input hashes and reader source
+hashes. Reader source hashes include untracked implementation files.
+The runner saves the exact reader sources beside the result before timing,
+using a directory named after the output with `-reader-source` appended.
+
+This is a Node HTTP/Pako timing benchmark; Chromium end-to-end tests separately
+verify browser execution, cross-origin CORS filtering, exact summary values,
+bounded reads, cache reuse and cancellation at the same network settings:
+
+```sh
+npx playwright test test/browser/summary-restarts.spec.ts
+```
+
+Memory observations after an operation are not per-operation peak memory, and
+cache weights are not RSS. The link model excludes TCP loss, connection setup,
+HTTP/2 scheduling and proxy caches. Warm whole-level caches can make an ordinary
+file's subsequent distant pan cheaper; compare total navigation work as well as
+the initial cold query.

@@ -60,3 +60,35 @@ Tile summaries omit NaNs and round each tile sum to float32. Zoom records sum
 those float32 tile sums into float64 values. Therefore summary values are tested
 against the Python summary oracle rather than an assumed exact full-resolution
 sum, and cannot by themselves provide missing-aware mean denominators.
+
+## Optional summary restart fixtures
+
+The separate `summary_positions.fw` / `summary_positions_legacy.fw` and
+`summary_tracks.fw` / `summary_tracks_legacy.fw` pairs contain identical signals
+with the experimental writer flag on/off (profile 2, 32 KiB target and 2,048-bin
+cap). They leave the original nine fixtures
+and `expected.json` unchanged. Nine tracks include explicit NaNs, measured and
+implicit zeros, cancelling sums, a raw float64 precision case and a truly
+unwritten track. Three chromosomes cover an empty window/chromosome, partial
+ends and storage windows containing bins from adjacent chromosomes.
+
+Generate the pairs using the dependency versions above and the writer checkout:
+
+```sh
+python scripts/generate-fixtures.py --summary-upstream /absolute/path/to/figwig
+```
+
+`summary-expected.json` records file/data hashes, exact independent regional
+summary expectations, level locations and writer source provenance. While the
+writer branch is uncommitted, this pins the base revision plus the relevant
+source/spec hashes and tracked patch hash. Regeneration refuses a changed source
+snapshot unless `--update-source-snapshot` explicitly accepts it after review.
+Before publishing the fixtures, retain that source snapshot in pinned history
+or a durable attachment.
+
+The generator reads every raw base and stored summary through the unchanged
+independent v1 specification reader and Python `FigWigReader(verify=True)`,
+checks on/off summary bytes, and validates indexed fragments through the
+independent upstream `tests/summary_reference.py`. No JavaScript decoder supplies
+expected values. The smaller track-order zoom streams deliberately exercise
+legacy fallback; position order also exercises indexed zooms.

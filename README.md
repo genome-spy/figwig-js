@@ -214,6 +214,17 @@ Compact section metadata shares the summary cache budget with decoded summaries,
 independently of parsed raw-index retention. Header probes can add requests;
 range coalescing may fetch intervening bytes within its configured bounds.
 
+Files written with Python's experimental `summary_index=True` flag also support
+regional summary reads using profile 2 (32 KiB decoded target, at most 2,048 bins
+per window). The extension is experimental and may change before stabilization.
+Unsupported profiles, including the earlier 16 KiB profile 1, use ordinary v1
+summaries. Aligned bin/feature queries automatically fetch only
+the required fixed windows and small directory pages, retaining the existing
+summary values and track-group coupling. Small levels and broad views use a
+complete stream; `getSummary()` remains a whole-level API. Ordinary v1 files
+keep the existing path. The writer flag defaults to off. The reader/design plan
+is in [SUMMARY_RESTARTS_PLAN.md](SUMMARY_RESTARTS_PLAN.md).
+
 ## Precision, integrity, cancellation, and caching
 
 Per-base arrays preserve declared dtypes (`uint8/16/32`, `int8/16/32`,
@@ -226,6 +237,11 @@ sections are validated when requested; bytes fetched only as coalescing gaps
 are not interpreted or validated as sections.
 `verify: false` disables optional chunk CRC checks; stored chunks in codec 1
 remain CRC-checked. Zlib checks include declared size, Adler32 and trailing input.
+Regional restart reads always check requested directory and compressed/decoded
+fragment CRCs, exact bounded output, and DEFLATE framing. The complete stream's
+CRC/Adler is checked when that stream is read; corruption in unread fragments
+is deferred. A stale restart directory falls back to ordinary summaries, while
+recognized current-generation corruption raises an error.
 
 ```ts
 const controller = new AbortController()
@@ -265,7 +281,7 @@ Important constructor defaults (bytes unless otherwise stated):
 | `maxInflatedBytes`      |   128 MiB | One inflated payload / decoded chunk / parsed index                                                          |
 | `indexCacheBytes`       |    32 MiB | Retained parsed raw indexes                                                                                  |
 | `chunkCacheBytes`       |    64 MiB | Retained decoded chunks                                                                                      |
-| `summaryCacheBytes`     |    32 MiB | Retained group-section metadata and decoded summaries                                                        |
+| `summaryCacheBytes`     |    32 MiB | Retained section/restart metadata, descriptor pages, decoded windows and whole summaries                     |
 | `maxConcurrentRequests` |         6 | Reader-wide filehandle read concurrency                                                                      |
 | `coalesceGap`           |      4096 | Maximum gap fetched between nearby chunks or group indexes                                                   |
 | `maxCoalescedBytes`     |     4 MiB | Target maximum coalesced range; a larger single chunk or index/summary section is allowed within read limits |
@@ -276,6 +292,10 @@ They bound individual allocations and retained caches, not total process memory
 across arbitrary numbers of concurrent queries. Diagnostics from
 `getDiagnostics()` report reads, index/data bytes, chunk hits/fetches/inflates,
 timings, and estimated cache bytes. `resetDiagnostics()` resets counters.
+`summaryBytes` and `summaryIndexBytes` count requested compressed payload and
+restart-directory/source-header bytes, excluding coalescing gaps;
+`summaryInflatedBytes` counts decoded summary bytes on cache misses. Total
+filehandle traffic remains `indexBytes + dataBytes`, including fetched gaps.
 
 ## Format support and limits
 
@@ -314,12 +334,13 @@ has coarser fetch units than [BigWig's spatial indexes](https://github.com/ucscG
 - **Track groups:** Compressed chunks couple tracks. Large groups favor
   many-track queries; small groups reduce subset overfetch but can require
   more requests.
-- **Summaries:** Each Figwig tile-summary or zoom level is one genome-wide
-  stream per group. BigWig zoom data is spatially indexed.
+- **Summaries:** Ordinary v1 levels are genome-wide streams per group. The
+  experimental restart index permits regional reads inside those streams;
+  BigWig uses spatially indexed zoom blocks.
 
-Our reader coalesces nearby group-index requests and also fetches compressed
-summaries and zooms during initial group loading. Deferred summary loading
-could further reduce transferred bytes within v1.
+The reader discovers section headers separately, loads selected raw indexes
+only for raw queries, and fetches selected summary levels or indexed windows
+on demand. It coalesces nearby ranges within the configured bounds.
 
 See [FINDINGS.md](FINDINGS.md) for the format/implementation distinction and
 [benchmarks](benchmarks/RESULTS.md) for measurements. No equivalent BigWig
