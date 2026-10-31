@@ -7,6 +7,39 @@ Node/Chromium tests, other checks and package build before publishing with
 provenance. A separate job then creates a GitHub Release from the matching
 `CHANGELOG.md` entry. Pushing a tag alone does not publish.
 
+## Preview packages
+
+The `publish-preview` job in `ci.yml` publishes to [pkg.pr.new](https://github.com/stackblitz-labs/pkg.pr.new#setup)
+after the Node.js 22 and 24 verification jobs pass for each push to a branch in
+`genome-spy/figwig-js` with an open pull request approved by someone
+with write or admin access. The latest approval must not be dismissed or
+superseded by that reviewer's request for changes, and no other maintainer may
+have an outstanding request for changes. Comment-only reviews do not withdraw
+approval. If GitHub dismisses approvals after a push, the new commit needs
+another approval.
+
+Submitting an approval also runs verification and publishes the PR head commit,
+so the first preview does not need another push. Later pushes publish while the
+PR remains approved. Every qualifying push is kept; newer pushes do not cancel
+earlier publications. Tags, branch deletions, branches without approved PRs,
+and fork branches do not publish previews. Existing branches must include this
+workflow and its locked CLI dependency before they can publish.
+
+Before the first publication, install the [pkg.pr.new GitHub App](https://github.com/apps/pkg-pr-new)
+for `genome-spy/figwig-js`. No npm publishing credentials or additional repository
+secrets are needed. The CLI is installed from the lockfile, and `npm pack` runs
+the existing `prepack` build. Packages use a `0.0.0-preview-<sha>` version to avoid
+collisions with npm releases. Preview URLs appear in the Actions job log; PR
+comments and StackBlitz templates are disabled.
+
+Install a preview using its commit SHA:
+
+```sh
+npm install https://pkg.pr.new/genome-spy/figwig-js/@genome-spy/figwig@COMMIT_SHA
+```
+
+Published previews are separate from npm releases and do not consume changesets.
+
 ## Configure trusted publishing
 
 When configuring or replacing a trusted publisher, complete its first successful
