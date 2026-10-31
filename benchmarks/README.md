@@ -109,7 +109,7 @@ locally or attach them when needed; do not commit each run or append a diary.
 
 ## Summary restart comparison
 
-The dedicated paired benchmark uses the experimental Python writer checkout.
+The dedicated paired benchmark uses the Python writer checkout.
 It writes the same Gaussian float32 signal with `summary_index` off/on in both
 storage orders: eight tracks, a 65,536-tile main chromosome, a short chromosome,
 an empty chromosome and a 2,048-tile gap. Raw signal has one value per occupied

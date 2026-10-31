@@ -65,7 +65,7 @@ sum, and cannot by themselves provide missing-aware mean denominators.
 
 The separate `summary_positions.fw` / `summary_positions_legacy.fw` and
 `summary_tracks.fw` / `summary_tracks_legacy.fw` pairs contain identical signals
-with the experimental writer flag on/off (profile 2, 32 KiB target and 2,048-bin
+with the writer flag on/off (profile 2, 32 KiB target and 2,048-bin
 cap). They leave the original nine fixtures
 and `expected.json` unchanged. Nine tracks include explicit NaNs, measured and
 implicit zeros, cancelling sums, a raw float64 precision case and a truly
@@ -79,9 +79,9 @@ python scripts/generate-fixtures.py --summary-upstream /absolute/path/to/figwig
 ```
 
 `summary-expected.json` records file/data hashes, exact independent regional
-summary expectations, level locations and writer source provenance. While the
-writer branch is uncommitted, this pins the base revision plus the relevant
-source/spec hashes and tracked patch hash. Regeneration refuses a changed source
+summary expectations, level locations and writer source provenance. The snapshot
+pins the writer revision, relevant source/spec hashes and tracked patch hash.
+Regeneration refuses a changed source
 snapshot unless `--update-source-snapshot` explicitly accepts it after review.
 Before publishing the fixtures, retain that source snapshot in pinned history
 or a durable attachment.

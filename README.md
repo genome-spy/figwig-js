@@ -214,9 +214,9 @@ Compact section metadata shares the summary cache budget with decoded summaries,
 independently of parsed raw-index retention. Header probes can add requests;
 range coalescing may fetch intervening bytes within its configured bounds.
 
-Files written with Python's experimental `summary_index=True` flag also support
+Files written with Python's `summary_index=True` flag also support
 regional summary reads using profile 2 (32 KiB decoded target, at most 2,048 bins
-per window). The extension is experimental and may change before stabilization.
+per window).
 Unsupported profiles, including the earlier 16 KiB profile 1, use ordinary v1
 summaries. Aligned bin/feature queries automatically fetch only
 the required fixed windows and small directory pages, retaining the existing
@@ -335,7 +335,7 @@ has coarser fetch units than [BigWig's spatial indexes](https://github.com/ucscG
   many-track queries; small groups reduce subset overfetch but can require
   more requests.
 - **Summaries:** Ordinary v1 levels are genome-wide streams per group. The
-  experimental restart index permits regional reads inside those streams;
+  restart index permits regional reads inside those streams;
   BigWig uses spatially indexed zoom blocks.
 
 The reader discovers section headers separately, loads selected raw indexes

@@ -9,9 +9,9 @@ owns the binary contract in `docs/summary_restarts.rst` and its writer plan in
 
 - Python `FigWigWriter(..., summary_index=True)` and `write_figwig` opt in;
   the default is `False`. Files without an eligible level remain ordinary v1.
-- figwig-js detects the experimental index for aligned `getBins` and feature
+- figwig-js detects the index for aligned `getBins` and feature
   summary queries. Ordinary v1 fallback and explicit whole-level APIs remain.
-- The 32 KiB target and 2,048-bin cap use experimental profile 2 in the locator
+- The 32 KiB target and 2,048-bin cap use profile 2 in the locator
   and root. Unsupported profiles, including the earlier 16 KiB profile 1, use
   ordinary v1 summaries. The core file format stays version 1.
 - Python also uses the index in its existing selected-chromosome `tile_sums`
@@ -79,7 +79,7 @@ and the independent reference accepted a counted trailer which JS rejected;
 all three accepted a nonzero reserved zoom offset despite its required zero.
 Those parser gaps do not authorize a writer layout change.
 
-Discovery requires both experimental optional bit `0x2` and the namespaced
+Discovery requires both optional bit `0x2` and the namespaced
 metadata locator `org.figwig.summary-restarts` with version 2. A missing key
 or unknown locator version falls back. This branch does not claim a registered
 upstream feature assignment. The root contains the exact final 128-byte header,

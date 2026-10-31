@@ -19,7 +19,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 # Keep one canonical entry point for independently generated expectations. The
-# experimental writer is a different pinned snapshot than the nine v1 fixtures.
+# writer is a different pinned snapshot than the nine v1 fixtures.
 if __name__ == '__main__' and any(
         arg.partition('=')[0] == '--summary-upstream' for arg in sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Generate optional summary-index fixtures')

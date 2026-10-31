@@ -1,7 +1,7 @@
 {
   "provenance": {
     "writer": {
-      "baseRevision": "1052310689c5cc76a9a78c2e9fda30c698d8c16c",
+      "baseRevision": "9868eb09edc7ab9fd0f62a615ce3f070aaef5797",
       "sourceSha256": {
         "figwig/__init__.py": "ebf01ad83da3a4ce26acf367f938781c72eb74dd391262cef10847d80b6f970a",
         "figwig/__main__.py": "36743bc4521ea409a78dbc851a94bfc2fd9ac6a753e5c6291f548a66ceac6550",
@@ -17,7 +17,7 @@
         "figwig/bam2fw.py": "4e6028c8c1bb51397df4df4e8be3932bd9d7ff5ade43995765db592032785df6",
         "figwig/bigwig.py": "bdc432c9cfe65b5c311ffe6452f59a307930e4b0033257e1d1c35bd9295f318e",
         "figwig/bw2fw.py": "fc571594d965bc882cab7ae135898f6676c884e089330111354b19cf8af0f751",
-        "figwig/figwig.py": "bda82ae8f1a29b2c6cf5766809a9ad6e0ef1ee923e38e907150ef3e59a99ef37",
+        "figwig/figwig.py": "8f844538f66b54f39b20fda70d460cadcd4c4b26307b00d6a9cc1bed4a6b8c5b",
         "figwig/fw2bw.py": "b540fc9b1eb68ae27d889baabc8f03204c266b4d5f7cbea74830e6b166ed67c3",
         "figwig/info.py": "fa8f8d93138acc5dbee091df551d30aa872fa8d989fb77be669a0c9c44c3f6a6",
         "figwig/install_skill.py": "1d9ab9c22de98595105e32cef99b3d26062ac44f538f0f3a8b79a299e550c1bb",
@@ -26,10 +26,10 @@
         "figwig/writer.py": "7e0269fa54722497c19c28cc82475930fe57ee042778047a28ffe260574ba1be",
         "tests/format_reference.py": "bfa0b3ad1c6a82c76c062cfb3403360e9258589727a128cab3499185a5f99b78",
         "tests/summary_reference.py": "65e51746ed95eacdec0fa6db1687b01eb75cbc1452d8bbcd6722ade61ca8a07b",
-        "docs/format.rst": "7d64f600756b11efa3fbef7e69d69590bd5224fd92f4cf68029340b63008fc47",
-        "docs/summary_restarts.rst": "79a707f86a3700fcfc4513141c6172b02fa0e72b89aadb6c107d8e848680c265"
+        "docs/format.rst": "4e6967740ce3f0e4afdb5db41fe21664263eb2ed619163bf297c9614db1ecdf2",
+        "docs/summary_restarts.rst": "5ae339a6659f4cadaf078d052fead3fb3b3ffb29fa2ab6a2938ffed67a7faddb"
       },
-      "trackedPatchSha256": "f6f466fae342cb44ef6f63beefb84348512b119c1883a168dd83f56ef22e78c9"
+      "trackedPatchSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "generatorSha256": "563ae4b547119ab68692ec233375d7ecd8945babcf79315fbaba1f65d95c9458",
     "python": "3.12.13",
