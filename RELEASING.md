@@ -11,19 +11,19 @@ provenance. A separate job then creates a GitHub Release from the matching
 
 The `publish-preview` job in `ci.yml` publishes to [pkg.pr.new](https://github.com/stackblitz-labs/pkg.pr.new#setup)
 after the Node.js 22 and 24 verification jobs pass for each push to a branch in
-`genome-spy/figwig-js` with an open pull request approved by someone
-with write or admin access. The latest approval must not be dismissed or
-superseded by that reviewer's request for changes, and no other maintainer may
-have an outstanding request for changes. Comment-only reviews do not withdraw
-approval. If GitHub dismisses approvals after a push, the new commit needs
-another approval.
+`genome-spy/figwig-js` with an open pull request labeled `publish-preview`.
+The label is the maintainer's approval to publish that branch; a PR review is
+not required, so a sole maintainer can approve their own branch. Draft PRs are
+supported.
 
-Submitting an approval also runs verification and publishes the PR head commit,
-so the first preview does not need another push. Later pushes publish while the
-PR remains approved. Every qualifying push is kept; newer pushes do not cancel
-earlier publications. Tags, branch deletions, branches without approved PRs,
-and fork branches do not publish previews. Existing branches must include this
-workflow and its locked CLI dependency before they can publish.
+Add `publish-preview` through the PR's **Labels** menu to run verification and
+publish its head commit immediately. Later pushes publish while the label
+remains on an open PR. Remove the label to stop future publications; the job
+checks the current label after verification. Every qualifying push is kept;
+newer pushes do not cancel earlier publications. Tags, branch deletions,
+branches without labeled PRs and fork branches do not publish previews.
+Existing branches must include this workflow and its locked CLI dependency
+before they can publish.
 
 Before the first publication, install the [pkg.pr.new GitHub App](https://github.com/apps/pkg-pr-new)
 for `genome-spy/figwig-js`. No npm publishing credentials or additional repository
