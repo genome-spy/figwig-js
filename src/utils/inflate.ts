@@ -1,6 +1,57 @@
 import { Inflate } from 'pako-esm2'
 import { check, FigWigError } from './binary.js'
 
+/** A writer-recorded full-flush fragment, independently decodable without history. */
+export function inflateRestart(
+  bytes: Uint8Array,
+  expected: number,
+  limit: number,
+): Uint8Array {
+  check(
+    Number.isSafeInteger(expected) && expected > 0 && expected <= limit,
+    'inflated allocation exceeds maxInflatedBytes',
+  )
+  check(
+    bytes.length >= 4 &&
+      bytes[bytes.length - 4] === 0 &&
+      bytes[bytes.length - 3] === 0 &&
+      bytes[bytes.length - 2] === 255 &&
+      bytes[bytes.length - 1] === 255,
+    'invalid summary restart full-flush marker',
+  )
+  const input = new Uint8Array(bytes.length + 2),
+    out = new Uint8Array(expected)
+  input.set(bytes)
+  input.set([3, 0], bytes.length)
+  const inflater = new Inflate({
+    raw: true,
+    chunkSize: Math.min(65536, expected + 1),
+  })
+  let count = 0
+  inflater.onData = (data) => {
+    check(
+      count + data.length <= expected,
+      'summary restart expands beyond declared size',
+    )
+    out.set(data, count)
+    count += data.length
+  }
+  try {
+    inflater.push(input, false)
+  } catch (cause) {
+    if (cause instanceof FigWigError) throw cause
+    throw new FigWigError('corrupt summary restart DEFLATE', { cause })
+  }
+  check(
+    inflater.err === 0 &&
+      inflater.ended &&
+      count === expected &&
+      inflater.strm?.next_in === input.length,
+    'corrupt, truncated, trailing, or wrong-sized summary restart',
+  )
+  return out
+}
+
 /** A single RFC1950 stream: bounded output, Adler32, and no trailing bytes. */
 export function inflateZlib(
   bytes: Uint8Array,

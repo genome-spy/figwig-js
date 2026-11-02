@@ -127,6 +127,12 @@ export interface Diagnostics {
   readRequests: number
   indexBytes: number
   dataBytes: number
+  /** Requested compressed summary payload bytes, excluding coalescing gaps. */
+  summaryBytes: number
+  /** Requested restart directory and source-header bytes, excluding gaps. */
+  summaryIndexBytes: number
+  /** Summary bytes inflated on cache misses, including IDs and coupled tracks. */
+  summaryInflatedBytes: number
   chunksFetched: number
   chunksDecompressed: number
   indexLoadMs: number

@@ -2,6 +2,7 @@ import type { Header, DType, Track, Chromosome, Statistics } from '../types.js'
 import { check, crc, Cursor, FigWigError, utf8 } from '../utils/binary.js'
 
 export interface FixedHeader {
+  bytes: Uint8Array
   flags: number
   tile: number
   codec: 0 | 1
@@ -93,6 +94,7 @@ export function parseFixed(bytes: Uint8Array): FixedHeader {
     'statistics or metadata extend into next table',
   )
   return {
+    bytes: Uint8Array.from(bytes.subarray(0, 128)),
     flags,
     tile,
     codec,

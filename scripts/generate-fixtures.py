@@ -6,6 +6,7 @@ values come from the standalone specification reader, checked against Python's
 FigWigReader. The JavaScript implementation is never imported here.
 """
 
+import argparse
 import hashlib
 import importlib.metadata
 import json
@@ -17,8 +18,26 @@ import zlib
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
-import figwig
-import numpy as np
+# Keep one canonical entry point for independently generated expectations. The
+# writer is a different pinned snapshot than the nine v1 fixtures.
+if __name__ == '__main__' and any(
+        arg.partition('=')[0] == '--summary-upstream' for arg in sys.argv[1:]):
+    parser = argparse.ArgumentParser(description='Generate optional summary-index fixtures')
+    parser.add_argument('--summary-upstream', type=Path, required=True)
+    parser.add_argument('--output', type=Path)
+    parser.add_argument('--update-source-snapshot', action='store_true')
+    args = parser.parse_args()
+    command = [sys.executable, str(Path(__file__).with_name('generate-summary-fixtures.py')),
+               '--upstream', str(args.summary_upstream)]
+    if args.output is not None:
+        command += ['--output', str(args.output)]
+    if args.update_source_snapshot:
+        command.append('--update-source-snapshot')
+    subprocess.run(command, check=True)
+    raise SystemExit(0)
+
+import figwig  # noqa: E402
+import numpy as np  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).parent / "vendor"))
 import format_fixtures as fixtures  # noqa: E402

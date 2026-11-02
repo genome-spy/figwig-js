@@ -60,3 +60,41 @@ Tile summaries omit NaNs and round each tile sum to float32. Zoom records sum
 those float32 tile sums into float64 values. Therefore summary values are tested
 against the Python summary oracle rather than an assumed exact full-resolution
 sum, and cannot by themselves provide missing-aware mean denominators.
+
+## Optional summary restart fixtures
+
+The separate `summary_positions.fw` / `summary_positions_legacy.fw` and
+`summary_tracks.fw` / `summary_tracks_legacy.fw` pairs contain identical signals
+with the writer flag on/off (32 KiB decoded window target and 2,048-bin
+cap). They leave the original nine fixtures
+and `expected.json` unchanged. Nine tracks include explicit NaNs, measured and
+implicit zeros, cancelling sums, a raw float64 precision case and a truly
+unwritten track. Three chromosomes cover an empty window/chromosome, partial
+ends and storage windows containing bins from adjacent chromosomes.
+
+The writer is pinned to upstream main at
+[`dc99952f9512e7385d9f81ba8cf75a2b328b4865`](https://github.com/jmschrei/figwig/tree/dc99952f9512e7385d9f81ba8cf75a2b328b4865),
+which includes the merged regional summary index. Its binary layout is specified
+in [`docs/format.rst`](https://github.com/jmschrei/figwig/blob/dc99952f9512e7385d9f81ba8cf75a2b328b4865/docs/format.rst#the-regional-summary-index)
+and `docs/figwig.ksy`.
+
+Generate the pairs using the dependency versions above and a clean writer
+checkout at that revision:
+
+```sh
+python scripts/generate-fixtures.py --summary-upstream /absolute/path/to/figwig
+```
+
+`summary-expected.json` records file/data hashes, exact independent regional
+summary expectations, level locations and writer source provenance. The snapshot
+pins the writer revision, relevant source/spec hashes and tracked patch hash.
+Regeneration refuses a changed source
+snapshot unless `--update-source-snapshot` explicitly accepts it after review.
+The pinned upstream commit retains the source snapshot.
+
+The generator reads every raw base and stored summary through the unchanged
+independent v1 specification reader and Python `FigWigReader(verify=True)`,
+checks on/off summary bytes, and validates indexed fragments through the
+independent upstream `tests/summary_reference.py`. No JavaScript decoder supplies
+expected values. The smaller track-order zoom streams deliberately exercise
+legacy fallback; position order also exercises indexed zooms.
