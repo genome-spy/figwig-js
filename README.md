@@ -214,15 +214,18 @@ Compact section metadata shares the summary cache budget with decoded summaries,
 independently of parsed raw-index retention. Header probes can add requests;
 range coalescing may fetch intervening bytes within its configured bounds.
 
-Files written with Python's `summary_index=True` flag also support
+Files written with Python's `summary_index=True` flag (or the converter's
+`--summary-index`) also support
 regional summary reads with a 32 KiB decoded window target and at most 2,048 bins
 per window. Aligned bin/feature queries automatically fetch only
 the required fixed windows and small directory pages, retaining the existing
 summary values and track-group coupling. Small levels and broad views use a
 complete stream; `getSummary()` remains a whole-level API. Ordinary v1 files
 keep the existing path, as do unrecognized extension versions. The writer flag
-defaults to off. The reader/design plan is in
-[SUMMARY_RESTARTS_PLAN.md](SUMMARY_RESTARTS_PLAN.md).
+defaults to off. This requires a writer with the
+[upstream summary indexing support](https://github.com/jmschrei/figwig/pull/41).
+The binary layout is specified in the
+[upstream format documentation](https://github.com/jmschrei/figwig/blob/main/docs/format.rst#the-regional-summary-index).
 
 ## Precision, integrity, cancellation, and caching
 

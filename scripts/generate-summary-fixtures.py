@@ -36,8 +36,9 @@ def sha256(data):
 def source_snapshot(upstream):
     files = sorted((upstream / "figwig").glob("*.py"))
     files += [upstream / "tests/format_reference.py", upstream / "tests/summary_reference.py",
-              upstream / "docs/format.rst", upstream / "docs/summary_restarts.rst"]
+              upstream / "docs/format.rst", upstream / "docs/figwig.ksy"]
     return {
+        "repository": "https://github.com/jmschrei/figwig",
         "baseRevision": subprocess.check_output(
             ["git", "-C", str(upstream), "rev-parse", "HEAD"], text=True).strip(),
         "sourceSha256": {str(p.relative_to(upstream)): sha256(p.read_bytes()) for p in files},
@@ -208,9 +209,9 @@ def main():
                         assert np.array_equal(left[0], right[0]) and left[1].tobytes() == right[1].tobytes()
             levels = []
             if index:
-                for group in index["groups"]:
-                    for level in group["levels"]:
-                        levels.append({key: level[key] for key in ["level", "factor", "source_offset", "source_rows", "source_bytes", "source_crc", "window_bins", "index_offset"]} | {"group": group["group"]})
+                for group_id, group in enumerate(index.groups):
+                    for level in group.levels:
+                        levels.append({"level": level.k} | {key: getattr(level, key) for key in ["factor", "source_offset", "source_rows", "source_bytes", "source_crc", "window_bins", "index_offset"]} | {"group": group_id})
             result["files"][name] = {
                 "file": target.name, "order": order, "summaryIndex": enabled,
                 "size": target.stat().st_size, "sha256": sha256(target.read_bytes()),

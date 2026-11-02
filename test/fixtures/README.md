@@ -72,7 +72,14 @@ implicit zeros, cancelling sums, a raw float64 precision case and a truly
 unwritten track. Three chromosomes cover an empty window/chromosome, partial
 ends and storage windows containing bins from adjacent chromosomes.
 
-Generate the pairs using the dependency versions above and the writer checkout:
+The writer is pinned to upstream main at
+[`dc99952f9512e7385d9f81ba8cf75a2b328b4865`](https://github.com/jmschrei/figwig/tree/dc99952f9512e7385d9f81ba8cf75a2b328b4865),
+which includes the merged regional summary index. Its binary layout is specified
+in [`docs/format.rst`](https://github.com/jmschrei/figwig/blob/dc99952f9512e7385d9f81ba8cf75a2b328b4865/docs/format.rst#the-regional-summary-index)
+and `docs/figwig.ksy`.
+
+Generate the pairs using the dependency versions above and a clean writer
+checkout at that revision:
 
 ```sh
 python scripts/generate-fixtures.py --summary-upstream /absolute/path/to/figwig
@@ -83,8 +90,7 @@ summary expectations, level locations and writer source provenance. The snapshot
 pins the writer revision, relevant source/spec hashes and tracked patch hash.
 Regeneration refuses a changed source
 snapshot unless `--update-source-snapshot` explicitly accepts it after review.
-Before publishing the fixtures, retain that source snapshot in pinned history
-or a durable attachment.
+The pinned upstream commit retains the source snapshot.
 
 The generator reads every raw base and stored summary through the unchanged
 independent v1 specification reader and Python `FigWigReader(verify=True)`,
